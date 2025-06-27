@@ -1,0 +1,3 @@
+# Dependencies to install in the React Native frontend
+axios
+@react-native-async-storage/async-storage
