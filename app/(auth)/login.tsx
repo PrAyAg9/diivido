@@ -35,7 +35,8 @@ export default function LoginScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);  const handleLogin = async () => {
+  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
+  const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
       setError('Please fill in all fields');
       return;
@@ -43,7 +44,7 @@ export default function LoginScreen() {
 
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const result = await signIn(email.trim(), password);
       if (result.error) {

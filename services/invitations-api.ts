@@ -24,13 +24,17 @@ invitationAxios.interceptors.request.use(
 );
 
 // Send invitation to a user by email
-export const sendUserInvitation = async (email: string, groupId?: string, groupName?: string) => {
+export const sendUserInvitation = async (
+  email: string,
+  groupId?: string,
+  groupName?: string
+) => {
   try {
     console.log('Sending invitation to:', email);
     const response = await invitationAxios.post('/invitations/invite', {
       email,
       groupId,
-      groupName
+      groupName,
     });
     console.log('Invitation response:', response.data);
     return response;
@@ -41,18 +45,25 @@ export const sendUserInvitation = async (email: string, groupId?: string, groupN
 };
 
 // Resend invitation to a user by email
-export const resendUserInvitation = async (email: string, groupId?: string, groupName?: string) => {
+export const resendUserInvitation = async (
+  email: string,
+  groupId?: string,
+  groupName?: string
+) => {
   try {
     console.log('Resending invitation to:', email);
     const response = await invitationAxios.post('/invitations/resend', {
       email,
       groupId,
-      groupName
+      groupName,
     });
     console.log('Resend invitation response:', response.data);
     return response;
   } catch (error: any) {
-    console.error('Resend invitation error:', error.response?.data || error.message);
+    console.error(
+      'Resend invitation error:',
+      error.response?.data || error.message
+    );
     throw error;
   }
 };
@@ -61,7 +72,7 @@ export const resendUserInvitation = async (email: string, groupId?: string, grou
 export const checkEmailExists = async (email: string) => {
   try {
     const response = await invitationAxios.get('/invitations/check-email', {
-      params: { email }
+      params: { email },
     });
     return response;
   } catch (error) {
@@ -80,11 +91,17 @@ export const getPendingInvitations = async () => {
 };
 
 // Accept or decline an invitation
-export const respondToInvitation = async (invitationId: string, action: 'accept' | 'decline') => {
+export const respondToInvitation = async (
+  invitationId: string,
+  action: 'accept' | 'decline'
+) => {
   try {
-    const response = await invitationAxios.post(`/invitations/invitations/${invitationId}/respond`, {
-      action
-    });
+    const response = await invitationAxios.post(
+      `/invitations/invitations/${invitationId}/respond`,
+      {
+        action,
+      }
+    );
     return response;
   } catch (error) {
     throw error;

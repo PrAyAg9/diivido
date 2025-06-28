@@ -14,7 +14,7 @@ export const createExpense = async (req: Request, res: Response) => {
       splitType,
       splits,
       receiptUrl,
-      date
+      date,
     } = req.body;
 
     const userId = req.user.id || req.user.userId || req.user._id;
@@ -23,7 +23,7 @@ export const createExpense = async (req: Request, res: Response) => {
     // Verify group membership
     const group = await Group.findOne({
       _id: groupId,
-      'members.userId': userId
+      'members.userId': userId,
     });
 
     if (!group) {
@@ -41,7 +41,7 @@ export const createExpense = async (req: Request, res: Response) => {
       splitType,
       splits,
       receiptUrl,
-      date: date || new Date()
+      date: date || new Date(),
     });
 
     await expense.save();
@@ -66,7 +66,7 @@ export const getGroupExpenses = async (req: Request, res: Response) => {
     // Verify group membership
     const group = await Group.findOne({
       _id: groupId,
-      'members.userId': userId
+      'members.userId': userId,
     });
 
     if (!group) {
@@ -78,10 +78,10 @@ export const getGroupExpenses = async (req: Request, res: Response) => {
       .populate('splits.userId', 'fullName email avatarUrl');
 
     // Transform expenses to match frontend expected format
-    const transformedExpenses = expenses.map(expense => {
+    const transformedExpenses = expenses.map((expense) => {
       const expenseObj = expense.toObject();
       const paidBy = expenseObj.paidBy as any; // Use any to avoid TypeScript errors with populated fields
-      
+
       return {
         id: expenseObj._id.toString(),
         title: expenseObj.title,
@@ -94,16 +94,22 @@ export const getGroupExpenses = async (req: Request, res: Response) => {
         payer_name: paidBy.fullName || 'Unknown',
         payer_avatar: paidBy.avatarUrl || null,
         participants: expenseObj.splits.length,
-        your_share: expenseObj.splits.find((split: any) => {
-          const splitUserId = split.userId._id ? split.userId._id.toString() : split.userId.toString();
-          return splitUserId === userId.toString();
-        })?.amount || 0,
+        your_share:
+          expenseObj.splits.find((split: any) => {
+            const splitUserId = split.userId._id
+              ? split.userId._id.toString()
+              : split.userId.toString();
+            return splitUserId === userId.toString();
+          })?.amount || 0,
       };
     });
 
     res.json(transformedExpenses);
   } catch (error) {
-    console.error(`Error fetching expenses for group ${req.params.groupId}:`, error);
+    console.error(
+      `Error fetching expenses for group ${req.params.groupId}:`,
+      error
+    );
     res.status(500).json({ error: 'Server error' });
   }
 };
@@ -115,9 +121,11 @@ export const updateExpense = async (req: Request, res: Response) => {
     const updates = req.body;
 
     const expense = await Expense.findOne({ _id: id, paidBy: userId });
-    
+
     if (!expense) {
-      return res.status(404).json({ error: 'Expense not found or not authorized' });
+      return res
+        .status(404)
+        .json({ error: 'Expense not found or not authorized' });
     }
 
     Object.assign(expense, updates);
@@ -135,13 +143,15 @@ export const markSplitAsPaid = async (req: Request, res: Response) => {
     const userId = req.user._id;
 
     const expense = await Expense.findById(expenseId);
-    
+
     if (!expense) {
       return res.status(404).json({ error: 'Expense not found' });
     }
 
-    const split = expense.splits.find((s: any) => s.userId.toString() === userId.toString());
-    
+    const split = expense.splits.find(
+      (s: any) => s.userId.toString() === userId.toString()
+    );
+
     if (!split) {
       return res.status(404).json({ error: 'Split not found' });
     }
@@ -162,22 +172,19 @@ export const getUserExpenses = async (req: Request, res: Response) => {
 
     // Find all expenses where the user is either the payer or in the splits
     const expenses = await Expense.find({
-      $or: [
-        { paidBy: userId },
-        { 'splits.userId': userId }
-      ]
+      $or: [{ paidBy: userId }, { 'splits.userId': userId }],
     })
-    .populate('paidBy', 'fullName avatarUrl')
-    .populate('groupId', 'name')
-    .sort({ createdAt: -1 })
-    .limit(50);
+      .populate('paidBy', 'fullName avatarUrl')
+      .populate('groupId', 'name')
+      .sort({ createdAt: -1 })
+      .limit(50);
 
     // Transform the data to include user-specific information
-    const transformedExpenses = expenses.map(expense => {
-      const userSplit = expense.splits.find((split: any) => 
-        split.userId.toString() === userId.toString()
+    const transformedExpenses = expenses.map((expense) => {
+      const userSplit = expense.splits.find(
+        (split: any) => split.userId.toString() === userId.toString()
       );
-      
+
       return {
         id: expense._id,
         title: expense.title,
@@ -190,7 +197,7 @@ export const getUserExpenses = async (req: Request, res: Response) => {
         yourShare: userSplit ? userSplit.amount : 0,
         participants: expense.splits.length,
         splitType: expense.splitType,
-        paid: userSplit ? userSplit.paid : false
+        paid: userSplit ? userSplit.paid : false,
       };
     });
 

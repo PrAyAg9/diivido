@@ -12,9 +12,9 @@ export const CURRENCY_SYMBOLS: Record<Currency, string> = {
 // Exchange rates (base: INR)
 // These should ideally come from an API in a real app
 export const EXCHANGE_RATES: Record<Currency, number> = {
-  INR: 1,      // Base currency
-  USD: 0.012,  // 1 INR = 0.012 USD (approximate)
-  EUR: 0.011,  // 1 INR = 0.011 EUR (approximate)
+  INR: 1, // Base currency
+  USD: 0.012, // 1 INR = 0.012 USD (approximate)
+  EUR: 0.011, // 1 INR = 0.011 EUR (approximate)
 };
 
 // Get user's selected currency from storage
@@ -49,10 +49,10 @@ export const convertCurrency = (
 
   // Convert to INR first (base currency)
   const amountInINR = amount / EXCHANGE_RATES[fromCurrency];
-  
+
   // Convert from INR to target currency
   const convertedAmount = amountInINR * EXCHANGE_RATES[toCurrency];
-  
+
   return Math.round(convertedAmount * 100) / 100; // Round to 2 decimal places
 };
 
@@ -62,19 +62,18 @@ export const formatCurrency = (
   currency: Currency,
   showSymbol: boolean = true
 ): string => {
-  const formattedAmount = amount.toFixed(2);
-  
-  if (!showSymbol) {
-    return formattedAmount;
-  }
-
   const symbol = CURRENCY_SYMBOLS[currency];
   
-  // For INR, show symbol after amount, for USD/EUR show before
+  if (!showSymbol) {
+    return amount.toFixed(2);
+  }
+
+  // For INR, show symbol before amount like ₹10
+  // For USD/EUR, show symbol before amount like $10.00
   if (currency === 'INR') {
-    return `${formattedAmount} ${symbol}`;
+    return `₹${Math.round(amount)}`;
   } else {
-    return `${symbol}${formattedAmount}`;
+    return `${symbol}${amount.toFixed(2)}`;
   }
 };
 
@@ -97,7 +96,7 @@ export const getAvailableCurrencies = (): Currency[] => {
 export const getCurrencyName = (currency: Currency): string => {
   const names: Record<Currency, string> = {
     INR: 'Indian Rupee',
-    USD: 'US Dollar', 
+    USD: 'US Dollar',
     EUR: 'Euro',
   };
   return names[currency];

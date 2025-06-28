@@ -6,7 +6,7 @@ import {
   getPendingInvitations,
   respondToInvitation,
   getUserSentInvitations,
-  resendInvitation
+  resendInvitation,
 } from '../controllers/invitation.controller';
 
 const router = express.Router();
@@ -23,10 +23,14 @@ router.get('/check-email', authMiddleware, checkEmailExists);
 // Get pending invitations for current user
 router.get('/invitations', authMiddleware, getPendingInvitations);
 
-// Get invitations sent by current user  
+// Get invitations sent by current user
 router.get('/user', authMiddleware, getUserSentInvitations);
 
 // Respond to invitation
-router.post('/invitations/:invitationId/respond', authMiddleware, respondToInvitation);
+router.post(
+  '/invitations/:invitationId/respond',
+  authMiddleware,
+  respondToInvitation
+);
 
 export default router;

@@ -33,11 +33,14 @@ export const createExpense = async (expenseData: {
 };
 
 // Update expense metadata
-export const updateExpenseMetadata = async (expenseId: string, data: {
-  title?: string;
-  category?: string;
-  notes?: string;
-}) => {
+export const updateExpenseMetadata = async (
+  expenseId: string,
+  data: {
+    title?: string;
+    category?: string;
+    notes?: string;
+  }
+) => {
   return axios.put(`${API_URL}/expenses/${expenseId}`, data);
 };
 

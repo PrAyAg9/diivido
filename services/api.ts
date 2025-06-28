@@ -1,17 +1,12 @@
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
- 
-
- 
-import axios from 'axios'; 
-import AsyncStorage from '@react-native-async-storage/async-storage'; 
- 
-// API URL set by the startup script 
-export const API_URL = 'http://localhost:5000/api'; 
+// API URL set by the startup script
+export const API_URL = 'http://localhost:5000/api';
 
 // Define API base URL - change this to your actual server URL
 // In development, you might need to use your computer's IP address instead of localhost
 // For example: 'http://192.168.1.100:5000/api'
-
 
 // Configure axios defaults
 axios.defaults.baseURL = API_URL;
@@ -32,25 +27,30 @@ axios.interceptors.request.use(
 
 // Auth API service
 export const authApi = {
-  register: (userData: { email: string; password: string; fullName: string; phone?: string }) => 
-    axios.post('/auth/register', userData),
-  
-  login: (credentials: { email: string; password: string }) => 
+  register: (userData: {
+    email: string;
+    password: string;
+    fullName: string;
+    phone?: string;
+  }) => axios.post('/auth/register', userData),
+
+  login: (credentials: { email: string; password: string }) =>
     axios.post('/auth/login', credentials),
 };
 
 // Groups API service
 export const groupsApi = {
-  createGroup: (groupData: { name: string; description?: string; avatarUrl?: string }) => 
-    axios.post('/groups', groupData),
-  
-  getGroups: () => 
-    axios.get('/groups'),
-  
-  getGroupById: (groupId: string) => 
-    axios.get(`/groups/${groupId}`),
-  
-  addMember: (groupId: string, userId: string) => 
+  createGroup: (groupData: {
+    name: string;
+    description?: string;
+    avatarUrl?: string;
+  }) => axios.post('/groups', groupData),
+
+  getGroups: () => axios.get('/groups'),
+
+  getGroupById: (groupId: string) => axios.get(`/groups/${groupId}`),
+
+  addMember: (groupId: string, userId: string) =>
     axios.post(`/groups/${groupId}/members`, { userId }),
 };
 
@@ -73,14 +73,14 @@ export const expensesApi = {
     receiptUrl?: string;
     date?: Date;
   }) => axios.post('/expenses', expenseData),
-  
-  getGroupExpenses: (groupId: string) => 
+
+  getGroupExpenses: (groupId: string) =>
     axios.get(`/expenses/group/${groupId}`),
-  
-  updateExpense: (expenseId: string, updateData: any) => 
+
+  updateExpense: (expenseId: string, updateData: any) =>
     axios.put(`/expenses/${expenseId}`, updateData),
-  
-  markSplitAsPaid: (expenseId: string) => 
+
+  markSplitAsPaid: (expenseId: string) =>
     axios.post(`/expenses/${expenseId}/mark-paid`),
 };
 
@@ -95,10 +95,12 @@ export const paymentsApi = {
     paymentMethod?: string;
     notes?: string;
   }) => axios.post('/payments', paymentData),
-  
-  getPayments: (filters?: { groupId?: string }) => 
+
+  getPayments: (filters?: { groupId?: string }) =>
     axios.get('/payments', { params: filters }),
-  
-  updatePaymentStatus: (paymentId: string, status: 'pending' | 'completed' | 'failed') => 
-    axios.put(`/payments/${paymentId}/status`, { status }),
+
+  updatePaymentStatus: (
+    paymentId: string,
+    status: 'pending' | 'completed' | 'failed'
+  ) => axios.put(`/payments/${paymentId}/status`, { status }),
 };

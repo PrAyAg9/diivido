@@ -22,72 +22,77 @@ export interface IExpense extends Document {
   updatedAt: Date;
 }
 
-const expenseSchema = new Schema({
-  groupId: {
-    type: Schema.Types.ObjectId,
-    ref: 'Group',
-    required: true,
-  },
-  title: {
-    type: String,
-    required: true,
-  },
-  description: String,
-  amount: {
-    type: Number,
-    required: true,
-    min: 0,
-  },
-  currency: {
-    type: String,
-    default: 'USD',
-  },
-  category: {
-    type: String,
-    required: true,
-  },
-  paidBy: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
-  },
-  splitType: {
-    type: String,
-    enum: ['equal', 'exact', 'percentage', 'shares'],
-    default: 'equal',
-  },
-  receiptUrl: String,
-  date: {
-    type: Date,
-    default: Date.now,
-  },
-  splits: [{
-    userId: {
+const expenseSchema = new Schema(
+  {
+    groupId: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
+      ref: 'Group',
       required: true,
     },
+    title: {
+      type: String,
+      required: true,
+    },
+    description: String,
     amount: {
       type: Number,
       required: true,
       min: 0,
     },
-    percentage: {
-      type: Number,
-      min: 0,
-      max: 100,
+    currency: {
+      type: String,
+      default: 'USD',
     },
-    shares: {
-      type: Number,
-      min: 1,
+    category: {
+      type: String,
+      required: true,
     },
-    paid: {
-      type: Boolean,
-      default: false,
+    paidBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
     },
-  }],
-}, {
-  timestamps: true,
-});
+    splitType: {
+      type: String,
+      enum: ['equal', 'exact', 'percentage', 'shares'],
+      default: 'equal',
+    },
+    receiptUrl: String,
+    date: {
+      type: Date,
+      default: Date.now,
+    },
+    splits: [
+      {
+        userId: {
+          type: Schema.Types.ObjectId,
+          ref: 'User',
+          required: true,
+        },
+        amount: {
+          type: Number,
+          required: true,
+          min: 0,
+        },
+        percentage: {
+          type: Number,
+          min: 0,
+          max: 100,
+        },
+        shares: {
+          type: Number,
+          min: 1,
+        },
+        paid: {
+          type: Boolean,
+          default: false,
+        },
+      },
+    ],
+  },
+  {
+    timestamps: true,
+  }
+);
 
 export const Expense = mongoose.model<IExpense>('Expense', expenseSchema);

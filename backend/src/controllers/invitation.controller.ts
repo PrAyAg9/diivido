@@ -22,9 +22,9 @@ export const sendInvitation = async (req: Request, res: Response) => {
     // Check if user already exists
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'User already exists in the system',
-        userExists: true 
+        userExists: true,
       });
     }
 
@@ -32,12 +32,12 @@ export const sendInvitation = async (req: Request, res: Response) => {
     const existingInvitation = await Invitation.findOne({
       email: email.toLowerCase(),
       status: 'pending',
-      expiresAt: { $gt: new Date() }
+      expiresAt: { $gt: new Date() },
     });
 
     if (existingInvitation) {
-      return res.status(400).json({ 
-        error: 'Invitation already sent to this email' 
+      return res.status(400).json({
+        error: 'Invitation already sent to this email',
       });
     }
 
@@ -51,7 +51,7 @@ export const sendInvitation = async (req: Request, res: Response) => {
       groupId: groupId || null,
       groupName: groupName || null,
       invitationToken,
-      status: 'pending'
+      status: 'pending',
     });
 
     await invitation.save();
@@ -66,7 +66,7 @@ export const sendInvitation = async (req: Request, res: Response) => {
         email: email.toLowerCase(),
         inviterName,
         groupName,
-        invitationToken
+        invitationToken,
       });
       console.log(`Invitation email sent to ${email}`);
     } catch (emailError) {
@@ -81,8 +81,8 @@ export const sendInvitation = async (req: Request, res: Response) => {
         email: invitation.email,
         groupName: invitation.groupName,
         status: invitation.status,
-        expiresAt: invitation.expiresAt
-      }
+        expiresAt: invitation.expiresAt,
+      },
     });
   } catch (error) {
     console.error('Error sending invitation:', error);
@@ -100,15 +100,17 @@ export const checkEmailExists = async (req: Request, res: Response) => {
     }
 
     const user = await User.findOne({ email: email.toLowerCase() });
-    
+
     res.json({
       exists: !!user,
-      user: user ? {
-        id: user._id,
-        fullName: user.fullName,
-        email: user.email,
-        avatarUrl: user.avatarUrl
-      } : null
+      user: user
+        ? {
+            id: user._id,
+            fullName: user.fullName,
+            email: user.email,
+            avatarUrl: user.avatarUrl,
+          }
+        : null,
     });
   } catch (error) {
     console.error('Error checking email:', error);
@@ -133,17 +135,17 @@ export const getPendingInvitations = async (req: Request, res: Response) => {
     const invitations = await Invitation.find({
       email: user.email.toLowerCase(),
       status: 'pending',
-      expiresAt: { $gt: new Date() }
+      expiresAt: { $gt: new Date() },
     }).populate('invitedBy', 'fullName email avatarUrl');
 
     res.json({
-      invitations: invitations.map(inv => ({
+      invitations: invitations.map((inv) => ({
         id: inv._id,
         groupName: inv.groupName,
         invitedBy: inv.invitedBy,
         createdAt: inv.createdAt,
-        expiresAt: inv.expiresAt
-      }))
+        expiresAt: inv.expiresAt,
+      })),
     });
   } catch (error) {
     console.error('Error getting pending invitations:', error);
@@ -175,7 +177,7 @@ export const respondToInvitation = async (req: Request, res: Response) => {
       _id: invitationId,
       email: user.email.toLowerCase(),
       status: 'pending',
-      expiresAt: { $gt: new Date() }
+      expiresAt: { $gt: new Date() },
     });
 
     if (!invitation) {
@@ -199,8 +201,8 @@ export const respondToInvitation = async (req: Request, res: Response) => {
       message: `Invitation ${action}ed successfully`,
       invitation: {
         id: invitation._id,
-        status: invitation.status
-      }
+        status: invitation.status,
+      },
     });
   } catch (error) {
     console.error('Error responding to invitation:', error);
@@ -218,17 +220,19 @@ export const getUserSentInvitations = async (req: Request, res: Response) => {
     }
 
     const invitations = await Invitation.find({
-      invitedBy: userId
+      invitedBy: userId,
     }).sort({ createdAt: -1 });
 
-    res.json(invitations.map(inv => ({
-      id: inv._id,
-      email: inv.email,
-      groupName: inv.groupName,
-      status: inv.status,
-      createdAt: inv.createdAt,
-      expiresAt: inv.expiresAt
-    })));
+    res.json(
+      invitations.map((inv) => ({
+        id: inv._id,
+        email: inv.email,
+        groupName: inv.groupName,
+        status: inv.status,
+        createdAt: inv.createdAt,
+        expiresAt: inv.expiresAt,
+      }))
+    );
   } catch (error) {
     console.error('Error getting sent invitations:', error);
     res.status(500).json({ error: 'Failed to get sent invitations' });
@@ -252,23 +256,27 @@ export const resendInvitation = async (req: Request, res: Response) => {
     // Check if user already exists
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'User already exists in the system',
-        userExists: true 
+        userExists: true,
       });
     }
 
     // Find existing invitation
     const existingInvitation = await Invitation.findOne({
       email: email.toLowerCase(),
-      invitedBy: userId
+      invitedBy: userId,
     });
 
     if (existingInvitation) {
       // Update the existing invitation
       existingInvitation.status = 'pending';
-      existingInvitation.expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-      existingInvitation.invitationToken = crypto.randomBytes(32).toString('hex');
+      existingInvitation.expiresAt = new Date(
+        Date.now() + 7 * 24 * 60 * 60 * 1000
+      ); // 7 days
+      existingInvitation.invitationToken = crypto
+        .randomBytes(32)
+        .toString('hex');
       existingInvitation.groupId = groupId || null;
       existingInvitation.groupName = groupName || null;
       await existingInvitation.save();
@@ -283,7 +291,7 @@ export const resendInvitation = async (req: Request, res: Response) => {
           email: email.toLowerCase(),
           inviterName,
           groupName,
-          invitationToken: existingInvitation.invitationToken
+          invitationToken: existingInvitation.invitationToken,
         });
         console.log(`Invitation email resent to ${email}`);
       } catch (emailError) {
@@ -297,8 +305,8 @@ export const resendInvitation = async (req: Request, res: Response) => {
           email: existingInvitation.email,
           groupName: existingInvitation.groupName,
           status: existingInvitation.status,
-          expiresAt: existingInvitation.expiresAt
-        }
+          expiresAt: existingInvitation.expiresAt,
+        },
       });
     } else {
       // No existing invitation found, create new one

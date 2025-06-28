@@ -9,17 +9,17 @@ import mongoose from 'mongoose';
 export const getUserProfile = async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
-    
+
     // Debugging to check what's happening
-    console.log('User profile request:', { 
-      requestedUserId: userId, 
+    console.log('User profile request:', {
+      requestedUserId: userId,
       tokenUserId: req.user.id || req.user.userId || req.user._id,
-      user: req.user
+      user: req.user,
     });
-    
+
     // Find the user profile
     const user = await User.findById(userId).select('-password');
-    
+
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -30,7 +30,7 @@ export const getUserProfile = async (req: Request, res: Response) => {
       fullName: user.fullName,
       phone: user.phone || '',
       avatarUrl: user.avatarUrl || '',
-      createdAt: user.createdAt
+      createdAt: user.createdAt,
     });
   } catch (error) {
     console.error('Error getting user profile:', error);
@@ -48,7 +48,7 @@ export const getAllUsers = async (req: Request, res: Response) => {
       .sort({ fullName: 1 });
 
     // Map users to a consistent format
-    const formattedUsers = users.map(user => ({
+    const formattedUsers = users.map((user) => ({
       id: user._id,
       email: user.email,
       fullName: user.fullName,
@@ -89,7 +89,7 @@ export const updateUserProfile = async (req: Request, res: Response) => {
       fullName: user.fullName,
       phone: user.phone || '',
       avatarUrl: user.avatarUrl || '',
-      createdAt: user.createdAt
+      createdAt: user.createdAt,
     });
   } catch (error) {
     console.error('Error updating user profile:', error);
@@ -114,29 +114,32 @@ export const getUserBalances = async (req: Request, res: Response) => {
 
     // Find all payments involving the user
     const payments = await Payment.find({
-      $or: [
-        { fromUser: userId },
-        { toUser: userId }
-      ],
-      status: 'completed'
+      $or: [{ fromUser: userId }, { toUser: userId }],
+      status: 'completed',
     });
 
     // Calculate balances
     const balances = new Map();
-    
+
     // Process expenses where user paid
     expenses.forEach((expense: any) => {
       if (expense.paidBy._id.toString() === userId) {
         // User paid, others owe them
         expense.splits.forEach((split: any) => {
           if (split.userId._id.toString() !== userId) {
-            const currentBalance = balances.get(split.userId._id.toString()) || 0;
-            balances.set(split.userId._id.toString(), currentBalance + split.amount);
+            const currentBalance =
+              balances.get(split.userId._id.toString()) || 0;
+            balances.set(
+              split.userId._id.toString(),
+              currentBalance + split.amount
+            );
           }
         });
       } else {
         // User didn't pay, they might owe
-        const userSplit = expense.splits.find((split: any) => split.userId._id.toString() === userId);
+        const userSplit = expense.splits.find(
+          (split: any) => split.userId._id.toString() === userId
+        );
         if (userSplit && !userSplit.paid) {
           const payerId = expense.paidBy._id.toString();
           const currentBalance = balances.get(payerId) || 0;
@@ -150,11 +153,17 @@ export const getUserBalances = async (req: Request, res: Response) => {
       if (payment.fromUser.toString() === userId) {
         // User paid someone
         const currentBalance = balances.get(payment.toUser.toString()) || 0;
-        balances.set(payment.toUser.toString(), currentBalance + payment.amount);
+        balances.set(
+          payment.toUser.toString(),
+          currentBalance + payment.amount
+        );
       } else {
         // User received payment
         const currentBalance = balances.get(payment.fromUser.toString()) || 0;
-        balances.set(payment.fromUser.toString(), currentBalance - payment.amount);
+        balances.set(
+          payment.fromUser.toString(),
+          currentBalance - payment.amount
+        );
       }
     });
 
@@ -166,8 +175,12 @@ export const getUserBalances = async (req: Request, res: Response) => {
 
     // Get user data for all involved users
     const userIds = [...balances.keys()];
-    const users = await User.find({ _id: { $in: userIds } }).select('fullName avatarUrl');
-    const userMap = new Map(users.map((user: any) => [user._id.toString(), user]));
+    const users = await User.find({ _id: { $in: userIds } }).select(
+      'fullName avatarUrl'
+    );
+    const userMap = new Map(
+      users.map((user: any) => [user._id.toString(), user])
+    );
 
     // Categorize balances
     for (const [userId, balance] of balances.entries()) {
@@ -182,7 +195,7 @@ export const getUserBalances = async (req: Request, res: Response) => {
           id: userId,
           name: user.fullName,
           avatarUrl: user.avatarUrl,
-          amount: amount
+          amount: amount,
         });
       } else if (balance > 0.01) {
         // They owe user money
@@ -191,7 +204,7 @@ export const getUserBalances = async (req: Request, res: Response) => {
           id: userId,
           name: user.fullName,
           avatarUrl: user.avatarUrl,
-          amount: balance
+          amount: balance,
         });
       }
     }
@@ -201,7 +214,7 @@ export const getUserBalances = async (req: Request, res: Response) => {
       totalOwed,
       totalOwedToYou,
       usersYouOwe: usersYouOwe.sort((a, b) => b.amount - a.amount),
-      usersWhoOweYou: usersWhoOweYou.sort((a, b) => b.amount - a.amount)
+      usersWhoOweYou: usersWhoOweYou.sort((a, b) => b.amount - a.amount),
     });
   } catch (error) {
     console.error('Error getting user balances:', error);
@@ -228,15 +241,17 @@ export const getUserActivity = async (req: Request, res: Response) => {
 
     // Get expense splits for these expenses where user is involved
     const expenseIds = expenses.map((expense: any) => expense._id);
-    const userSplits = await Expense.find({ 
+    const userSplits = await Expense.find({
       _id: { $in: expenseIds },
-      'splits.userId': new mongoose.Types.ObjectId(userId)
+      'splits.userId': new mongoose.Types.ObjectId(userId),
     });
 
     // Map splits to expense IDs for quick lookup
     const splitMap = new Map();
     userSplits.forEach((expense: any) => {
-      const userSplit = expense.splits.find((split: any) => split.userId.toString() === userId);
+      const userSplit = expense.splits.find(
+        (split: any) => split.userId.toString() === userId
+      );
       if (userSplit) {
         splitMap.set(expense._id.toString(), userSplit.amount);
       }
@@ -245,7 +260,7 @@ export const getUserActivity = async (req: Request, res: Response) => {
     // Format the activity data
     const activity = expenses.map((expense: any) => {
       const split = splitMap.get(expense._id.toString()) || 0;
-      
+
       return {
         id: expense._id,
         title: expense.title,
@@ -254,7 +269,7 @@ export const getUserActivity = async (req: Request, res: Response) => {
         youOwe: expense.paidBy._id.toString() === userId ? 0 : split,
         date: expense.createdAt.toLocaleDateString(),
         avatar: expense.paidBy.avatarUrl || 'https://via.placeholder.com/50',
-        category: expense.category
+        category: expense.category,
       };
     });
 

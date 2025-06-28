@@ -5,9 +5,11 @@ import { User } from '../models/user.model';
 export const register = async (req: Request, res: Response) => {
   try {
     const { email, password, fullName, phone } = req.body;
-    
+
     if (!email || !password || !fullName) {
-      return res.status(400).json({ error: 'Email, password, and fullName are required' });
+      return res
+        .status(400)
+        .json({ error: 'Email, password, and fullName are required' });
     }
 
     const existingUser = await User.findOne({ email });
@@ -24,11 +26,9 @@ export const register = async (req: Request, res: Response) => {
 
     await user.save();
 
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET!,
-      { expiresIn: '7d' }
-    );
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET!, {
+      expiresIn: '7d',
+    });
 
     res.status(201).json({
       user: {
@@ -49,7 +49,7 @@ export const register = async (req: Request, res: Response) => {
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
-    
+
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
     }
@@ -64,11 +64,9 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET!,
-      { expiresIn: '7d' }
-    );
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET!, {
+      expiresIn: '7d',
+    });
 
     res.json({
       user: {

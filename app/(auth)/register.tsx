@@ -14,7 +14,16 @@ import {
   Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Mail, Lock, Eye, EyeOff, ArrowLeft, User, CircleAlert as AlertCircle, CircleCheck as CheckCircle } from 'lucide-react-native';
+import {
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  ArrowLeft,
+  User,
+  CircleAlert as AlertCircle,
+  CircleCheck as CheckCircle,
+} from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 
 const { width, height } = Dimensions.get('window');
@@ -67,24 +76,31 @@ export default function RegisterScreen() {
 
     setIsLoading(true);
     setError(null);
-    
+
     try {
-      const { error: signUpError } = await signUp(email.trim(), password, fullName.trim());
-      
+      const { error: signUpError } = await signUp(
+        email.trim(),
+        password,
+        fullName.trim()
+      );
+
       if (signUpError) {
-        if (signUpError.includes('already registered') || signUpError.includes('already exists')) {
-          setError('An account with this email already exists. Please sign in instead.');
+        if (
+          signUpError.includes('already registered') ||
+          signUpError.includes('already exists')
+        ) {
+          setError(
+            'An account with this email already exists. Please sign in instead.'
+          );
         } else {
           setError(signUpError || 'An error occurred during registration');
         }
       } else {
         // Registration successful, redirect to login
         Alert.alert(
-          "Registration Successful",
-          "Your account has been created. Please log in.",
-          [
-            { text: "OK", onPress: () => router.push('/login') }
-          ]
+          'Registration Successful',
+          'Your account has been created. Please log in.',
+          [{ text: 'OK', onPress: () => router.push('/login') }]
         );
       }
     } catch (error: any) {
@@ -97,8 +113,10 @@ export default function RegisterScreen() {
   const handleOAuthSignUp = async (provider: 'google' | 'apple') => {
     // OAuth is not supported in our new backend
     Alert.alert(
-      "Not Supported",
-      `${provider.charAt(0).toUpperCase() + provider.slice(1)} sign-up is not supported in this version.`
+      'Not Supported',
+      `${
+        provider.charAt(0).toUpperCase() + provider.slice(1)
+      } sign-up is not supported in this version.`
     );
   };
 
@@ -109,7 +127,8 @@ export default function RegisterScreen() {
           <CheckCircle size={64} color="#10B981" />
           <Text style={styles.successTitle}>Check Your Email</Text>
           <Text style={styles.successText}>
-            We've sent a verification link to {email}. Please check your email and click the link to verify your account.
+            We've sent a verification link to {email}. Please check your email
+            and click the link to verify your account.
           </Text>
           <TouchableOpacity
             style={styles.successButton}
@@ -125,14 +144,14 @@ export default function RegisterScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity 
-            onPress={() => router.back()} 
+          <TouchableOpacity
+            onPress={() => router.back()}
             style={styles.backButton}
             activeOpacity={0.7}
           >
@@ -142,7 +161,7 @@ export default function RegisterScreen() {
           <View style={styles.headerSpacer} />
         </View>
 
-        <ScrollView 
+        <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -260,11 +279,22 @@ export default function RegisterScreen() {
 
               <TouchableOpacity
                 style={[
-                  styles.registerButton, 
-                  (isLoading || !fullName.trim() || !email.trim() || !password || !confirmPassword) && styles.registerButtonDisabled
+                  styles.registerButton,
+                  (isLoading ||
+                    !fullName.trim() ||
+                    !email.trim() ||
+                    !password ||
+                    !confirmPassword) &&
+                    styles.registerButtonDisabled,
                 ]}
                 onPress={handleRegister}
-                disabled={isLoading || !fullName.trim() || !email.trim() || !password || !confirmPassword}
+                disabled={
+                  isLoading ||
+                  !fullName.trim() ||
+                  !email.trim() ||
+                  !password ||
+                  !confirmPassword
+                }
                 activeOpacity={0.8}
               >
                 {isLoading ? (
@@ -281,7 +311,7 @@ export default function RegisterScreen() {
               </View>
 
               <View style={styles.socialButtons}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.socialButton}
                   onPress={() => handleOAuthSignUp('google')}
                   disabled={isLoading}
@@ -290,13 +320,17 @@ export default function RegisterScreen() {
                   <Text style={styles.socialButtonText}>Google</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.socialButton, styles.appleButton]}
                   onPress={() => handleOAuthSignUp('apple')}
                   disabled={isLoading}
                   activeOpacity={0.8}
                 >
-                  <Text style={[styles.socialButtonText, styles.appleButtonText]}>Apple</Text>
+                  <Text
+                    style={[styles.socialButtonText, styles.appleButtonText]}
+                  >
+                    Apple
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>

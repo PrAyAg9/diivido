@@ -11,11 +11,21 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
-import { Search, Filter, Calendar, DollarSign, Users, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownLeft } from 'lucide-react-native';
+import {
+  Search,
+  Filter,
+  Calendar,
+  DollarSign,
+  Users,
+  TrendingUp,
+  TrendingDown,
+  ArrowUpRight,
+  ArrowDownLeft,
+} from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserExpenses } from '@/services/expenses-api';
 import { getUserPayments } from '@/services/payments-api';
-import { convertAndFormatAmount } from '@/utils/currency';
+import { convertAndFormatAmount, formatCurrency, getUserCurrency, type Currency } from '@/utils/currency';
 
 interface Activity {
   id: string;
@@ -51,7 +61,7 @@ const getActivityIcon = (type: string) => {
 const getActivityDescription = (activity: any) => {
   switch (activity.type) {
     case 'expense':
-      return `${activity.paidBy} paid • Your share: $${activity.yourShare.toFixed(2)}`;
+      return `${activity.paidBy} paid • Your share: ${activity.formattedYourShare || '₹0'}`;
     case 'payment':
       return `You received payment`;
     case 'settlement':
@@ -63,15 +73,15 @@ const getActivityDescription = (activity: any) => {
 
 const groupActivitiesByDate = (activities: any[]) => {
   const grouped: { [key: string]: any[] } = {};
-  
-  activities.forEach(activity => {
+
+  activities.forEach((activity) => {
     const date = activity.date;
     if (!grouped[date]) {
       grouped[date] = [];
     }
     grouped[date].push(activity);
   });
-  
+
   return grouped;
 };
 
@@ -80,16 +90,16 @@ const formatDateHeader = (dateString: string) => {
   const today = new Date();
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
-  
+
   if (date.toDateString() === today.toDateString()) {
     return 'Today';
   } else if (date.toDateString() === yesterday.toDateString()) {
     return 'Yesterday';
   } else {
-    return date.toLocaleDateString('en-US', { 
-      weekday: 'long', 
-      month: 'short', 
-      day: 'numeric' 
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'short',
+      day: 'numeric',
     });
   }
 };
@@ -101,63 +111,118 @@ export default function ActivityScreen() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [userCurrency, setUserCurrency] = useState<Currency>('INR');
+
+  useEffect(() => {
+    loadUserCurrency();
+    fetchActivities();
+  }, []);
+
+  const loadUserCurrency = async () => {
+    try {
+      const currency = await getUserCurrency();
+      setUserCurrency(currency);
+    } catch (error) {
+      console.error('Error loading user currency:', error);
+    }
+  };
 
   const fetchActivities = async () => {
     if (!user) return;
 
     try {
       setLoading(true);
-      
+
       // Fetch expenses and payments in parallel
       const [expensesResponse, paymentsResponse] = await Promise.all([
         getUserExpenses().catch(() => ({ data: [] })),
-        getUserPayments().catch(() => ({ data: [] }))
+        getUserPayments().catch(() => ({ data: [] })),
       ]);
 
       const expenses = expensesResponse.data || [];
       const payments = paymentsResponse.data || [];
 
-      // Transform expenses to activities
-      const expenseActivities: Activity[] = expenses.map((expense: any) => ({
-        id: `expense_${expense.id}`,
-        type: 'expense' as const,
-        title: expense.title || 'Untitled Expense',
-        group: expense.group?.name || 'Unknown Group',
-        groupId: expense.groupId || expense.group?.id || '',
-        amount: expense.amount || 0,
-        paidBy: expense.paidBy?.fullName || expense.paidByName || 'Unknown',
-        paidById: expense.paidBy?.id || expense.paidById || '',
-        date: expense.createdAt ? new Date(expense.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        time: getTimeAgo(expense.createdAt),
-        avatar: expense.paidBy?.avatarUrl || expense.paidByAvatar || 'https://images.pexels.com/photos/1674752/pexels-photo-1674752.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
-        participants: expense.participants?.length || expense.participantCount || 1,
-        yourShare: expense.yourShare || 0,
-        category: expense.category || 'Other',
-        createdAt: expense.createdAt || new Date().toISOString(),
-      }));
+      // Transform expenses to activities with formatted amounts
+      const expenseActivities: Activity[] = await Promise.all(
+        expenses.map(async (expense: any) => {
+          const formattedAmount = await convertAndFormatAmount(expense.amount || 0);
+          const formattedYourShare = await convertAndFormatAmount(expense.yourShare || 0);
+          
+          return {
+            id: `expense_${expense.id}`,
+            type: 'expense' as const,
+            title: expense.title || 'Untitled Expense',
+            group: expense.group?.name || 'Unknown Group',
+            groupId: expense.groupId || expense.group?.id || '',
+            amount: expense.amount || 0,
+            formattedAmount,
+            paidBy: expense.paidBy?.fullName || expense.paidByName || 'Unknown',
+            paidById: expense.paidBy?.id || expense.paidById || '',
+            date: expense.createdAt
+              ? new Date(expense.createdAt).toISOString().split('T')[0]
+              : new Date().toISOString().split('T')[0],
+            time: getTimeAgo(expense.createdAt),
+            avatar:
+              expense.paidBy?.avatarUrl ||
+              expense.paidByAvatar ||
+              'https://images.pexels.com/photos/1674752/pexels-photo-1674752.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
+            participants:
+              expense.participants?.length || expense.participantCount || 1,
+            yourShare: expense.yourShare || 0,
+            formattedYourShare,
+            category: expense.category || 'Other',
+            createdAt: expense.createdAt || new Date().toISOString(),
+          };
+        })
+      );
 
-      // Transform payments to activities
-      const paymentActivities: Activity[] = payments.map((payment: any) => ({
-        id: `payment_${payment.id}`,
-        type: 'payment' as const,
-        title: `Payment ${payment.fromUserId === user.id ? 'to' : 'from'} ${payment.fromUserId === user.id ? payment.toUser?.fullName : payment.fromUser?.fullName}`,
-        group: payment.group?.name || 'Direct Payment',
-        groupId: payment.groupId || '',
-        amount: payment.amount || 0,
-        paidBy: payment.fromUserId === user.id ? 'You' : (payment.fromUser?.fullName || 'Unknown'),
-        paidById: payment.fromUserId || '',
-        date: payment.createdAt ? new Date(payment.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        time: getTimeAgo(payment.createdAt),
-        avatar: payment.fromUserId === user.id ? (payment.toUser?.avatarUrl || '') : (payment.fromUser?.avatarUrl || ''),
-        participants: 2,
-        yourShare: payment.fromUserId === user.id ? -payment.amount : payment.amount,
-        category: 'Payment',
-        createdAt: payment.createdAt || new Date().toISOString(),
-      }));
+      // Transform payments to activities with formatted amounts
+      const paymentActivities: Activity[] = await Promise.all(
+        payments.map(async (payment: any) => {
+          const formattedAmount = await convertAndFormatAmount(payment.amount || 0);
+          
+          return {
+            id: `payment_${payment.id}`,
+            type: 'payment' as const,
+            title: `Payment ${payment.fromUserId === user.id ? 'to' : 'from'} ${
+              payment.fromUserId === user.id
+                ? payment.toUser?.fullName
+                : payment.fromUser?.fullName
+            }`,
+            group: payment.group?.name || 'Direct Payment',
+            groupId: payment.groupId || '',
+            amount: payment.amount || 0,
+            formattedAmount,
+            paidBy:
+              payment.fromUserId === user.id
+                ? 'You'
+                : payment.fromUser?.fullName || 'Unknown',
+            paidById: payment.fromUserId || '',
+            date: payment.createdAt
+              ? new Date(payment.createdAt).toISOString().split('T')[0]
+              : new Date().toISOString().split('T')[0],
+            time: getTimeAgo(payment.createdAt),
+            avatar:
+              payment.fromUserId === user.id
+                ? payment.toUser?.avatarUrl || ''
+                : payment.fromUser?.avatarUrl || '',
+            participants: 2,
+            yourShare:
+              payment.fromUserId === user.id ? -payment.amount : payment.amount,
+            formattedYourShare: payment.fromUserId === user.id 
+              ? `-${formattedAmount}` 
+              : `+${formattedAmount}`,
+            category: 'Payment',
+            createdAt: payment.createdAt || new Date().toISOString(),
+          };
+        })
+      );
 
       // Combine and sort by date
-      const allActivities = [...expenseActivities, ...paymentActivities]
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      const allActivities = [...expenseActivities, ...paymentActivities].sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
 
       setActivities(allActivities);
     } catch (error) {
@@ -181,28 +246,32 @@ export default function ActivityScreen() {
   // Helper function to get time ago
   const getTimeAgo = (dateString: string) => {
     if (!dateString) return 'Unknown time';
-    
+
     const date = new Date(dateString);
     const now = new Date();
-    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-    
+    const diffInMinutes = Math.floor(
+      (now.getTime() - date.getTime()) / (1000 * 60)
+    );
+
     if (diffInMinutes < 1) return 'Just now';
     if (diffInMinutes < 60) return `${diffInMinutes} minutes ago`;
-    
+
     const diffInHours = Math.floor(diffInMinutes / 60);
     if (diffInHours < 24) return `${diffInHours} hours ago`;
-    
+
     const diffInDays = Math.floor(diffInHours / 24);
     if (diffInDays === 1) return 'Yesterday';
     if (diffInDays < 7) return `${diffInDays} days ago`;
-    
+
     return date.toLocaleDateString();
   };
 
-  const filteredActivities = activities.filter(activity => {
-    const matchesSearch = activity.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          activity.group.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter = selectedFilter === 'all' || activity.type === selectedFilter;
+  const filteredActivities = activities.filter((activity) => {
+    const matchesSearch =
+      activity.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      activity.group.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesFilter =
+      selectedFilter === 'all' || activity.type === selectedFilter;
     return matchesSearch && matchesFilter;
   });
 
@@ -210,12 +279,39 @@ export default function ActivityScreen() {
 
   const filters = [
     { key: 'all', label: 'All', count: activities.length },
-    { key: 'expense', label: 'Expenses', count: activities.filter(a => a.type === 'expense').length },
-    { key: 'payment', label: 'Payments', count: activities.filter(a => a.type === 'payment').length },
+    {
+      key: 'expense',
+      label: 'Expenses',
+      count: activities.filter((a) => a.type === 'expense').length,
+    },
+    {
+      key: 'payment',
+      label: 'Payments',
+      count: activities.filter((a) => a.type === 'payment').length,
+    },
   ];
 
-  const totalExpenses = activities.filter(a => a.type === 'expense').reduce((sum, a) => sum + a.yourShare, 0);
-  const totalReceived = activities.filter(a => a.type === 'payment' && a.yourShare > 0).reduce((sum, a) => sum + a.yourShare, 0);
+  const totalExpenses = activities
+    .filter((a) => a.type === 'expense')
+    .reduce((sum, a) => sum + a.yourShare, 0);
+  const totalReceived = activities
+    .filter((a) => a.type === 'payment' && a.yourShare > 0)
+    .reduce((sum, a) => sum + a.yourShare, 0);
+
+  // Format summary amounts
+  const [formattedTotalReceived, setFormattedTotalReceived] = useState('₹0');
+  const [formattedTotalExpenses, setFormattedTotalExpenses] = useState('₹0');
+
+  useEffect(() => {
+    const formatSummaryAmounts = async () => {
+      const receivedFormatted = await convertAndFormatAmount(totalReceived);
+      const expensesFormatted = await convertAndFormatAmount(totalExpenses);
+      setFormattedTotalReceived(receivedFormatted);
+      setFormattedTotalExpenses(expensesFormatted);
+    };
+    
+    formatSummaryAmounts();
+  }, [totalReceived, totalExpenses]);
 
   if (loading) {
     return (
@@ -248,17 +344,26 @@ export default function ActivityScreen() {
             <TrendingUp size={20} color="#10B981" />
           </View>
           <View style={styles.summaryInfo}>
-            <Text style={styles.summaryAmount}>+${totalReceived.toFixed(2)}</Text>
+            <Text style={styles.summaryAmount}>
+              +{formatCurrency(totalReceived, userCurrency)}
+            </Text>
             <Text style={styles.summaryLabel}>Received</Text>
           </View>
         </View>
-        
+
         <View style={styles.summaryCard}>
-          <View style={[styles.summaryIconContainer, { backgroundColor: '#FEE2E2' }]}>
+          <View
+            style={[
+              styles.summaryIconContainer,
+              { backgroundColor: '#FEE2E2' },
+            ]}
+          >
             <TrendingDown size={20} color="#EF4444" />
           </View>
           <View style={styles.summaryInfo}>
-            <Text style={[styles.summaryAmount, { color: '#EF4444' }]}>-${totalExpenses.toFixed(2)}</Text>
+            <Text style={[styles.summaryAmount, { color: '#EF4444' }]}>
+              -{formatCurrency(totalExpenses, userCurrency)}
+            </Text>
             <Text style={styles.summaryLabel}>Your share</Text>
           </View>
         </View>
@@ -278,30 +383,41 @@ export default function ActivityScreen() {
 
       {/* Filter Tabs */}
       <View style={styles.filtersWrapper}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filtersContainer}
+        >
           {filters.map((filter) => (
             <TouchableOpacity
               key={filter.key}
               style={[
                 styles.filterTab,
-                selectedFilter === filter.key && styles.activeFilterTab
+                selectedFilter === filter.key && styles.activeFilterTab,
               ]}
               onPress={() => setSelectedFilter(filter.key)}
             >
-              <Text style={[
-                styles.filterTabText,
-                selectedFilter === filter.key && styles.activeFilterTabText
-              ]}>
+              <Text
+                style={[
+                  styles.filterTabText,
+                  selectedFilter === filter.key && styles.activeFilterTabText,
+                ]}
+              >
                 {filter.label}
               </Text>
-              <View style={[
-                styles.filterCount,
-                selectedFilter === filter.key && styles.activeFilterCount
-              ]}>
-                <Text style={[
-                  styles.filterCountText,
-                  selectedFilter === filter.key && styles.activeFilterCountText
-                ]}>
+              <View
+                style={[
+                  styles.filterCount,
+                  selectedFilter === filter.key && styles.activeFilterCount,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.filterCountText,
+                    selectedFilter === filter.key &&
+                      styles.activeFilterCountText,
+                  ]}
+                >
                   {filter.count}
                 </Text>
               </View>
@@ -310,8 +426,8 @@ export default function ActivityScreen() {
         </ScrollView>
       </View>
 
-      <ScrollView 
-        style={styles.scrollView} 
+      <ScrollView
+        style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -326,43 +442,71 @@ export default function ActivityScreen() {
                 {groupedActivities[date].map((activity) => {
                   const activityStyle = getActivityIcon(activity.type);
                   const IconComponent = activityStyle.icon;
-                  
+
                   return (
-                    <TouchableOpacity key={activity.id} style={styles.activityCard}>
-                      <View style={[styles.activityIconContainer, { backgroundColor: activityStyle.bgColor }]}>
+                    <TouchableOpacity
+                      key={activity.id}
+                      style={styles.activityCard}
+                    >
+                      <View
+                        style={[
+                          styles.activityIconContainer,
+                          { backgroundColor: activityStyle.bgColor },
+                        ]}
+                      >
                         <IconComponent size={20} color={activityStyle.color} />
                       </View>
-                      
-                      <Image source={{ uri: activity.avatar }} style={styles.activityAvatar} />
-                      
+
+                      <Image
+                        source={{ uri: activity.avatar }}
+                        style={styles.activityAvatar}
+                      />
+
                       <View style={styles.activityInfo}>
-                        <Text style={styles.activityTitle} numberOfLines={2}>{activity.title}</Text>
-                        <Text style={styles.activityGroup}>{activity.group}</Text>
+                        <Text style={styles.activityTitle} numberOfLines={2}>
+                          {activity.title}
+                        </Text>
+                        <Text style={styles.activityGroup}>
+                          {activity.group}
+                        </Text>
                         <Text style={styles.activityDescription}>
                           {getActivityDescription(activity)}
                         </Text>
                         <View style={styles.activityMeta}>
-                          <Text style={styles.activityCategory}>{activity.category}</Text>
+                          <Text style={styles.activityCategory}>
+                            {activity.category}
+                          </Text>
                           {activity.participants > 1 && (
                             <>
                               <Text style={styles.metaDivider}>•</Text>
                               <Users size={12} color="#9CA3AF" />
-                              <Text style={styles.activityParticipants}>{activity.participants}</Text>
+                              <Text style={styles.activityParticipants}>
+                                {activity.participants}
+                              </Text>
                             </>
                           )}
                         </View>
                       </View>
-                      
+
                       <View style={styles.activityAmountContainer}>
-                        <Text style={[
-                          styles.amount,
-                          { color: activity.type === 'payment' ? '#10B981' : '#111827' }
-                        ]} numberOfLines={1} ellipsizeMode='tail'>
-                          {activity.type === 'payment' ? '+' : ''}${activity.amount.toFixed(2)}
+                        <Text
+                          style={[
+                            styles.amount,
+                            {
+                              color:
+                                activity.type === 'payment'
+                                  ? '#10B981'
+                                  : '#111827',
+                            },
+                          ]}
+                          numberOfLines={1}
+                          ellipsizeMode="tail"
+                        >
+                          {activity.formattedAmount || `₹${activity.amount.toFixed(2)}`}
                         </Text>
                         {activity.type === 'expense' && (
                           <Text style={styles.yourShare}>
-                            You: ${activity.yourShare.toFixed(2)}
+                            You: {activity.formattedYourShare || `₹${activity.yourShare.toFixed(2)}`}
                           </Text>
                         )}
                         <Text style={styles.activityTime}>{activity.time}</Text>
@@ -379,10 +523,9 @@ export default function ActivityScreen() {
             </View>
             <Text style={styles.emptyTitle}>No activities found</Text>
             <Text style={styles.emptyDescription}>
-              {searchQuery || selectedFilter !== 'all' 
+              {searchQuery || selectedFilter !== 'all'
                 ? 'Try adjusting your search or filters'
-                : 'Your transaction history will appear here'
-              }
+                : 'Your transaction history will appear here'}
             </Text>
           </View>
         )}

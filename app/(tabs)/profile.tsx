@@ -13,19 +13,34 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Settings, Bell, CreditCard, Users, CircleHelp as HelpCircle, Shield, Moon, ChevronRight, LogOut, Edit3, DollarSign, Camera, Save, UserPlus } from 'lucide-react-native';
+import {
+  Settings,
+  Bell,
+  CreditCard,
+  Users,
+  CircleHelp as HelpCircle,
+  Shield,
+  Moon,
+  ChevronRight,
+  LogOut,
+  Edit3,
+  DollarSign,
+  Camera,
+  Save,
+  UserPlus,
+} from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserProfile, updateUserProfile } from '@/services/profile-api';
 import { getUserBalances } from '@/services/dashboard-api';
 import { getUserGroups } from '@/services/groups-api';
-import { 
-  getUserCurrency, 
-  setUserCurrency, 
-  convertAndFormatAmount, 
-  getAvailableCurrencies, 
+import {
+  getUserCurrency,
+  setUserCurrency,
+  convertAndFormatAmount,
+  getAvailableCurrencies,
   getCurrencyName,
   CURRENCY_SYMBOLS,
-  type Currency 
+  type Currency,
 } from '@/utils/currency';
 
 // --- Interfaces --- //
@@ -61,8 +76,16 @@ const StatCard = ({ label, value, color }: StatItemProps) => (
 );
 
 // A component for each setting item to keep the main component clean
-const SettingItem = ({ item, isLast, onPress }: { item: any; isLast: boolean; onPress: () => void; }) => (
-  <TouchableOpacity 
+const SettingItem = ({
+  item,
+  isLast,
+  onPress,
+}: {
+  item: any;
+  isLast: boolean;
+  onPress: () => void;
+}) => (
+  <TouchableOpacity
     style={[styles.settingItem, isLast && styles.lastSettingItem]}
     onPress={onPress}
   >
@@ -115,13 +138,9 @@ export default function ProfileScreen() {
       setLoading(true);
       const currency = await getUserCurrency();
       setSelectedCurrency(currency);
-      
+
       // Fetch data in parallel for faster loading
-      await Promise.all([
-        loadProfile(),
-        loadBalances(currency),
-        loadGroups()
-      ]);
+      await Promise.all([loadProfile(), loadBalances(currency), loadGroups()]);
       setLoading(false);
     };
     loadAllData();
@@ -143,13 +162,26 @@ export default function ProfileScreen() {
       const response = await getUserBalances();
       const balances = response.data;
       setBalanceData(balances);
-      
-      const netBalanceFormatted = await convertAndFormatAmount(Math.abs(balances.netBalance), currency);
-      const owedFormatted = await convertAndFormatAmount(balances.totalOwed, currency);
-      const owedToYouFormatted = await convertAndFormatAmount(balances.totalOwedToYou, currency);
-      
+
+      const netBalanceFormatted = await convertAndFormatAmount(
+        Math.abs(balances.netBalance),
+        currency
+      );
+      const owedFormatted = await convertAndFormatAmount(
+        balances.totalOwed,
+        currency
+      );
+      const owedToYouFormatted = await convertAndFormatAmount(
+        balances.totalOwedToYou,
+        currency
+      );
+
       setStats([
-        { label: 'Net Balance', value: netBalanceFormatted, color: balances.netBalance >= 0 ? '#10B981' : '#EF4444' },
+        {
+          label: 'Net Balance',
+          value: netBalanceFormatted,
+          color: balances.netBalance >= 0 ? '#10B981' : '#EF4444',
+        },
         { label: 'You Owe', value: owedFormatted, color: '#EF4444' },
         { label: 'Owed to You', value: owedToYouFormatted, color: '#10B981' },
       ]);
@@ -175,7 +207,10 @@ export default function ProfileScreen() {
       await setUserCurrency(currency);
       setSelectedCurrency(currency);
       await loadBalances(currency); // Reload balances with new currency
-      Alert.alert('Success', `Currency changed to ${getCurrencyName(currency)}`);
+      Alert.alert(
+        'Success',
+        `Currency changed to ${getCurrencyName(currency)}`
+      );
     } catch (error) {
       console.error('Error changing currency:', error);
       Alert.alert('Error', 'Failed to change currency');
@@ -207,11 +242,11 @@ export default function ProfileScreen() {
 
   const handleCurrencySelection = () => {
     const currencies = getAvailableCurrencies();
-    const options = currencies.map(code => ({
+    const options = currencies.map((code) => ({
       text: `${CURRENCY_SYMBOLS[code]} ${getCurrencyName(code)}`,
-      onPress: () => handleCurrencyChange(code)
+      onPress: () => handleCurrencyChange(code),
     }));
-    
+
     Alert.alert(
       'Select Currency',
       'Choose your preferred currency for displaying amounts',
@@ -220,39 +255,94 @@ export default function ProfileScreen() {
   };
 
   // --- Memoized Data for Rendering --- //
-  const settingsSections = useMemo(() => [
-    {
-      section: 'Account',
-      items: [
-        { id: 'payment-methods', title: 'Payment Methods', icon: CreditCard, hasChevron: true },
-        { id: 'currency', title: 'Default Currency', icon: DollarSign, hasChevron: true, subtitle: selectedCurrency },
-      ]
-    },
-    {
-      section: 'Preferences',
-      items: [
-        { id: 'notifications', title: 'Notifications', icon: Bell, hasChevron: true },
-        { id: 'dark-mode', title: 'Dark Mode', icon: Moon, hasSwitch: true, value: isDarkMode, onToggle: setIsDarkMode },
-      ]
-    },
-    {
-      section: 'Social',
-      items: [
-        { id: 'invite-friends', title: 'Invite Friends', icon: UserPlus, hasChevron: true },
-        { id: 'friends', title: 'Manage Friends', icon: Users, hasChevron: true },
-        { id: 'privacy', title: 'Privacy Settings', icon: Shield, hasChevron: true },
-      ]
-    },
-    {
-      section: 'Support',
-      items: [
-        { id: 'help', title: 'Help & Support', icon: HelpCircle, hasChevron: true },
-        { id: 'settings', title: 'App Settings', icon: Settings, hasChevron: true },
-      ]
-    }
-  ], [selectedCurrency, isDarkMode]); // Re-generate this data only when dependencies change
+  const settingsSections = useMemo(
+    () => [
+      {
+        section: 'Account',
+        items: [
+          {
+            id: 'payment-methods',
+            title: 'Payment Methods',
+            icon: CreditCard,
+            hasChevron: true,
+          },
+          {
+            id: 'currency',
+            title: 'Default Currency',
+            icon: DollarSign,
+            hasChevron: true,
+            subtitle: selectedCurrency,
+          },
+        ],
+      },
+      {
+        section: 'Preferences',
+        items: [
+          {
+            id: 'notifications',
+            title: 'Notifications',
+            icon: Bell,
+            hasChevron: true,
+          },
+          {
+            id: 'dark-mode',
+            title: 'Dark Mode',
+            icon: Moon,
+            hasSwitch: true,
+            value: isDarkMode,
+            onToggle: setIsDarkMode,
+          },
+        ],
+      },
+      {
+        section: 'Social',
+        items: [
+          {
+            id: 'invite-friends',
+            title: 'Invite Friends',
+            icon: UserPlus,
+            hasChevron: true,
+          },
+          {
+            id: 'friends',
+            title: 'Manage Friends',
+            icon: Users,
+            hasChevron: true,
+          },
+          {
+            id: 'privacy',
+            title: 'Privacy Settings',
+            icon: Shield,
+            hasChevron: true,
+          },
+        ],
+      },
+      {
+        section: 'Support',
+        items: [
+          {
+            id: 'help',
+            title: 'Help & Support',
+            icon: HelpCircle,
+            hasChevron: true,
+          },
+          {
+            id: 'settings',
+            title: 'App Settings',
+            icon: Settings,
+            hasChevron: true,
+          },
+        ],
+      },
+    ],
+    [selectedCurrency, isDarkMode]
+  ); // Re-generate this data only when dependencies change
 
-  const formatMemberSince = (dateString: string) => `Member since ${new Date(dateString).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`;
+  const formatMemberSince = (dateString: string) =>
+    `Member since ${new Date(dateString).toLocaleDateString('en-US', {
+      month: 'long',
+      year: 'numeric',
+    })}`;
 
   // --- Render Logic --- //
   if (loading) {
@@ -278,28 +368,51 @@ export default function ProfileScreen() {
       </SafeAreaView>
     );
   }
-  
+
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.header}>
           <Text style={styles.title}>Profile</Text>
-          <TouchableOpacity 
-            onPress={() => isEditing ? handleUpdateProfile() : setIsEditing(true)}
+          <TouchableOpacity
+            onPress={() =>
+              isEditing ? handleUpdateProfile() : setIsEditing(true)
+            }
             disabled={saving}
             style={styles.editButton}
           >
-            {saving ? <ActivityIndicator size="small" color="#10B981" /> : isEditing ? <Save size={20} color="#10B981" /> : <Edit3 size={20} color="#10B981" />}
+            {saving ? (
+              <ActivityIndicator size="small" color="#10B981" />
+            ) : isEditing ? (
+              <Save size={20} color="#10B981" />
+            ) : (
+              <Edit3 size={20} color="#10B981" />
+            )}
           </TouchableOpacity>
         </View>
 
         <View style={styles.profileCard}>
           <View style={styles.avatarContainer}>
-            <Image 
-              source={{ uri: profile.avatarUrl || 'https://images.pexels.com/photos/3777931/pexels-photo-3777931.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop' }}
+            <Image
+              source={{
+                uri:
+                  profile.avatarUrl ||
+                  'https://images.pexels.com/photos/3777931/pexels-photo-3777931.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop',
+              }}
               style={styles.profileImage}
             />
-            <TouchableOpacity style={styles.cameraButton} onPress={() => Alert.alert('Coming Soon', 'Image upload will be available soon.')}>
+            <TouchableOpacity
+              style={styles.cameraButton}
+              onPress={() =>
+                Alert.alert(
+                  'Coming Soon',
+                  'Image upload will be available soon.'
+                )
+              }
+            >
               <Camera size={16} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
@@ -328,7 +441,11 @@ export default function ProfileScreen() {
           {stats.map((stat, index) => (
             <StatCard key={index} {...stat} />
           ))}
-          <StatCard label="Groups" value={String(totalGroups)} color="#F59E0B" />
+          <StatCard
+            label="Groups"
+            value={String(totalGroups)}
+            color="#F59E0B"
+          />
         </View>
 
         {settingsSections.map((section) => (
@@ -342,7 +459,10 @@ export default function ProfileScreen() {
                   isLast={itemIndex === section.items.length - 1}
                   onPress={() => {
                     if (item.id === 'currency') handleCurrencySelection();
-                    else if (item.id === 'invite-friends') router.push('/invite-friends');
+                    else if (item.id === 'invite-friends')
+                      router.push('/invite-friends');
+                    else if (item.id === 'friends')
+                      router.push('/manage-friends');
                     // Add other navigation or actions here
                   }}
                 />

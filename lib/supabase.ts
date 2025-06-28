@@ -7,7 +7,15 @@ import { API_URL } from '../services/api';
 // during the migration process. This helps avoid having to update all files at once.
 export const supabase = {
   auth: {
-    signUp: async ({ email, password, options }: { email: string, password: string, options?: any }) => {
+    signUp: async ({
+      email,
+      password,
+      options,
+    }: {
+      email: string;
+      password: string;
+      options?: any;
+    }) => {
       try {
         const response = await axios.post(`${API_URL}/auth/register`, {
           email,
@@ -16,24 +24,33 @@ export const supabase = {
         });
         return { data: response.data, error: null };
       } catch (error: any) {
-        return { 
-          data: null, 
-          error: { 
-            message: error.response?.data?.error || 'Error creating account'
-          }
+        return {
+          data: null,
+          error: {
+            message: error.response?.data?.error || 'Error creating account',
+          },
         };
       }
     },
-    signInWithPassword: async ({ email, password }: { email: string, password: string }) => {
+    signInWithPassword: async ({
+      email,
+      password,
+    }: {
+      email: string;
+      password: string;
+    }) => {
       try {
-        const response = await axios.post(`${API_URL}/auth/login`, { email, password });
+        const response = await axios.post(`${API_URL}/auth/login`, {
+          email,
+          password,
+        });
         return { data: response.data, error: null };
       } catch (error: any) {
-        return { 
-          data: null, 
-          error: { 
-            message: error.response?.data?.error || 'Invalid credentials'
-          }
+        return {
+          data: null,
+          error: {
+            message: error.response?.data?.error || 'Invalid credentials',
+          },
         };
       }
     },
@@ -52,7 +69,7 @@ export const supabase = {
     getSession: async () => {
       // Return empty session data
       return { data: { session: null } };
-    }
+    },
   },
   from: (table: string) => {
     return {
@@ -62,14 +79,18 @@ export const supabase = {
             return {
               single: async () => {
                 try {
-                  const response = await axios.get(`${API_URL}/${table}/${value}`);
+                  const response = await axios.get(
+                    `${API_URL}/${table}/${value}`
+                  );
                   return { data: response.data, error: null };
                 } catch (error: any) {
-                  return { 
-                    data: null, 
-                    error: { 
-                      message: error.response?.data?.error || `Error fetching ${table}`
-                    }
+                  return {
+                    data: null,
+                    error: {
+                      message:
+                        error.response?.data?.error ||
+                        `Error fetching ${table}`,
+                    },
                   };
                 }
               },
@@ -77,21 +98,25 @@ export const supabase = {
                 return {
                   limit: async () => {
                     try {
-                      const response = await axios.get(`${API_URL}/${table}?${field}=${value}`);
+                      const response = await axios.get(
+                        `${API_URL}/${table}?${field}=${value}`
+                      );
                       return { data: response.data, error: null };
                     } catch (error: any) {
-                      return { 
-                        data: null, 
-                        error: { 
-                          message: error.response?.data?.error || `Error fetching ${table}`
-                        }
+                      return {
+                        data: null,
+                        error: {
+                          message:
+                            error.response?.data?.error ||
+                            `Error fetching ${table}`,
+                        },
                       };
                     }
-                  }
+                  },
                 };
-              }
+              },
             };
-          }
+          },
         };
       },
       insert: (data: any) => {
@@ -101,50 +126,60 @@ export const supabase = {
               const response = await axios.post(`${API_URL}/${table}`, data);
               return { data: response.data, error: null };
             } catch (error: any) {
-              return { 
-                data: null, 
-                error: { 
-                  message: error.response?.data?.error || `Error inserting into ${table}`
-                }
+              return {
+                data: null,
+                error: {
+                  message:
+                    error.response?.data?.error ||
+                    `Error inserting into ${table}`,
+                },
               };
             }
-          }
+          },
         };
       },
       update: (data: any) => {
         return {
           eq: async (field: string, value: any) => {
             try {
-              const response = await axios.put(`${API_URL}/${table}/${value}`, data);
+              const response = await axios.put(
+                `${API_URL}/${table}/${value}`,
+                data
+              );
               return { data: response.data, error: null };
             } catch (error: any) {
-              return { 
-                data: null, 
-                error: { 
-                  message: error.response?.data?.error || `Error updating ${table}`
-                }
+              return {
+                data: null,
+                error: {
+                  message:
+                    error.response?.data?.error || `Error updating ${table}`,
+                },
               };
             }
-          }
+          },
         };
       },
       delete: () => {
         return {
           eq: async (field: string, value: any) => {
             try {
-              const response = await axios.delete(`${API_URL}/${table}/${value}`);
+              const response = await axios.delete(
+                `${API_URL}/${table}/${value}`
+              );
               return { data: response.data, error: null };
             } catch (error: any) {
-              return { 
-                data: null, 
-                error: { 
-                  message: error.response?.data?.error || `Error deleting from ${table}`
-                }
+              return {
+                data: null,
+                error: {
+                  message:
+                    error.response?.data?.error ||
+                    `Error deleting from ${table}`,
+                },
               };
             }
-          }
+          },
         };
-      }
+      },
     };
-  }
+  },
 };

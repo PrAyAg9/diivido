@@ -1,6 +1,12 @@
 import express from 'express';
 import { authMiddleware } from '../middlewares/auth';
-import { getUserProfile, updateUserProfile, getUserBalances, getUserActivity, getAllUsers } from '../controllers/user.controller';
+import {
+  getUserProfile,
+  updateUserProfile,
+  getUserBalances,
+  getUserActivity,
+  getAllUsers,
+} from '../controllers/user.controller';
 
 const router = express.Router();
 
@@ -26,11 +32,11 @@ router.get('/summary', authMiddleware, (req, res) => {
     totalExpenses: 0,
     pendingPayments: 0,
     recentActivity: 0,
-    activeGroups: 0
+    activeGroups: 0,
   });
 });
 
-// Upload avatar 
+// Upload avatar
 router.post('/avatar', authMiddleware, (req, res) => {
   // Placeholder route for file upload
   res.json({ avatarUrl: 'https://via.placeholder.com/150' });

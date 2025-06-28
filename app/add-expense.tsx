@@ -15,8 +15,17 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import axios from 'axios';
-import { ArrowLeft, DollarSign, Calendar, Camera, Check, ChevronRight, CircleAlert as AlertCircle } from 'lucide-react-native';
+import {
+  ArrowLeft,
+  DollarSign,
+  Calendar,
+  Camera,
+  Check,
+  ChevronRight,
+  CircleAlert as AlertCircle,
+} from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
+import { formatCurrency, getUserCurrency, type Currency } from '@/utils/currency';
 import { createExpense } from '@/services/expenses-api';
 import { getUserGroups } from '@/services/groups-api';
 import { API_URL } from '@/services/api';
@@ -35,11 +44,27 @@ const categories = [
 ];
 
 const splitTypes = [
-  { id: 'equal', name: 'Equal Split', description: 'Split equally among all members' },
-  { id: 'exact', name: 'Exact Amounts', description: 'Enter exact amounts for each person' },
-  { id: 'percentage', name: 'By Percentage', description: 'Split by custom percentages' },
+  {
+    id: 'equal',
+    name: 'Equal Split',
+    description: 'Split equally among all members',
+  },
+  {
+    id: 'exact',
+    name: 'Exact Amounts',
+    description: 'Enter exact amounts for each person',
+  },
+  {
+    id: 'percentage',
+    name: 'By Percentage',
+    description: 'Split by custom percentages',
+  },
   { id: 'shares', name: 'By Shares', description: 'Split by number of shares' },
-  { id: 'loser-pays-all', name: 'Loser Pays All', description: 'One random person pays the entire amount' },
+  {
+    id: 'loser-pays-all',
+    name: 'Loser Pays All',
+    description: 'One random person pays the entire amount',
+  },
 ];
 
 interface Group {
@@ -73,6 +98,7 @@ export default function AddExpenseScreen() {
   const [splitType, setSplitType] = useState('equal');
   const [paidBy, setPaidBy] = useState<string>('');
   const [date, setDate] = useState(new Date());
+  const [userCurrency, setUserCurrency] = useState<Currency>('INR');
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -96,7 +122,9 @@ export default function AddExpenseScreen() {
             return null;
           }
           try {
-            const groupResponse = await axios.get(`${API_URL}/groups/${group.id}`);
+            const groupResponse = await axios.get(
+              `${API_URL}/groups/${group.id}`
+            );
             const groupData = groupResponse.data;
             const members = groupData.members || [];
             const groupMembers: GroupMember[] = members.map((member: any) => ({
@@ -112,12 +140,17 @@ export default function AddExpenseScreen() {
               members: groupMembers,
             };
           } catch (error) {
-            console.error(`Error fetching details for group ${group.id}:`, error);
+            console.error(
+              `Error fetching details for group ${group.id}:`,
+              error
+            );
             return null;
           }
         })
       );
-      const validGroups = groupsWithMembers.filter(group => group !== null) as Group[];
+      const validGroups = groupsWithMembers.filter(
+        (group) => group !== null
+      ) as Group[];
       setGroups(validGroups);
       if (validGroups.length > 0) {
         const firstGroup = validGroups[0];
@@ -134,6 +167,16 @@ export default function AddExpenseScreen() {
   };
 
   useEffect(() => {
+    const loadUserCurrency = async () => {
+      try {
+        const currency = await getUserCurrency();
+        setUserCurrency(currency);
+      } catch (error) {
+        console.error('Error loading user currency:', error);
+      }
+    };
+    
+    loadUserCurrency();
     fetchGroups();
   }, [user]);
 
@@ -147,8 +190,17 @@ export default function AddExpenseScreen() {
   };
 
   const handleSave = async () => {
-    if (!amount || parseFloat(amount) <= 0 || !description || !selectedGroup || selectedMembers.length === 0) {
-      Alert.alert('Invalid Input', 'Please fill in all required fields and select at least one member.');
+    if (
+      !amount ||
+      parseFloat(amount) <= 0 ||
+      !description ||
+      !selectedGroup ||
+      selectedMembers.length === 0
+    ) {
+      Alert.alert(
+        'Invalid Input',
+        'Please fill in all required fields and select at least one member.'
+      );
       return;
     }
     setSaving(true);
@@ -157,97 +209,119 @@ export default function AddExpenseScreen() {
       const totalAmount = parseFloat(amount);
       let splits;
       let actualSplitType = splitType;
-      
+
       if (splitType === 'loser-pays-all') {
         // Select a random person from selected members to pay the full amount
         const randomIndex = Math.floor(Math.random() * selectedMembers.length);
         const unluckyPerson = selectedMembers[randomIndex];
-        
-        splits = selectedMembers.map(memberId => ({
+
+        splits = selectedMembers.map((memberId) => ({
           userId: memberId,
           amount: memberId === unluckyPerson ? totalAmount : 0,
           percentage: memberId === unluckyPerson ? 100 : 0,
-          shares: memberId === unluckyPerson ? 1 : 0
+          shares: memberId === unluckyPerson ? 1 : 0,
         }));
-        
+
         actualSplitType = 'exact'; // Backend will handle it as exact amounts
-        
+
         // Show who was selected to pay
-        const unluckyMember = getCurrentGroupMembers().find(m => m.id === unluckyPerson);
-        const memberName = unluckyMember?.isYou ? 'You' : (unluckyMember?.fullName || 'Unknown');
-        Alert.alert('Random Selection', `${memberName} was randomly selected to pay the full amount!`);
+        const unluckyMember = getCurrentGroupMembers().find(
+          (m) => m.id === unluckyPerson
+        );
+        const memberName = unluckyMember?.isYou
+          ? 'You'
+          : unluckyMember?.fullName || 'Unknown';
+        Alert.alert(
+          'Random Selection',
+          `${memberName} was randomly selected to pay the full amount!`
+        );
       } else {
         // Regular equal split
-        splits = selectedMembers.map(memberId => {
+        splits = selectedMembers.map((memberId) => {
           const splitAmount = totalAmount / selectedMembers.length;
           return {
             userId: memberId,
             amount: splitAmount,
             percentage: 100 / selectedMembers.length,
-            shares: 1
+            shares: 1,
           };
         });
       }
-      
+
       await createExpense({
         groupId: selectedGroup,
         title: description,
         amount: totalAmount,
         currency: 'INR',
         category: selectedCategory,
-        splitType: actualSplitType as 'equal' | 'exact' | 'percentage' | 'shares',
+        splitType: actualSplitType as
+          | 'equal'
+          | 'exact'
+          | 'percentage'
+          | 'shares',
         splits: splits,
-        notes: splitType === 'loser-pays-all' ? 'Random selection - loser pays all' : '',
-        date: date.toISOString().split('T')[0]
+        notes:
+          splitType === 'loser-pays-all'
+            ? 'Random selection - loser pays all'
+            : '',
+        date: date.toISOString().split('T')[0],
       });
-      
+
       // Direct redirect without alert for smoother UX
       router.replace('/(tabs)');
     } catch (err: any) {
       console.error('Error saving expense:', err);
-      setError(err.response?.data?.error || err.message || 'Failed to save expense');
-      Alert.alert('Error', 'Failed to save expense: ' + (err.response?.data?.error || err.message));
+      setError(
+        err.response?.data?.error || err.message || 'Failed to save expense'
+      );
+      Alert.alert(
+        'Error',
+        'Failed to save expense: ' + (err.response?.data?.error || err.message)
+      );
     } finally {
       setSaving(false);
     }
   };
 
   const toggleMemberSelection = (memberId: string) => {
-    const member = getCurrentGroupMembers().find(m => m.id === memberId);
+    const member = getCurrentGroupMembers().find((m) => m.id === memberId);
     if (member?.isYou) return;
     const isSelected = selectedMembers.includes(memberId);
     if (isSelected) {
       if (paidBy === memberId) {
         setPaidBy(user?.id || '');
       }
-      setSelectedMembers(selectedMembers.filter(id => id !== memberId));
+      setSelectedMembers(selectedMembers.filter((id) => id !== memberId));
     } else {
       setSelectedMembers([...selectedMembers, memberId]);
     }
   };
 
   const getCurrentGroupMembers = (): GroupMember[] => {
-    const group = groups.find(g => g.id === selectedGroup);
+    const group = groups.find((g) => g.id === selectedGroup);
     return group?.members || [];
   };
 
   const getSelectedMembersData = (): GroupMember[] => {
-    return getCurrentGroupMembers().filter(member => selectedMembers.includes(member.id));
+    return getCurrentGroupMembers().filter((member) =>
+      selectedMembers.includes(member.id)
+    );
   };
 
   const calculateSplit = () => {
-    if (!amount || selectedMembers.length === 0 || parseFloat(amount) <= 0) return 0;
-    
+    if (!amount || selectedMembers.length === 0 || parseFloat(amount) <= 0)
+      return 0;
+
     if (splitType === 'loser-pays-all') {
       return parseFloat(amount); // Show full amount for preview
     }
-    
+
     return parseFloat(amount) / selectedMembers.length;
   };
 
   const handleGroupChange = (groupId: string) => {
     setSelectedGroup(groupId);
-    const group = groups.find(g => g.id === groupId);
+    const group = groups.find((g) => g.id === groupId);
     if (group) {
       setSelectedMembers(group.members.map((m: GroupMember) => m.id));
       setPaidBy(user?.id || '');
@@ -269,7 +343,10 @@ export default function AddExpenseScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
             <ArrowLeft size={24} color="#111827" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Add Expense</Text>
@@ -281,7 +358,7 @@ export default function AddExpenseScreen() {
           <Text style={styles.emptyText}>
             You need to be a member of at least one group to add expenses.
           </Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.createGroupButton}
             onPress={() => router.push('/create-group')}
           >
@@ -295,19 +372,30 @@ export default function AddExpenseScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
           <ArrowLeft size={24} color="#111827" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Add Expense</Text>
         <TouchableOpacity
-          style={[styles.saveButton, (!amount || !description || saving) && styles.saveButtonDisabled]}
+          style={[
+            styles.saveButton,
+            (!amount || !description || saving) && styles.saveButtonDisabled,
+          ]}
           onPress={handleSave}
           disabled={!amount || !description || saving}
         >
           {saving ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
-            <Text style={[styles.saveButtonText, (!amount || !description) && styles.saveButtonTextDisabled]}>
+            <Text
+              style={[
+                styles.saveButtonText,
+                (!amount || !description) && styles.saveButtonTextDisabled,
+              ]}
+            >
               Save
             </Text>
           )}
@@ -321,8 +409,8 @@ export default function AddExpenseScreen() {
         </View>
       )}
 
-      <ScrollView 
-        style={styles.scrollView} 
+      <ScrollView
+        style={styles.scrollView}
         contentContainerStyle={styles.scrollViewContent}
         showsVerticalScrollIndicator={false}
       >
@@ -363,15 +451,19 @@ export default function AddExpenseScreen() {
                 key={category.id}
                 style={[
                   styles.categoryCard,
-                  selectedCategory === category.id && styles.selectedCategoryCard
+                  selectedCategory === category.id &&
+                    styles.selectedCategoryCard,
                 ]}
                 onPress={() => setSelectedCategory(category.id)}
               >
                 <Text style={styles.categoryIcon}>{category.icon}</Text>
-                <Text style={[
-                  styles.categoryName,
-                  selectedCategory === category.id && styles.selectedCategoryName
-                ]}>
+                <Text
+                  style={[
+                    styles.categoryName,
+                    selectedCategory === category.id &&
+                      styles.selectedCategoryName,
+                  ]}
+                >
                   {category.name}
                 </Text>
               </TouchableOpacity>
@@ -396,19 +488,23 @@ export default function AddExpenseScreen() {
                 key={group.id}
                 style={[
                   styles.groupCard,
-                  selectedGroup === group.id && styles.selectedGroupCard
+                  selectedGroup === group.id && styles.selectedGroupCard,
                 ]}
                 onPress={() => handleGroupChange(group.id)}
               >
-                <Image 
-                  source={{ 
-                    uri: group.avatarUrl || 'https://images.pexels.com/photos/1370296/pexels-photo-1370296.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&fit=crop' 
-                  }} 
-                  style={styles.groupAvatar} 
+                <Image
+                  source={{
+                    uri:
+                      group.avatarUrl ||
+                      'https://images.pexels.com/photos/1370296/pexels-photo-1370296.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&fit=crop',
+                  }}
+                  style={styles.groupAvatar}
                 />
                 <View style={styles.groupInfo}>
                   <Text style={styles.groupName}>{group.name}</Text>
-                  <Text style={styles.groupMembers}>{(group.members ?? []).length} members</Text>
+                  <Text style={styles.groupMembers}>
+                    {(group.members ?? []).length} members
+                  </Text>
                 </View>
                 {selectedGroup === group.id && (
                   <Check size={20} color="#10B981" />
@@ -426,19 +522,24 @@ export default function AddExpenseScreen() {
                 key={member.id}
                 style={[
                   styles.memberCard,
-                  selectedMembers.includes(member.id) && styles.selectedMemberCard,
-                  member.isYou && styles.youMemberCard
+                  selectedMembers.includes(member.id) &&
+                    styles.selectedMemberCard,
+                  member.isYou && styles.youMemberCard,
                 ]}
                 onPress={() => toggleMemberSelection(member.id)}
                 disabled={member.isYou}
               >
-                <Image 
-                  source={{ 
-                    uri: member.avatarUrl || 'https://images.pexels.com/photos/3777931/pexels-photo-3777931.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&fit=crop' 
-                  }} 
-                  style={styles.memberAvatar} 
+                <Image
+                  source={{
+                    uri:
+                      member.avatarUrl ||
+                      'https://images.pexels.com/photos/3777931/pexels-photo-3777931.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&fit=crop',
+                  }}
+                  style={styles.memberAvatar}
                 />
-                <Text style={styles.memberName}>{member.isYou ? 'You' : member.fullName || 'Unknown'}</Text>
+                <Text style={styles.memberName}>
+                  {member.isYou ? 'You' : member.fullName || 'Unknown'}
+                </Text>
                 {selectedMembers.includes(member.id) && (
                   <View style={styles.checkIcon}>
                     <Check size={12} color="#FFFFFF" />
@@ -457,20 +558,22 @@ export default function AddExpenseScreen() {
                 key={member.id}
                 style={[
                   styles.paidByCard,
-                  paidBy === member.id && styles.selectedPaidByCard
+                  paidBy === member.id && styles.selectedPaidByCard,
                 ]}
                 onPress={() => setPaidBy(member.id)}
               >
-                <Image 
-                  source={{ 
-                    uri: member.avatarUrl || 'https://images.pexels.com/photos/3777931/pexels-photo-3777931.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&fit=crop' 
-                  }} 
-                  style={styles.paidByAvatar} 
+                <Image
+                  source={{
+                    uri:
+                      member.avatarUrl ||
+                      'https://images.pexels.com/photos/3777931/pexels-photo-3777931.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&fit=crop',
+                  }}
+                  style={styles.paidByAvatar}
                 />
-                <Text style={styles.paidByName}>{member.isYou ? 'You' : member.fullName || 'Unknown'}</Text>
-                {paidBy === member.id && (
-                  <Check size={16} color="#10B981" />
-                )}
+                <Text style={styles.paidByName}>
+                  {member.isYou ? 'You' : member.fullName || 'Unknown'}
+                </Text>
+                {paidBy === member.id && <Check size={16} color="#10B981" />}
               </TouchableOpacity>
             ))}
           </View>
@@ -484,22 +587,22 @@ export default function AddExpenseScreen() {
                 key={type.id}
                 style={[
                   styles.splitTypeCard,
-                  splitType === type.id && styles.selectedSplitTypeCard
+                  splitType === type.id && styles.selectedSplitTypeCard,
                 ]}
                 onPress={() => setSplitType(type.id)}
               >
                 <View style={styles.splitTypeInfo}>
                   <Text style={styles.splitTypeName}>{type.name}</Text>
-                  <Text style={styles.splitTypeDescription}>{type.description}</Text>
+                  <Text style={styles.splitTypeDescription}>
+                    {type.description}
+                  </Text>
                 </View>
-                {splitType === type.id && (
-                  <Check size={20} color="#10B981" />
-                )}
+                {splitType === type.id && <Check size={20} color="#10B981" />}
               </TouchableOpacity>
             ))}
           </View>
         </View>
-        
+
         {amount && selectedMembers.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Split Preview</Text>
@@ -507,26 +610,29 @@ export default function AddExpenseScreen() {
               {splitType === 'loser-pays-all' ? (
                 <View style={styles.loserPaysAllPreview}>
                   <Text style={styles.loserPaysAllText}>
-                    🎲 One random person will pay the full amount: ₹{parseFloat(amount || '0').toFixed(2)}
+                    🎲 One random person will pay the full amount: {formatCurrency(parseFloat(amount || '0'), userCurrency)}
                   </Text>
                   <Text style={styles.loserPaysAllSubtext}>
-                    Selected from {selectedMembers.length} participant{selectedMembers.length > 1 ? 's' : ''}
+                    Selected from {selectedMembers.length} participant
+                    {selectedMembers.length > 1 ? 's' : ''}
                   </Text>
                 </View>
               ) : (
                 getSelectedMembersData().map((member) => (
                   <View key={member.id} style={styles.splitPreviewItem}>
-                    <Image 
-                      source={{ 
-                        uri: member.avatarUrl || 'https://images.pexels.com/photos/3777931/pexels-photo-3777931.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&fit=crop' 
-                      }} 
-                      style={styles.splitPreviewAvatar} 
+                    <Image
+                      source={{
+                        uri:
+                          member.avatarUrl ||
+                          'https://images.pexels.com/photos/3777931/pexels-photo-3777931.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&fit=crop',
+                      }}
+                      style={styles.splitPreviewAvatar}
                     />
                     <Text style={styles.splitPreviewName}>
                       {member.isYou ? 'You' : member.fullName || 'Unknown'}
                     </Text>
                     <Text style={styles.splitPreviewAmount}>
-                      ₹{(calculateSplit() || 0).toFixed(2)}
+                      {formatCurrency(calculateSplit() || 0, userCurrency)}
                     </Text>
                   </View>
                 ))
@@ -534,7 +640,7 @@ export default function AddExpenseScreen() {
             </View>
           </View>
         )}
-        
+
         <View style={styles.section}>
           <TouchableOpacity style={styles.photoButton}>
             <Camera size={24} color="#6B7280" />

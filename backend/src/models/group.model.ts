@@ -14,36 +14,41 @@ export interface IGroup extends Document {
   updatedAt: Date;
 }
 
-const groupSchema = new Schema({
-  name: {
-    type: String,
-    required: true,
-  },
-  description: String,
-  avatarUrl: String,
-  createdBy: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
-  },
-  members: [{
-    userId: {
+const groupSchema = new Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+    },
+    description: String,
+    avatarUrl: String,
+    createdBy: {
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
     },
-    role: {
-      type: String,
-      enum: ['admin', 'member'],
-      default: 'member',
-    },
-    joinedAt: {
-      type: Date,
-      default: Date.now,
-    },
-  }],
-}, {
-  timestamps: true,
-});
+    members: [
+      {
+        userId: {
+          type: Schema.Types.ObjectId,
+          ref: 'User',
+          required: true,
+        },
+        role: {
+          type: String,
+          enum: ['admin', 'member'],
+          default: 'member',
+        },
+        joinedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+  },
+  {
+    timestamps: true,
+  }
+);
 
 export const Group = mongoose.model<IGroup>('Group', groupSchema);

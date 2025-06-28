@@ -13,39 +13,42 @@ export interface IPayment extends Document {
   updatedAt: Date;
 }
 
-const paymentSchema = new Schema({
-  fromUser: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
+const paymentSchema = new Schema(
+  {
+    fromUser: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    toUser: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    groupId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Group',
+    },
+    amount: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    currency: {
+      type: String,
+      default: 'USD',
+    },
+    status: {
+      type: String,
+      enum: ['pending', 'completed', 'failed'],
+      default: 'pending',
+    },
+    paymentMethod: String,
+    notes: String,
   },
-  toUser: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
-  },
-  groupId: {
-    type: Schema.Types.ObjectId,
-    ref: 'Group',
-  },
-  amount: {
-    type: Number,
-    required: true,
-    min: 0,
-  },
-  currency: {
-    type: String,
-    default: 'USD',
-  },
-  status: {
-    type: String,
-    enum: ['pending', 'completed', 'failed'],
-    default: 'pending',
-  },
-  paymentMethod: String,
-  notes: String,
-}, {
-  timestamps: true,
-});
+  {
+    timestamps: true,
+  }
+);
 
 export const Payment = mongoose.model<IPayment>('Payment', paymentSchema);

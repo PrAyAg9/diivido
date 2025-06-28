@@ -12,9 +12,17 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Plus, Search, Users, DollarSign, CircleAlert as AlertCircle } from 'lucide-react-native';
+import {
+  Plus,
+  Search,
+  Users,
+  DollarSign,
+  CircleAlert as AlertCircle,
+} from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { groupsApi } from '@/services/api';
+import { formatCurrency, type Currency } from '@/utils/currency';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface Member {
   userId: string;
@@ -42,6 +50,7 @@ export default function GroupsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [userCurrency, setUserCurrency] = useState<Currency>('INR');
 
   const fetchGroups = async () => {
     if (!user) return;
@@ -49,10 +58,10 @@ export default function GroupsScreen() {
     try {
       setError(null);
       setLoading(true);
-      
+
       // Get user's groups
       const response = await groupsApi.getGroups();
-      
+
       if (!response.data || response.data.length === 0) {
         setGroups([]);
         setLoading(false);
@@ -70,7 +79,19 @@ export default function GroupsScreen() {
     }
   };
 
+  const loadUserCurrency = async () => {
+    try {
+      const currency = await AsyncStorage.getItem('userCurrency');
+      if (currency && (currency === 'INR' || currency === 'USD' || currency === 'EUR')) {
+        setUserCurrency(currency as Currency);
+      }
+    } catch (error) {
+      console.error('Error loading user currency:', error);
+    }
+  };
+
   useEffect(() => {
+    loadUserCurrency();
     fetchGroups();
   }, [user]);
 
@@ -79,12 +100,18 @@ export default function GroupsScreen() {
     fetchGroups();
   };
 
-  const filteredGroups = groups.filter(group =>
+  const filteredGroups = groups.filter((group) =>
     group.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const totalOwed = groups.reduce((sum, group) => sum + Math.max(0, -group.balance), 0);
-  const totalOwedToYou = groups.reduce((sum, group) => sum + Math.max(0, group.balance), 0);
+  const totalOwed = groups.reduce(
+    (sum, group) => sum + Math.max(0, -group.balance),
+    0
+  );
+  const totalOwedToYou = groups.reduce(
+    (sum, group) => sum + Math.max(0, group.balance),
+    0
+  );
 
   if (loading) {
     return (
@@ -101,7 +128,10 @@ export default function GroupsScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Groups</Text>
-        <TouchableOpacity style={styles.addButton} onPress={() => router.push('/create-group')}>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => router.push('/create-group')}
+        >
           <Plus size={20} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
@@ -119,11 +149,13 @@ export default function GroupsScreen() {
       {/* Summary Cards */}
       <View style={styles.summaryContainer}>
         <View style={styles.summaryCard}>
-          <Text style={styles.summaryAmount}>-${totalOwed.toFixed(2)}</Text>
+          <Text style={styles.summaryAmount}>-{formatCurrency(totalOwed, userCurrency)}</Text>
           <Text style={styles.summaryLabel}>You owe in total</Text>
         </View>
         <View style={styles.summaryCard}>
-          <Text style={[styles.summaryAmount, { color: '#10B981' }]}>+${totalOwedToYou.toFixed(2)}</Text>
+          <Text style={[styles.summaryAmount, { color: '#10B981' }]}>
+            +{formatCurrency(totalOwedToYou, userCurrency)}
+          </Text>
           <Text style={styles.summaryLabel}>Owed to you</Text>
         </View>
       </View>
@@ -140,8 +172,8 @@ export default function GroupsScreen() {
         />
       </View>
 
-      <ScrollView 
-        style={styles.scrollView} 
+      <ScrollView
+        style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -149,48 +181,60 @@ export default function GroupsScreen() {
       >
         {filteredGroups.map((group) => (
           <TouchableOpacity
-            key={group.id} 
+            key={group.id}
             style={styles.groupCard}
             onPress={() => {
-              console.log('Navigating to group details for group ID:', group.id);
+              console.log(
+                'Navigating to group details for group ID:',
+                group.id
+              );
               router.push(`/group-details?id=${group.id}`);
             }}
           >
             <Image
               source={{
-                uri: group.avatarUrl || 'https://images.pexels.com/photos/1370296/pexels-photo-1370296.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop'
+                uri:
+                  group.avatarUrl ||
+                  'https://images.pexels.com/photos/1370296/pexels-photo-1370296.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
               }}
               style={styles.groupAvatar}
             />
-            
+
             <View style={styles.groupInfo}>
               <Text style={styles.groupName}>{group.name}</Text>
               <Text style={styles.groupDescription}>
                 {group.description || 'No description'}
               </Text>
-              
+
               <View style={styles.groupMeta}>
                 <View style={styles.metaItem}>
                   <Users size={14} color="#9CA3AF" />
                   {/* FIX 2: Use .length to get the count of members */}
-                  <Text style={styles.metaText}>{(group.members ?? []).length} members</Text>
+                  <Text style={styles.metaText}>
+                    {(group.members ?? []).length} members
+                  </Text>
                 </View>
                 <View style={styles.metaItem}>
                   <DollarSign size={14} color="#9CA3AF" />
-                  <Text style={styles.metaText}>${(group.totalExpenses ?? 0).toFixed(2)}</Text>
+                  <Text style={styles.metaText}>
+                    {formatCurrency(group.totalExpenses ?? 0, userCurrency)}
+                  </Text>
                 </View>
               </View>
-              
-              <Text style={styles.lastActivity}>Last activity: {group.lastActivity}</Text>
+
+              <Text style={styles.lastActivity}>
+                Last activity: {group.lastActivity}
+              </Text>
             </View>
-            
+
             <View style={styles.balanceContainer}>
-              <Text style={[
-                
-                styles.balance,
-                { color: (group.balance ?? 0) >= 0 ? '#10B981' : '#EF4444' }
-              ]}>
-                {(group.balance ?? 0) >= 0 ? '+' : ''}${Math.abs(group.balance ?? 0).toFixed(2)}
+              <Text
+                style={[
+                  styles.balance,
+                  { color: (group.balance ?? 0) >= 0 ? '#10B981' : '#EF4444' },
+                ]}
+              >
+                {(group.balance ?? 0) >= 0 ? '+' : ''}{formatCurrency(Math.abs(group.balance ?? 0), userCurrency)}
               </Text>
               <Text style={styles.balanceLabel}>
                 {(group.balance ?? 0) >= 0 ? 'You get back' : 'You owe'}
@@ -198,7 +242,7 @@ export default function GroupsScreen() {
             </View>
           </TouchableOpacity>
         ))}
-        
+
         {filteredGroups.length === 0 && !loading && (
           <View style={styles.emptyState}>
             <Users size={48} color="#D1D5DB" />
@@ -206,13 +250,15 @@ export default function GroupsScreen() {
               {searchQuery ? 'No groups found' : 'No groups yet'}
             </Text>
             <Text style={styles.emptyDescription}>
-              {searchQuery 
-                ? 'Try adjusting your search' 
-                : 'Create your first group to start splitting expenses'
-              }
+              {searchQuery
+                ? 'Try adjusting your search'
+                : 'Create your first group to start splitting expenses'}
             </Text>
             {!searchQuery && (
-              <TouchableOpacity style={styles.createButton} onPress={() => router.push('/create-group')}>
+              <TouchableOpacity
+                style={styles.createButton}
+                onPress={() => router.push('/create-group')}
+              >
                 <Text style={styles.createButtonText}>Create Group</Text>
               </TouchableOpacity>
             )}

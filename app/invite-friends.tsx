@@ -12,9 +12,22 @@ import {
   Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Plus, Mail, Users, Clock, Check, X } from 'lucide-react-native';
+import {
+  ArrowLeft,
+  Plus,
+  Mail,
+  Users,
+  Clock,
+  Check,
+  X,
+} from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
-import { sendUserInvitation, checkEmailExists, getPendingInvitations, resendUserInvitation } from '@/services/invitations-api';
+import {
+  sendUserInvitation,
+  checkEmailExists,
+  getPendingInvitations,
+  resendUserInvitation,
+} from '@/services/invitations-api';
 
 interface PendingInvitation {
   id: string;
@@ -31,7 +44,9 @@ export default function InviteFriendsScreen() {
   const { user } = useAuth();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  const [pendingInvitations, setPendingInvitations] = useState<PendingInvitation[]>([]);
+  const [pendingInvitations, setPendingInvitations] = useState<
+    PendingInvitation[]
+  >([]);
   const [loadingInvitations, setLoadingInvitations] = useState(true);
 
   useEffect(() => {
@@ -76,44 +91,59 @@ export default function InviteFriendsScreen() {
 
       // Send invitation
       await sendUserInvitation(email.trim());
-      
+
       Alert.alert(
-        'Invitation Sent!', 
+        'Invitation Sent!',
         `An invitation has been sent to ${email.trim()}. They'll receive an email with instructions to join Divido.`,
-        [{ text: 'OK', onPress: () => {
-          setEmail('');
-          loadPendingInvitations(); // Refresh the list
-        }}]
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              setEmail('');
+              loadPendingInvitations(); // Refresh the list
+            },
+          },
+        ]
       );
     } catch (error: any) {
       console.error('Error sending invitation:', error);
-      Alert.alert('Error', error.response?.data?.error || 'Failed to send invitation');
+      Alert.alert(
+        'Error',
+        error.response?.data?.error || 'Failed to send invitation'
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  const handleResendInvitation = async (email: string, groupId?: string, groupName?: string) => {
+  const handleResendInvitation = async (
+    email: string,
+    groupId?: string,
+    groupName?: string
+  ) => {
     try {
       await resendUserInvitation(email, groupId, groupName);
       Alert.alert(
-        'Invitation Resent!', 
+        'Invitation Resent!',
         `A new invitation has been sent to ${email}.`,
         [{ text: 'OK', onPress: () => loadPendingInvitations() }]
       );
     } catch (error: any) {
       console.error('Error resending invitation:', error);
-      Alert.alert('Error', error.response?.data?.error || 'Failed to resend invitation');
+      Alert.alert(
+        'Error',
+        error.response?.data?.error || 'Failed to resend invitation'
+      );
     }
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
@@ -124,21 +154,27 @@ export default function InviteFriendsScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => router.push('/(tabs)/profile')}
+          style={styles.backButton}
+        >
           <ArrowLeft size={24} color="#111827" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Invite Friends</Text>
         <View style={styles.headerSpacer} />
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Invite Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Invite by Email</Text>
           <Text style={styles.sectionDescription}>
             Invite friends to join Divido and start splitting expenses together!
           </Text>
-          
+
           <View style={styles.inviteContainer}>
             <View style={styles.inputContainer}>
               <Mail size={20} color="#6B7280" />
@@ -153,9 +189,12 @@ export default function InviteFriendsScreen() {
                 autoCorrect={false}
               />
             </View>
-            
+
             <TouchableOpacity
-              style={[styles.inviteButton, loading && styles.inviteButtonDisabled]}
+              style={[
+                styles.inviteButton,
+                loading && styles.inviteButtonDisabled,
+              ]}
               onPress={handleSendInvitation}
               disabled={loading}
             >
@@ -174,7 +213,7 @@ export default function InviteFriendsScreen() {
         {/* Pending Invitations */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Pending Invitations</Text>
-          
+
           {loadingInvitations ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#10B981" />
@@ -185,7 +224,8 @@ export default function InviteFriendsScreen() {
               <Users size={48} color="#9CA3AF" />
               <Text style={styles.emptyTitle}>No Pending Invitations</Text>
               <Text style={styles.emptyText}>
-                Invitations you send will appear here until they're accepted or expired.
+                Invitations you send will appear here until they're accepted or
+                expired.
               </Text>
             </View>
           ) : (
@@ -197,26 +237,38 @@ export default function InviteFriendsScreen() {
                       <Mail size={20} color="#6B7280" />
                     </View>
                     <View style={styles.invitationDetails}>
-                      <Text style={styles.invitationEmail}>{invitation.email}</Text>
+                      <Text style={styles.invitationEmail}>
+                        {invitation.email}
+                      </Text>
                       {invitation.groupName && (
-                        <Text style={styles.invitationGroup}>Group: {invitation.groupName}</Text>
+                        <Text style={styles.invitationGroup}>
+                          Group: {invitation.groupName}
+                        </Text>
                       )}
                       <Text style={styles.invitationDate}>
                         Sent {formatDate(invitation.createdAt)}
                       </Text>
                     </View>
                   </View>
-                  
+
                   <View style={styles.invitationStatus}>
                     {isExpired(invitation.expiresAt) ? (
                       <>
                         <View style={[styles.statusBadge, styles.expiredBadge]}>
                           <X size={14} color="#EF4444" />
-                          <Text style={[styles.statusText, styles.expiredText]}>Expired</Text>
+                          <Text style={[styles.statusText, styles.expiredText]}>
+                            Expired
+                          </Text>
                         </View>
-                        <TouchableOpacity 
+                        <TouchableOpacity
                           style={styles.resendButton}
-                          onPress={() => handleResendInvitation(invitation.email, invitation.groupId, invitation.groupName)}
+                          onPress={() =>
+                            handleResendInvitation(
+                              invitation.email,
+                              invitation.groupId,
+                              invitation.groupName
+                            )
+                          }
                         >
                           <Text style={styles.resendButtonText}>Resend</Text>
                         </TouchableOpacity>
@@ -224,17 +276,27 @@ export default function InviteFriendsScreen() {
                     ) : invitation.status === 'accepted' ? (
                       <View style={[styles.statusBadge, styles.acceptedBadge]}>
                         <Check size={14} color="#10B981" />
-                        <Text style={[styles.statusText, styles.acceptedText]}>Accepted</Text>
+                        <Text style={[styles.statusText, styles.acceptedText]}>
+                          Accepted
+                        </Text>
                       </View>
                     ) : (
                       <>
                         <View style={[styles.statusBadge, styles.pendingBadge]}>
                           <Clock size={14} color="#F59E0B" />
-                          <Text style={[styles.statusText, styles.pendingText]}>Pending</Text>
+                          <Text style={[styles.statusText, styles.pendingText]}>
+                            Pending
+                          </Text>
                         </View>
-                        <TouchableOpacity 
+                        <TouchableOpacity
                           style={styles.resendButton}
-                          onPress={() => handleResendInvitation(invitation.email, invitation.groupId, invitation.groupName)}
+                          onPress={() =>
+                            handleResendInvitation(
+                              invitation.email,
+                              invitation.groupId,
+                              invitation.groupName
+                            )
+                          }
                         >
                           <Text style={styles.resendButtonText}>Resend</Text>
                         </TouchableOpacity>
@@ -255,19 +317,25 @@ export default function InviteFriendsScreen() {
               <View style={styles.stepNumber}>
                 <Text style={styles.stepText}>1</Text>
               </View>
-              <Text style={styles.infoText}>Enter your friend's email address</Text>
+              <Text style={styles.infoText}>
+                Enter your friend's email address
+              </Text>
             </View>
             <View style={styles.infoItem}>
               <View style={styles.stepNumber}>
                 <Text style={styles.stepText}>2</Text>
               </View>
-              <Text style={styles.infoText}>They'll receive an email invitation</Text>
+              <Text style={styles.infoText}>
+                They'll receive an email invitation
+              </Text>
             </View>
             <View style={styles.infoItem}>
               <View style={styles.stepNumber}>
                 <Text style={styles.stepText}>3</Text>
               </View>
-              <Text style={styles.infoText}>Once they join, you can add them to groups</Text>
+              <Text style={styles.infoText}>
+                Once they join, you can add them to groups
+              </Text>
             </View>
           </View>
         </View>

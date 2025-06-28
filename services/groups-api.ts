@@ -14,14 +14,14 @@ export const getGroupMemberCount = async (groupId: string) => {
 // Get user splits for a group
 export const getUserSplitsForGroup = async (groupId: string) => {
   return axios.get(`${API_URL}/expenses/splits/user`, {
-    params: { groupId }
+    params: { groupId },
   });
 };
 
 // Get user expenses for a group
 export const getUserExpensesForGroup = async (groupId: string) => {
   return axios.get(`${API_URL}/expenses/user`, {
-    params: { groupId }
+    params: { groupId },
   });
 };
 

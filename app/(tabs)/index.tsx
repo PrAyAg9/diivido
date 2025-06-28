@@ -12,12 +12,27 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Plus, ArrowUpRight, ArrowDownLeft, Users, TrendingUp, Bell, Search, ChevronRight, CircleAlert as AlertCircle } from 'lucide-react-native';
+import {
+  Plus,
+  ArrowUpRight,
+  ArrowDownLeft,
+  Users,
+  TrendingUp,
+  Bell,
+  Search,
+  ChevronRight,
+  CircleAlert as AlertCircle,
+} from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserBalances } from '@/services/dashboard-api';
 import { getUserExpenses } from '@/services/expenses-api';
 import { getUserPayments } from '@/services/payments-api';
-import { convertAndFormatAmount, getUserCurrency, type Currency } from '@/utils/currency';
+import {
+  convertAndFormatAmount,
+  getUserCurrency,
+  formatCurrency,
+  type Currency,
+} from '@/utils/currency';
 
 const { width } = Dimensions.get('window');
 
@@ -61,36 +76,43 @@ export default function DashboardScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [userCurrency, setUserCurrency] = useState<Currency>('INR');
   const [formattedAmounts, setFormattedAmounts] = useState({
     netBalance: '₹0.00',
     totalOwed: '₹0.00',
-    totalOwedToYou: '₹0.00'
+    totalOwedToYou: '₹0.00',
   });
 
   const updateFormattedAmounts = async (balances: BalanceData) => {
     try {
-      const netBalanceFormatted = await convertAndFormatAmount(Math.abs(balances.netBalance));
-      const totalOwedFormatted = await convertAndFormatAmount(balances.totalOwed);
-      const totalOwedToYouFormatted = await convertAndFormatAmount(balances.totalOwedToYou);
-      
+      const netBalanceFormatted = await convertAndFormatAmount(
+        Math.abs(balances.netBalance)
+      );
+      const totalOwedFormatted = await convertAndFormatAmount(
+        balances.totalOwed
+      );
+      const totalOwedToYouFormatted = await convertAndFormatAmount(
+        balances.totalOwedToYou
+      );
+
       setFormattedAmounts({
         netBalance: netBalanceFormatted,
         totalOwed: totalOwedFormatted,
-        totalOwedToYou: totalOwedToYouFormatted
+        totalOwedToYou: totalOwedToYouFormatted,
       });
 
       // Format user amounts
       const formattedUsersYouOwe = await Promise.all(
         balances.usersYouOwe.map(async (user) => ({
           ...user,
-          formattedAmount: await convertAndFormatAmount(user.amount)
+          formattedAmount: await convertAndFormatAmount(user.amount),
         }))
       );
 
       const formattedUsersWhoOweYou = await Promise.all(
         balances.usersWhoOweYou.map(async (user) => ({
           ...user,
-          formattedAmount: await convertAndFormatAmount(user.amount)
+          formattedAmount: await convertAndFormatAmount(user.amount),
         }))
       );
 
@@ -98,24 +120,33 @@ export default function DashboardScreen() {
       setBalanceData({
         ...balances,
         usersYouOwe: formattedUsersYouOwe,
-        usersWhoOweYou: formattedUsersWhoOweYou
+        usersWhoOweYou: formattedUsersWhoOweYou,
       });
     } catch (error) {
       console.error('Error formatting amounts:', error);
     }
   };
 
+  const loadUserCurrency = async () => {
+    try {
+      const currency = await getUserCurrency();
+      setUserCurrency(currency);
+    } catch (error) {
+      console.error('Error loading user currency:', error);
+    }
+  };
+
   const loadData = async () => {
     try {
       setError(null);
-      
+
       // Fetch user balances
       const balancesResponse = await getUserBalances();
-      
+
       // Fetch user activities using same logic as activities page
       const [expensesResponse, paymentsResponse] = await Promise.all([
         getUserExpenses().catch(() => ({ data: [] })),
-        getUserPayments().catch(() => ({ data: [] }))
+        getUserPayments().catch(() => ({ data: [] })),
       ]);
 
       const expenses = expensesResponse.data || [];
@@ -129,7 +160,10 @@ export default function DashboardScreen() {
         amount: expense.amount || 0,
         youOwe: expense.yourShare || 0,
         date: getTimeAgo(expense.createdAt),
-        avatar: expense.paidBy?.avatarUrl || expense.paidByAvatar || 'https://images.pexels.com/photos/1674752/pexels-photo-1674752.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
+        avatar:
+          expense.paidBy?.avatarUrl ||
+          expense.paidByAvatar ||
+          'https://images.pexels.com/photos/1674752/pexels-photo-1674752.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
         category: expense.category || 'Other',
         createdAt: expense.createdAt || new Date().toISOString(),
       }));
@@ -137,29 +171,40 @@ export default function DashboardScreen() {
       // Transform payments to activities
       const paymentActivities = payments.map((payment: any) => ({
         id: `payment_${payment.id}`,
-        title: `Payment ${payment.fromUserId === user?.id ? 'to' : 'from'} ${payment.fromUserId === user?.id ? payment.toUser?.fullName : payment.fromUser?.fullName}`,
+        title: `Payment ${payment.fromUserId === user?.id ? 'to' : 'from'} ${
+          payment.fromUserId === user?.id
+            ? payment.toUser?.fullName
+            : payment.fromUser?.fullName
+        }`,
         group: payment.group?.name || 'Direct Payment',
         amount: payment.amount || 0,
-        youOwe: payment.fromUserId === user?.id ? -payment.amount : payment.amount,
+        youOwe:
+          payment.fromUserId === user?.id ? -payment.amount : payment.amount,
         date: getTimeAgo(payment.createdAt),
-        avatar: payment.fromUserId === user?.id ? (payment.toUser?.avatarUrl || '') : (payment.fromUser?.avatarUrl || ''),
+        avatar:
+          payment.fromUserId === user?.id
+            ? payment.toUser?.avatarUrl || ''
+            : payment.fromUser?.avatarUrl || '',
         category: 'Payment',
         createdAt: payment.createdAt || new Date().toISOString(),
       }));
 
       // Combine, sort by date, and take the 5 most recent
       const allActivities = [...expenseActivities, ...paymentActivities]
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )
         .slice(0, 5);
-      
+
       // Format amounts for activities
       const formattedActivities = await Promise.all(
         allActivities.map(async (activity) => ({
           ...activity,
-          formattedYouOwe: await formatActivityAmount(activity.youOwe)
+          formattedYouOwe: await formatActivityAmount(activity.youOwe),
         }))
       );
-      
+
       // Map API responses to our state format
       const balancesData = balancesResponse.data;
       setRecentActivity(formattedActivities);
@@ -178,21 +223,23 @@ export default function DashboardScreen() {
   // Helper function to get time ago (same as activities page)
   const getTimeAgo = (dateString: string) => {
     if (!dateString) return 'Unknown time';
-    
+
     const date = new Date(dateString);
     const now = new Date();
-    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-    
+    const diffInMinutes = Math.floor(
+      (now.getTime() - date.getTime()) / (1000 * 60)
+    );
+
     if (diffInMinutes < 1) return 'Just now';
     if (diffInMinutes < 60) return `${diffInMinutes} minutes ago`;
-    
+
     const diffInHours = Math.floor(diffInMinutes / 60);
     if (diffInHours < 24) return `${diffInHours} hours ago`;
-    
+
     const diffInDays = Math.floor(diffInHours / 24);
     if (diffInDays === 1) return 'Yesterday';
     if (diffInDays < 7) return `${diffInDays} days ago`;
-    
+
     return date.toLocaleDateString();
   };
 
@@ -203,6 +250,7 @@ export default function DashboardScreen() {
 
   useEffect(() => {
     if (user) {
+      loadUserCurrency();
       loadData();
     }
   }, [user]);
@@ -240,8 +288,8 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView 
-        style={styles.scrollView} 
+      <ScrollView
+        style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -260,8 +308,8 @@ export default function DashboardScreen() {
             <TouchableOpacity style={styles.headerButton}>
               <Bell size={20} color="#6B7280" />
             </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.addButton} 
+            <TouchableOpacity
+              style={styles.addButton}
               onPress={() => router.push('/add-expense')}
               activeOpacity={0.8}
             >
@@ -279,33 +327,47 @@ export default function DashboardScreen() {
               <Text style={styles.trendText}>Updated</Text>
             </View>
           </View>
-          <Text style={[
-            styles.totalBalance,
-            { color: (balanceData?.netBalance || 0) >= 0 ? '#10B981' : '#EF4444' }
-          ]}>
-            {(balanceData?.netBalance || 0) >= 0 ? '+' : ''}{formattedAmounts.netBalance}
+          <Text
+            style={[
+              styles.totalBalance,
+              {
+                color:
+                  (balanceData?.netBalance || 0) >= 0 ? '#10B981' : '#EF4444',
+              },
+            ]}
+          >
+            {(balanceData?.netBalance || 0) >= 0 ? '+' : ''}
+            {formattedAmounts.netBalance}
           </Text>
           <Text style={styles.balanceSubtitle}>
-            {(balanceData?.netBalance || 0) >= 0 ? 'You are owed overall' : 'You owe overall'}
+            {(balanceData?.netBalance || 0) >= 0
+              ? 'You are owed overall'
+              : 'You owe overall'}
           </Text>
-          
+
           <View style={styles.balanceRow}>
             <View style={styles.balanceItem}>
               <View style={styles.balanceIcon}>
                 <ArrowUpRight size={16} color="#EF4444" />
               </View>
               <View style={styles.balanceDetails}>
-                <Text style={styles.balanceAmount}>{formattedAmounts.totalOwed}</Text>
+                <Text style={styles.balanceAmount}>
+                  {formattedAmounts.totalOwed}
+                </Text>
                 <Text style={styles.balanceLabel}>You owe</Text>
               </View>
             </View>
-            
+
             <View style={styles.balanceItem}>
-              <View style={[styles.balanceIcon, { backgroundColor: '#DCFCE7' }]}>
+              <View
+                style={[styles.balanceIcon, { backgroundColor: '#DCFCE7' }]}
+              >
                 <ArrowDownLeft size={16} color="#10B981" />
               </View>
               <View style={styles.balanceDetails}>
-                <Text style={styles.balanceAmount}>{formattedAmounts.totalOwedToYou}</Text>
+                <Text style={styles.balanceAmount}>
+                  {formattedAmounts.totalOwedToYou}
+                </Text>
                 <Text style={styles.balanceLabel}>Owed to you</Text>
               </View>
             </View>
@@ -317,23 +379,33 @@ export default function DashboardScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>You Owe</Text>
-              <Text style={styles.sectionCount}>{balanceData.usersYouOwe.length}</Text>
+              <Text style={styles.sectionCount}>
+                {balanceData.usersYouOwe.length}
+              </Text>
             </View>
-            
+
             {balanceData.usersYouOwe.map((user) => (
-              <TouchableOpacity key={user.id} style={styles.userCard} activeOpacity={0.8}>
-                <Image 
-                  source={{ 
-                    uri: user.avatarUrl || 'https://images.pexels.com/photos/3777931/pexels-photo-3777931.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop' 
-                  }} 
-                  style={styles.userAvatar} 
+              <TouchableOpacity
+                key={user.id}
+                style={styles.userCard}
+                activeOpacity={0.8}
+              >
+                <Image
+                  source={{
+                    uri:
+                      user.avatarUrl ||
+                      'https://images.pexels.com/photos/3777931/pexels-photo-3777931.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
+                  }}
+                  style={styles.userAvatar}
                 />
                 <View style={styles.userInfo}>
                   <Text style={styles.userNameText}>{user.name}</Text>
                   <Text style={styles.userSubtext}>Tap to settle up</Text>
                 </View>
                 <View style={styles.userAmount}>
-                  <Text style={styles.amountOwed}>-{user.formattedAmount || `₹${user.amount.toFixed(2)}`}</Text>
+                  <Text style={styles.amountOwed}>
+                    -{user.formattedAmount || formatCurrency(user.amount, userCurrency)}
+                  </Text>
                   <ArrowUpRight size={16} color="#EF4444" />
                 </View>
               </TouchableOpacity>
@@ -346,23 +418,33 @@ export default function DashboardScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Owes You</Text>
-              <Text style={styles.sectionCount}>{balanceData.usersWhoOweYou.length}</Text>
+              <Text style={styles.sectionCount}>
+                {balanceData.usersWhoOweYou.length}
+              </Text>
             </View>
-            
+
             {balanceData.usersWhoOweYou.map((user) => (
-              <TouchableOpacity key={user.id} style={styles.userCard} activeOpacity={0.8}>
-                <Image 
-                  source={{ 
-                    uri: user.avatarUrl || 'https://images.pexels.com/photos/3777931/pexels-photo-3777931.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop' 
-                  }} 
-                  style={styles.userAvatar} 
+              <TouchableOpacity
+                key={user.id}
+                style={styles.userCard}
+                activeOpacity={0.8}
+              >
+                <Image
+                  source={{
+                    uri:
+                      user.avatarUrl ||
+                      'https://images.pexels.com/photos/3777931/pexels-photo-3777931.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
+                  }}
+                  style={styles.userAvatar}
                 />
                 <View style={styles.userInfo}>
                   <Text style={styles.userNameText}>{user.name}</Text>
                   <Text style={styles.userSubtext}>Tap to remind</Text>
                 </View>
                 <View style={styles.userAmount}>
-                  <Text style={styles.amountOwed}>+{user.formattedAmount || `₹${user.amount.toFixed(2)}`}</Text>
+                  <Text style={styles.amountOwed}>
+                    +{user.formattedAmount || formatCurrency(user.amount, userCurrency)}
+                  </Text>
                   <ArrowDownLeft size={16} color="#10B981" />
                 </View>
               </TouchableOpacity>
@@ -375,34 +457,39 @@ export default function DashboardScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Recent Activity</Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.viewAllButton}
                 onPress={() => router.push('/(tabs)/activity')}
               >
                 <Text style={styles.viewAllText}>View all</Text>
               </TouchableOpacity>
             </View>
-            
+
             {recentActivity.map((activity) => (
-              <TouchableOpacity 
-                key={activity.id} 
+              <TouchableOpacity
+                key={activity.id}
                 style={styles.activityItem}
                 activeOpacity={0.8}
               >
-                <Image 
-                  source={{ uri: activity.avatar }} 
-                  style={styles.activityAvatar} 
+                <Image
+                  source={{ uri: activity.avatar }}
+                  style={styles.activityAvatar}
                 />
                 <View style={styles.activityContent}>
                   <Text style={styles.activityTitle}>{activity.title}</Text>
-                  <Text style={styles.activitySubtext}>{activity.group} • {activity.date}</Text>
+                  <Text style={styles.activitySubtext}>
+                    {activity.group} • {activity.date}
+                  </Text>
                 </View>
                 <View style={styles.activityAmount}>
-                  <Text style={[
-                    styles.activityAmountText,
-                    { color: activity.youOwe > 0 ? '#EF4444' : '#10B981' }
-                  ]}>
-                    {activity.formattedYouOwe || `${activity.youOwe > 0 ? '-' : '+'}₹${Math.abs(activity.youOwe).toFixed(2)}`}
+                  <Text
+                    style={[
+                      styles.activityAmountText,
+                      { color: activity.youOwe > 0 ? '#EF4444' : '#10B981' },
+                    ]}
+                  >
+                    {activity.formattedYouOwe ||
+                      `${activity.youOwe > 0 ? '-' : '+'}${formatCurrency(Math.abs(activity.youOwe), userCurrency)}`}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -411,7 +498,7 @@ export default function DashboardScreen() {
         )}
 
         {/* Group Button */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.createGroupButton}
           activeOpacity={0.8}
           onPress={() => router.push('/create-group')}
@@ -421,7 +508,9 @@ export default function DashboardScreen() {
           </View>
           <View style={styles.createGroupContent}>
             <Text style={styles.createGroupTitle}>Start a New Group</Text>
-            <Text style={styles.createGroupText}>Create a group to split expenses</Text>
+            <Text style={styles.createGroupText}>
+              Create a group to split expenses
+            </Text>
           </View>
           <ChevronRight size={20} color="#9CA3AF" />
         </TouchableOpacity>

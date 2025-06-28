@@ -17,14 +17,47 @@ import { groupsApi } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { getAllUsers } from '@/services/user-api';
 import { createGroup } from '@/services/groups-api';
-import { sendUserInvitation, checkEmailExists } from '@/services/invitations-api';
+import {
+  sendUserInvitation,
+  checkEmailExists,
+} from '@/services/invitations-api';
 
 const mockContacts = [
-  { id: 1, name: 'John Smith', email: 'john@email.com', avatar: 'https://images.pexels.com/photos/1674752/pexels-photo-1674752.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&fit=crop' },
-  { id: 2, name: 'Sarah Johnson', email: 'sarah@email.com', avatar: 'https://images.pexels.com/photos/2379005/pexels-photo-2379005.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&fit=crop' },
-  { id: 3, name: 'Mike Wilson', email: 'mike@email.com', avatar: 'https://images.pexels.com/photos/1681010/pexels-photo-1681010.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&fit=crop' },
-  { id: 4, name: 'Emily Davis', email: 'emily@email.com', avatar: 'https://images.pexels.com/photos/3777931/pexels-photo-3777931.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&fit=crop' },
-  { id: 5, name: 'David Brown', email: 'david@email.com', avatar: 'https://images.pexels.com/photos/1370296/pexels-photo-1370296.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&fit=crop' },
+  {
+    id: 1,
+    name: 'John Smith',
+    email: 'john@email.com',
+    avatar:
+      'https://images.pexels.com/photos/1674752/pexels-photo-1674752.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&fit=crop',
+  },
+  {
+    id: 2,
+    name: 'Sarah Johnson',
+    email: 'sarah@email.com',
+    avatar:
+      'https://images.pexels.com/photos/2379005/pexels-photo-2379005.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&fit=crop',
+  },
+  {
+    id: 3,
+    name: 'Mike Wilson',
+    email: 'mike@email.com',
+    avatar:
+      'https://images.pexels.com/photos/1681010/pexels-photo-1681010.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&fit=crop',
+  },
+  {
+    id: 4,
+    name: 'Emily Davis',
+    email: 'emily@email.com',
+    avatar:
+      'https://images.pexels.com/photos/3777931/pexels-photo-3777931.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&fit=crop',
+  },
+  {
+    id: 5,
+    name: 'David Brown',
+    email: 'david@email.com',
+    avatar:
+      'https://images.pexels.com/photos/1370296/pexels-photo-1370296.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&fit=crop',
+  },
 ];
 
 // Define types for user data
@@ -37,7 +70,6 @@ interface User {
 
 // Default avatar for users without one
 const DEFAULT_AVATAR = 'https://via.placeholder.com/50';
-
 
 export default function CreateGroupScreen() {
   const router = useRouter();
@@ -73,14 +105,15 @@ export default function CreateGroupScreen() {
     }
   };
 
-  const filteredUsers = users.filter(user =>
-    user.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredUsers = users.filter(
+    (user) =>
+      user.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleAddMember = (memberId: string) => {
     if (selectedMembers.includes(memberId)) {
-      setSelectedMembers(selectedMembers.filter(id => id !== memberId));
+      setSelectedMembers(selectedMembers.filter((id) => id !== memberId));
     } else {
       setSelectedMembers([...selectedMembers, memberId]);
     }
@@ -90,7 +123,7 @@ export default function CreateGroupScreen() {
     if (!emailInput.trim()) return;
 
     const email = emailInput.trim().toLowerCase();
-    
+
     // Check if email is already in pending invites
     if (pendingInvites.includes(email)) {
       Alert.alert('Already Invited', 'This user has already been invited.');
@@ -101,13 +134,18 @@ export default function CreateGroupScreen() {
 
     try {
       // First check if user already exists in our system
-      const userWithEmail = users.find(user => user.email.toLowerCase() === email);
-      
+      const userWithEmail = users.find(
+        (user) => user.email.toLowerCase() === email
+      );
+
       if (userWithEmail) {
         // If user exists, add them directly to selected members
         if (!selectedMembers.includes(userWithEmail.id)) {
           setSelectedMembers([...selectedMembers, userWithEmail.id]);
-          Alert.alert('Success', `${userWithEmail.fullName} has been added to the group.`);
+          Alert.alert(
+            'Success',
+            `${userWithEmail.fullName} has been added to the group.`
+          );
         } else {
           Alert.alert('Already Added', 'This user is already in the group.');
         }
@@ -118,14 +156,14 @@ export default function CreateGroupScreen() {
           await sendUserInvitation(email, undefined, groupName || 'New Group');
           setPendingInvites([...pendingInvites, email]);
           Alert.alert(
-            'Invitation Sent', 
+            'Invitation Sent',
             `An invitation has been sent to ${email}. They will be added to the group once they accept and join the app.`
           );
           setEmailInput('');
         } catch (error) {
           console.error('Error sending invitation:', error);
           Alert.alert(
-            'Error', 
+            'Error',
             'Failed to send invitation. Please check the email address and try again.'
           );
         }
@@ -146,22 +184,22 @@ export default function CreateGroupScreen() {
 
     try {
       setIsLoading(true);
-      
+
       // Create group with selected members
       const groupData = {
         name: groupName,
         description: groupDescription,
-        members: selectedMembers
+        members: selectedMembers,
       };
-      
+
       console.log('Creating group with data:', groupData);
-      
+
       const response = await createGroup(groupData);
-      
+
       if (response.data) {
         console.log('Group created successfully:', response.data);
         Alert.alert('Success', 'Group created successfully!', [
-          { text: 'OK', onPress: () => router.replace('/(tabs)/groups') }
+          { text: 'OK', onPress: () => router.replace('/(tabs)/groups') },
         ]);
       }
     } catch (error) {
@@ -175,14 +213,23 @@ export default function CreateGroupScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
           <ArrowLeft size={24} color="#111827" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Create Group</Text>
         <TouchableOpacity
-          style={[styles.createButtonSmall, (!groupName.trim() || isLoading || selectedMembers.length === 0) && styles.disabledButton]}
+          style={[
+            styles.createButtonSmall,
+            (!groupName.trim() || isLoading || selectedMembers.length === 0) &&
+              styles.disabledButton,
+          ]}
           onPress={handleCreateGroup}
-          disabled={!groupName.trim() || isLoading || selectedMembers.length === 0}
+          disabled={
+            !groupName.trim() || isLoading || selectedMembers.length === 0
+          }
         >
           {isLoading ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
@@ -192,7 +239,10 @@ export default function CreateGroupScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollViewContent}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollViewContent}
+      >
         {/* Group Photo */}
         <View style={styles.photoSection}>
           <TouchableOpacity style={styles.photoButton}>
@@ -204,7 +254,7 @@ export default function CreateGroupScreen() {
         {/* Group Details */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Group Details</Text>
-          
+
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Group Name</Text>
             <TextInput
@@ -229,20 +279,26 @@ export default function CreateGroupScreen() {
             />
           </View>
         </View>
-         {/* Selected Members */}
+        {/* Selected Members */}
         {selectedMembers.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Selected Members ({selectedMembers.length})</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.selectedMembersScroll}>
+            <Text style={styles.sectionTitle}>
+              Selected Members ({selectedMembers.length})
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.selectedMembersScroll}
+            >
               {selectedMembers.map((memberId) => {
-                const member = users.find(u => u.id === memberId);
+                const member = users.find((u) => u.id === memberId);
                 if (!member) return null;
-                
+
                 return (
                   <View key={memberId} style={styles.selectedMemberCard}>
-                    <Image 
-                      source={{ uri: member.avatarUrl || DEFAULT_AVATAR }} 
-                      style={styles.selectedMemberAvatar} 
+                    <Image
+                      source={{ uri: member.avatarUrl || DEFAULT_AVATAR }}
+                      style={styles.selectedMemberAvatar}
                     />
                     <TouchableOpacity
                       style={styles.removeMemberButton}
@@ -263,7 +319,9 @@ export default function CreateGroupScreen() {
         {/* Pending Invitations */}
         {pendingInvites.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Pending Invitations ({pendingInvites.length})</Text>
+            <Text style={styles.sectionTitle}>
+              Pending Invitations ({pendingInvites.length})
+            </Text>
             <View style={styles.pendingInvitesList}>
               {pendingInvites.map((email, index) => (
                 <View key={email} style={styles.pendingInviteItem}>
@@ -273,7 +331,11 @@ export default function CreateGroupScreen() {
                   </View>
                   <TouchableOpacity
                     style={styles.cancelInviteButton}
-                    onPress={() => setPendingInvites(pendingInvites.filter(e => e !== email))}
+                    onPress={() =>
+                      setPendingInvites(
+                        pendingInvites.filter((e) => e !== email)
+                      )
+                    }
                   >
                     <X size={16} color="#EF4444" />
                   </TouchableOpacity>
@@ -286,7 +348,7 @@ export default function CreateGroupScreen() {
         {/* Add Members */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Add Members</Text>
-          
+
           {/* Invite by Email */}
           <View style={styles.emailInviteSection}>
             <View style={styles.emailInputContainer}>
@@ -303,7 +365,8 @@ export default function CreateGroupScreen() {
               <TouchableOpacity
                 style={[
                   styles.inviteButton,
-                  (!emailInput.trim() || invitingEmail) && styles.disabledButton
+                  (!emailInput.trim() || invitingEmail) &&
+                    styles.disabledButton,
                 ]}
                 onPress={handleAddByEmail}
                 disabled={!emailInput.trim() || invitingEmail}
@@ -311,10 +374,13 @@ export default function CreateGroupScreen() {
                 {invitingEmail ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <Text style={[
-                    styles.inviteButtonText,
-                    (!emailInput.trim() || invitingEmail) && styles.disabledButtonText
-                  ]}>
+                  <Text
+                    style={[
+                      styles.inviteButtonText,
+                      (!emailInput.trim() || invitingEmail) &&
+                        styles.disabledButtonText,
+                    ]}
+                  >
                     Invite
                   </Text>
                 )}
@@ -336,7 +402,11 @@ export default function CreateGroupScreen() {
           {/* Contact List */}
           <View style={styles.contactsList}>
             {loadingUsers ? (
-              <ActivityIndicator size="large" color="#10B981" style={{ marginTop: 20 }} />
+              <ActivityIndicator
+                size="large"
+                color="#10B981"
+                style={{ marginTop: 20 }}
+              />
             ) : filteredUsers.length === 0 ? (
               <Text style={styles.noResultsText}>No users found</Text>
             ) : (
@@ -346,20 +416,26 @@ export default function CreateGroupScreen() {
                   style={styles.contactCard}
                   onPress={() => handleAddMember(user.id)}
                 >
-                  <Image 
-                    source={{ uri: user.avatarUrl || DEFAULT_AVATAR }} 
-                    style={styles.contactAvatar} 
+                  <Image
+                    source={{ uri: user.avatarUrl || DEFAULT_AVATAR }}
+                    style={styles.contactAvatar}
                   />
                   <View style={styles.contactInfo}>
                     <Text style={styles.contactName}>{user.fullName}</Text>
                     <Text style={styles.contactEmail}>{user.email}</Text>
                   </View>
-                  <View style={[
-                    styles.checkBox,
-                    selectedMembers.includes(user.id) && styles.checkedBox
-                  ]}>
+                  <View
+                    style={[
+                      styles.checkBox,
+                      selectedMembers.includes(user.id) && styles.checkedBox,
+                    ]}
+                  >
                     {selectedMembers.includes(user.id) && (
-                      <Plus size={16} color="#FFFFFF" style={{ transform: [{ rotate: '45deg' }] }} />
+                      <Plus
+                        size={16}
+                        color="#FFFFFF"
+                        style={{ transform: [{ rotate: '45deg' }] }}
+                      />
                     )}
                   </View>
                 </TouchableOpacity>

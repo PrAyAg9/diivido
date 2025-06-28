@@ -25,6 +25,8 @@ import {
   Shuffle,
 } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
+import { formatCurrency, getUserCurrency, type Currency } from '@/utils/currency';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   getGroupDetails,
   getGroupExpenses,
@@ -75,10 +77,10 @@ export default function GroupDetailsScreen() {
   const { user } = useAuth();
   const params = useLocalSearchParams();
   const { id } = params;
-  
+
   console.log('Group details screen params:', params);
   console.log('Group ID from params:', id);
-  
+
   const [group, setGroup] = useState<GroupDetails | null>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,6 +88,16 @@ export default function GroupDetailsScreen() {
   const [showSimplifyModal, setShowSimplifyModal] = useState(false);
   const [simplifiedDebts, setSimplifiedDebts] = useState<SimplifiedDebt[]>([]);
   const [simplifying, setSimplifying] = useState(false);
+  const [userCurrency, setUserCurrency] = useState<Currency>('INR');
+
+  const loadUserCurrency = async () => {
+    try {
+      const currency = await getUserCurrency();
+      setUserCurrency(currency);
+    } catch (error) {
+      console.error('Error loading user currency:', error);
+    }
+  };
 
   const fetchGroupDetails = async () => {
     if (!user) return;
@@ -93,7 +105,7 @@ export default function GroupDetailsScreen() {
     try {
       // Handle array or string IDs from useLocalSearchParams
       const groupId = Array.isArray(id) ? id[0] : id;
-      
+
       // Check if groupId is valid
       if (!groupId) {
         console.error('No group ID provided');
@@ -102,11 +114,11 @@ export default function GroupDetailsScreen() {
       }
 
       console.log('Fetching details for group:', groupId);
-      
+
       // Get group info
       const response = await getGroupDetails(groupId);
       const groupData = response.data;
-      
+
       console.log('Group data received:', groupData);
 
       // Get group balances for members
@@ -165,7 +177,7 @@ export default function GroupDetailsScreen() {
       Alert.alert('Error', 'Group data not available.');
       return;
     }
-    
+
     setSimplifying(true);
     try {
       const debts = calculateSimplifiedDebts(group.members);
@@ -188,7 +200,7 @@ export default function GroupDetailsScreen() {
         </View>
       );
     }
-    
+
     // If we don't have simplified debts yet and we have group data, calculate them
     if (!simplifiedDebts.length && group.members && group.members.length > 0) {
       const debts = calculateSimplifiedDebts(group.members);
@@ -201,7 +213,7 @@ export default function GroupDetailsScreen() {
       <View style={styles.debtsContainer}>
         <View style={styles.debtsHeader}>
           <Text style={styles.debtsTitle}>Who Pays Whom</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.simplifyButton}
             onPress={handleSimplifyDebts}
           >
@@ -218,30 +230,39 @@ export default function GroupDetailsScreen() {
           simplifiedDebts.map((debt, index) => (
             <View key={index} style={styles.debtItem}>
               <View style={styles.debtUsers}>
-                <Image 
-                  source={{ 
-                    uri: group.members.find(m => m.id === debt.from)?.avatar_url || 
-                         'https://images.pexels.com/photos/3777931/pexels-photo-3777931.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&fit=crop' 
-                  }} 
-                  style={styles.debtAvatar} 
+                <Image
+                  source={{
+                    uri:
+                      group.members.find((m) => m.id === debt.from)
+                        ?.avatar_url ||
+                      'https://images.pexels.com/photos/3777931/pexels-photo-3777931.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&fit=crop',
+                  }}
+                  style={styles.debtAvatar}
                 />
                 <Text style={styles.debtUserName}>
                   {debt.from === user?.id ? 'You' : debt.fromName}
                 </Text>
-                <TrendingUp size={16} color="#10B981" style={styles.debtArrow} />
-                <Image 
-                  source={{ 
-                    uri: group.members.find(m => m.id === debt.to)?.avatar_url || 
-                         'https://images.pexels.com/photos/1370296/pexels-photo-1370296.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&fit=crop' 
-                  }} 
-                  style={styles.debtAvatar} 
+                <TrendingUp
+                  size={16}
+                  color="#10B981"
+                  style={styles.debtArrow}
+                />
+                <Image
+                  source={{
+                    uri:
+                      group.members.find((m) => m.id === debt.to)?.avatar_url ||
+                      'https://images.pexels.com/photos/1370296/pexels-photo-1370296.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&fit=crop',
+                  }}
+                  style={styles.debtAvatar}
                 />
                 <Text style={styles.debtUserName}>
                   {debt.to === user?.id ? 'You' : debt.toName}
                 </Text>
               </View>
               <View style={styles.debtAmountContainer}>
-                <Text style={styles.debtAmountText}>${debt.amount.toFixed(2)}</Text>
+                <Text style={styles.debtAmountText}>
+                  {formatCurrency(debt.amount, userCurrency)}
+                </Text>
                 {debt.from === user?.id && (
                   <TouchableOpacity style={styles.payNowButton}>
                     <Text style={styles.payNowButtonText}>Pay Now</Text>
@@ -258,6 +279,7 @@ export default function GroupDetailsScreen() {
   useEffect(() => {
     console.log('Group details useEffect running with id:', id);
     if (id) {
+      loadUserCurrency();
       fetchGroupDetails();
     }
   }, [id, user]);
@@ -317,8 +339,7 @@ export default function GroupDetailsScreen() {
                   { color: member.balance >= 0 ? '#10B981' : '#EF4444' },
                 ]}
               >
-                {member.balance >= 0 ? '+' : ''}$
-                {Math.abs(member.balance).toFixed(2)}
+                {member.balance >= 0 ? '+' : ''}{formatCurrency(Math.abs(member.balance), userCurrency)}
               </Text>
             </View>
           </View>
@@ -364,10 +385,10 @@ export default function GroupDetailsScreen() {
 
           <View style={styles.expenseAmount}>
             <Text style={styles.expenseTotal}>
-              ${expense.amount.toFixed(2)}
+              {formatCurrency(expense.amount, userCurrency)}
             </Text>
             <Text style={styles.expenseYourShare}>
-              You: ${expense.yourShare.toFixed(2)}
+              You: {formatCurrency(expense.yourShare, userCurrency)}
             </Text>
             <Text style={styles.expensePaidBy}>
               Paid by{' '}
@@ -405,7 +426,7 @@ export default function GroupDetailsScreen() {
         <View style={styles.summaryItem}>
           <DollarSign size={16} color="#6B7280" />
           <Text style={styles.summaryText}>
-            ${group.totalExpenses.toFixed(2)} total
+            {formatCurrency(group.totalExpenses, userCurrency)} total
           </Text>
         </View>
         <View style={styles.summaryItem}>
@@ -423,8 +444,7 @@ export default function GroupDetailsScreen() {
                 { color: group.yourBalance >= 0 ? '#10B981' : '#EF4444' },
               ]}
             >
-              {group.yourBalance >= 0 ? 'You get back' : 'You owe'} $
-              {Math.abs(group.yourBalance).toFixed(2)}
+              {group.yourBalance >= 0 ? 'You get back' : 'You owe'} {formatCurrency(Math.abs(group.yourBalance), userCurrency)}
             </Text>
           </View>
         </View>
@@ -506,12 +526,11 @@ export default function GroupDetailsScreen() {
 
       {/* Tab Content */}
       <ScrollView style={styles.contentContainer}>
-        {activeTab === 'expenses' 
-          ? renderExpenses() 
-          : activeTab === 'balances' 
-          ? renderBalances() 
-          : renderDebtsList()
-        }
+        {activeTab === 'expenses'
+          ? renderExpenses()
+          : activeTab === 'balances'
+          ? renderBalances()
+          : renderDebtsList()}
       </ScrollView>
 
       {/* Simplify Debts Modal */}
@@ -534,9 +553,7 @@ export default function GroupDetailsScreen() {
                 <View key={index} style={styles.debtItem}>
                   <Text style={styles.debtText}>
                     <Text style={styles.debtorName}>
-                      {debt.from === user?.id
-                        ? 'You'
-                        : debt.fromName}
+                      {debt.from === user?.id ? 'You' : debt.fromName}
                     </Text>{' '}
                     pays{' '}
                     <Text style={styles.creditorName}>
@@ -544,7 +561,7 @@ export default function GroupDetailsScreen() {
                     </Text>
                   </Text>
                   <Text style={styles.debtAmount}>
-                    ${debt.amount.toFixed(2)}
+                    {formatCurrency(debt.amount, userCurrency)}
                   </Text>
                 </View>
               ))}
@@ -559,7 +576,6 @@ export default function GroupDetailsScreen() {
           </View>
         </View>
       </Modal>
-
     </SafeAreaView>
   );
 }
