@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_1 = require("../middlewares/auth");
+const expense_controller_1 = require("../controllers/expense.controller");
+const router = (0, express_1.Router)();
+router.use(auth_1.authMiddleware);
+router.post('/', expense_controller_1.createExpense);
+router.get('/user', expense_controller_1.getUserExpenses);
+router.get('/group/:groupId', expense_controller_1.getGroupExpenses);
+router.put('/:id', expense_controller_1.updateExpense);
+router.post('/:expenseId/mark-paid', expense_controller_1.markSplitAsPaid);
+exports.default = router;
