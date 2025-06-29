@@ -599,7 +599,57 @@ export default function GroupDetailsScreen() {
           <ArrowLeft size={24} color="#374151" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{group.name}</Text>
-        <TouchableOpacity style={styles.settingsIcon}>
+        <TouchableOpacity 
+          style={styles.settingsIcon}
+          onPress={() => {
+            Alert.alert(
+              'Group Settings',
+              'Choose an action for this group',
+              [
+                {
+                  text: 'Edit Group',
+                  onPress: () => {
+                    // Navigate to edit group screen
+                    Alert.alert('Edit Group', 'This feature will allow you to edit group details like name, description, and avatar.');
+                  }
+                },
+                {
+                  text: 'Manage Budget',
+                  onPress: () => {
+                    router.push({
+                      pathname: '/group-budget',
+                      params: { groupId: group.id, groupName: group.name }
+                    });
+                  }
+                },
+                {
+                  text: 'Group Analytics',
+                  onPress: () => {
+                    Alert.alert('Analytics', 'View detailed spending analytics and trends for this group.');
+                  }
+                },
+                {
+                  text: 'Leave Group',
+                  style: 'destructive',
+                  onPress: () => {
+                    Alert.alert(
+                      'Leave Group',
+                      'Are you sure you want to leave this group? You will no longer have access to its expenses and balances.',
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        { text: 'Leave', style: 'destructive', onPress: () => {
+                          // Handle leave group
+                          Alert.alert('Left Group', 'You have successfully left the group.');
+                        }}
+                      ]
+                    );
+                  }
+                },
+                { text: 'Cancel', style: 'cancel' }
+              ]
+            );
+          }}
+        >
           <Settings size={20} color="#374151" />
         </TouchableOpacity>
       </View>

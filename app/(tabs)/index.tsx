@@ -27,6 +27,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getUserBalances } from '@/services/dashboard-api';
 import { getUserExpenses } from '@/services/expenses-api';
 import { getUserPayments } from '@/services/payments-api';
+import SettleUpModal from '@/components/SettleUpModal';
 import {
   convertAndFormatAmount,
   getUserCurrency,
@@ -77,6 +78,16 @@ export default function DashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userCurrency, setUserCurrency] = useState<Currency>('INR');
+  const [settleUpModal, setSettleUpModal] = useState<{
+    visible: boolean;
+    user?: {
+      id: string;
+      name: string;
+      avatarUrl?: string;
+      upiId?: string;
+    };
+    amount?: number;
+  }>({ visible: false });
   const [formattedAmounts, setFormattedAmounts] = useState({
     netBalance: '₹0.00',
     totalOwed: '₹0.00',
@@ -248,6 +259,35 @@ export default function DashboardScreen() {
     return `${amount > 0 ? '-' : '+'}${formattedAmount}`;
   };
 
+  const handleSettleUp = (settleUser: {
+    id: string;
+    name: string;
+    avatarUrl?: string;
+    amount: number;
+  }) => {
+    setSettleUpModal({
+      visible: true,
+      user: {
+        id: settleUser.id,
+        name: settleUser.name,
+        avatarUrl: settleUser.avatarUrl || undefined,
+        upiId: undefined, // This would come from user profile
+      },
+      amount: settleUser.amount,
+    });
+  };
+
+  const handlePaymentComplete = async (paymentData: any) => {
+    try {
+      console.log('Payment completed:', paymentData);
+      // Refresh the data to reflect the payment
+      await loadData();
+      setSettleUpModal({ visible: false });
+    } catch (error) {
+      console.error('Error handling payment completion:', error);
+    }
+  };
+
   useEffect(() => {
     if (user) {
       loadUserCurrency();
@@ -389,6 +429,14 @@ export default function DashboardScreen() {
                 key={user.id}
                 style={styles.userCard}
                 activeOpacity={0.8}
+                onPress={() =>
+                  handleSettleUp({
+                    id: user.id,
+                    name: user.name,
+                    avatarUrl: user.avatarUrl || undefined,
+                    amount: user.amount,
+                  })
+                }
               >
                 <Image
                   source={{
@@ -428,6 +476,14 @@ export default function DashboardScreen() {
                 key={user.id}
                 style={styles.userCard}
                 activeOpacity={0.8}
+                onPress={() =>
+                  handleSettleUp({
+                    id: user.id,
+                    name: user.name,
+                    avatarUrl: user.avatarUrl || undefined,
+                    amount: user.amount,
+                  })
+                }
               >
                 <Image
                   source={{
@@ -518,6 +574,18 @@ export default function DashboardScreen() {
         {/* Bottom padding */}
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* Settle Up Modal */}
+      {settleUpModal.visible && settleUpModal.user && settleUpModal.amount && (
+        <SettleUpModal
+          visible={settleUpModal.visible}
+          onClose={() => setSettleUpModal({ visible: false })}
+          payeeUser={settleUpModal.user!}
+          amount={settleUpModal.amount!}
+          currency={userCurrency}
+          onPaymentComplete={handlePaymentComplete}
+        />
+      )}
     </SafeAreaView>
   );
 }

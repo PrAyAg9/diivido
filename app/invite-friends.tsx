@@ -28,7 +28,6 @@ import {
   getPendingInvitations,
   resendUserInvitation,
 } from '@/services/invitations-api';
-
 interface PendingInvitation {
   id: string;
   email: string;

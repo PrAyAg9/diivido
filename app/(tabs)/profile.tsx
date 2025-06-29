@@ -12,6 +12,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import {
   Settings,
@@ -28,6 +29,12 @@ import {
   Camera,
   Save,
   UserPlus,
+  Crown,
+  Trophy,
+  Target,
+  Zap,
+  Star,
+  Gift,
 } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserProfile, updateUserProfile } from '@/services/profile-api';
@@ -65,6 +72,26 @@ interface StatItemProps {
   color: string;
 }
 
+interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  unlocked: boolean;
+  progress: number;
+  maxProgress: number;
+  reward: string;
+}
+
+interface GamificationData {
+  level: number;
+  xp: number;
+  xpToNextLevel: number;
+  achievements: Achievement[];
+  streakDays: number;
+  totalRewards: number;
+}
+
 // --- Helper Components --- //
 
 // A component for each stat card to keep the main component clean
@@ -75,7 +102,57 @@ const StatCard = ({ label, value, color }: StatItemProps) => (
   </View>
 );
 
-// A component for each setting item to keep the main component clean
+// A component for gamification progress
+const GamificationCard = ({ gamificationData }: { gamificationData: GamificationData }) => {
+  const progressPercentage = (gamificationData.xp / gamificationData.xpToNextLevel) * 100;
+  
+  return (
+    <View style={styles.gamificationCard}>
+      <View style={styles.gamificationHeader}>
+        <View style={styles.levelBadge}>
+          <Trophy size={16} color="#F59E0B" />
+          <Text style={styles.levelText}>Level {gamificationData.level}</Text>
+        </View>
+        <View style={styles.streakBadge}>
+          <Zap size={14} color="#EF4444" />
+          <Text style={styles.streakText}>{gamificationData.streakDays} day streak</Text>
+        </View>
+      </View>
+      
+      <View style={styles.progressContainer}>
+        <Text style={styles.progressLabel}>Progress to Level {gamificationData.level + 1}</Text>
+        <View style={styles.progressBar}>
+          <View style={[styles.progressFill, { width: `${progressPercentage}%` }]} />
+        </View>
+        <Text style={styles.progressText}>
+          {gamificationData.xp} / {gamificationData.xpToNextLevel} XP
+        </Text>
+      </View>
+      
+      <View style={styles.achievementsPreview}>
+        <Text style={styles.achievementsTitle}>Recent Achievements</Text>
+        <View style={styles.achievementsList}>
+          {gamificationData.achievements.slice(0, 3).map((achievement, index) => (
+            <View key={achievement.id} style={styles.achievementItem}>
+              <View style={[
+                styles.achievementIcon,
+                { backgroundColor: achievement.unlocked ? '#ECFDF5' : '#F3F4F6' }
+              ]}>
+                <Text style={styles.achievementEmoji}>{achievement.icon}</Text>
+              </View>
+              <Text style={[
+                styles.achievementTitle,
+                { color: achievement.unlocked ? '#111827' : '#9CA3AF' }
+              ]}>
+                {achievement.title}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+};
 const SettingItem = ({
   item,
   isLast,
@@ -131,6 +208,62 @@ export default function ProfileScreen() {
   const [totalGroups, setTotalGroups] = useState(0);
   const [stats, setStats] = useState<StatItemProps[]>([]);
   const [selectedCurrency, setSelectedCurrency] = useState<Currency>('INR');
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [gamificationData, setGamificationData] = useState<GamificationData>({
+    level: 3,
+    xp: 750,
+    xpToNextLevel: 1000,
+    streakDays: 12,
+    totalRewards: 3,
+    achievements: [
+      {
+        id: '1',
+        title: 'First Group',
+        description: 'Create your first expense group',
+        icon: '🎯',
+        unlocked: true,
+        progress: 1,
+        maxProgress: 1,
+        reward: '50 XP',
+      },
+      {
+        id: '2',
+        title: 'Social Butterfly',
+        description: 'Invite 5 friends to the app',
+        icon: '🦋',
+        unlocked: true,
+        progress: 5,
+        maxProgress: 5,
+        reward: '100 XP',
+      },
+      {
+        id: '3',
+        title: 'Money Manager',
+        description: 'Track expenses for 30 days',
+        icon: '💰',
+        unlocked: false,
+        progress: 12,
+        maxProgress: 30,
+        reward: '200 XP',
+      },
+      {
+        id: '4',
+        title: 'Group Leader',
+        description: 'Create 10 expense groups',
+        icon: '👑',
+        unlocked: false,
+        progress: 3,
+        maxProgress: 10,
+        reward: '300 XP',
+      },
+    ],
+  });
+
+
+
+  // Cloudinary configuration
+  const CLOUDINARY_CLOUD_NAME = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME;
+  const CLOUDINARY_UPLOAD_PRESET = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
   // --- Data Fetching --- //
   useEffect(() => {
@@ -233,6 +366,131 @@ export default function ProfileScreen() {
     }
   };
 
+  const uploadToCloudinary = async (imageUri: string): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', {
+      uri: imageUri,
+      type: 'image/jpeg',
+      name: 'profile.jpg',
+    } as any);
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET || '');
+
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+      {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+
+    const result = await response.json();
+    if (result.secure_url) {
+      return result.secure_url;
+    } else {
+      throw new Error('Failed to upload image');
+    }
+  };
+
+  const generateInitialAvatar = (name: string): string => {
+    const initials = name
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase())
+      .join('')
+      .substring(0, 2);
+    
+    // Use a service like UI Avatars to generate an avatar
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=10B981&color=fff&size=200&format=png`;
+  };
+
+  const handleImagePicker = async () => {
+    if (!profile) return;
+
+    Alert.alert(
+      'Update Profile Photo',
+      'Choose an option',
+      [
+        {
+          text: 'Camera',
+          onPress: async () => {
+            const { status } = await ImagePicker.requestCameraPermissionsAsync();
+            if (status !== 'granted') {
+              Alert.alert('Permission needed', 'Camera permission is required to take photos');
+              return;
+            }
+            selectImage('camera');
+          },
+        },
+        {
+          text: 'Photo Library',
+          onPress: async () => {
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (status !== 'granted') {
+              Alert.alert('Permission needed', 'Photo library permission is required');
+              return;
+            }
+            selectImage('library');
+          },
+        },
+        {
+          text: 'Generate Avatar',
+          onPress: () => {
+            if (profile.fullName) {
+              const avatarUrl = generateInitialAvatar(profile.fullName);
+              updateProfileImage(avatarUrl);
+            } else {
+              Alert.alert('Error', 'Please set your name first to generate an avatar');
+            }
+          },
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+  };
+
+  const selectImage = async (source: 'camera' | 'library') => {
+    try {
+      setIsUploadingImage(true);
+      
+      const options: ImagePicker.ImagePickerOptions = {
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      };
+
+      const result = source === 'camera' 
+        ? await ImagePicker.launchCameraAsync(options)
+        : await ImagePicker.launchImageLibraryAsync(options);
+
+      if (!result.canceled && result.assets[0]) {
+        const imageUri = result.assets[0].uri;
+        const cloudinaryUrl = await uploadToCloudinary(imageUri);
+        await updateProfileImage(cloudinaryUrl);
+      }
+    } catch (error) {
+      console.error('Error selecting image:', error);
+      Alert.alert('Error', 'Failed to update profile photo');
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
+  const updateProfileImage = async (avatarUrl: string) => {
+    if (!profile) return;
+    
+    try {
+      await updateUserProfile({ avatarUrl });
+      setProfile({ ...profile, avatarUrl });
+      Alert.alert('Success', 'Profile photo updated successfully');
+    } catch (error) {
+      console.error('Error updating profile image:', error);
+      Alert.alert('Error', 'Failed to update profile photo');
+    }
+  };
+
   const handleLogout = async () => {
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
@@ -261,6 +519,13 @@ export default function ProfileScreen() {
         section: 'Account',
         items: [
           {
+            id: 'subscription',
+            title: 'Subscription',
+            icon: Crown,
+            hasChevron: true,
+            subtitle: 'Free Plan',
+          },
+          {
             id: 'payment-methods',
             title: 'Payment Methods',
             icon: CreditCard,
@@ -283,14 +548,6 @@ export default function ProfileScreen() {
             title: 'Notifications',
             icon: Bell,
             hasChevron: true,
-          },
-          {
-            id: 'dark-mode',
-            title: 'Dark Mode',
-            icon: Moon,
-            hasSwitch: true,
-            value: isDarkMode,
-            onToggle: setIsDarkMode,
           },
         ],
       },
@@ -400,20 +657,23 @@ export default function ProfileScreen() {
               source={{
                 uri:
                   profile.avatarUrl ||
-                  'https://images.pexels.com/photos/3777931/pexels-photo-3777931.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop',
+                  (profile.fullName 
+                    ? generateInitialAvatar(profile.fullName)
+                    : 'https://ui-avatars.com/api/?name=User&background=10B981&color=fff&size=200&format=png'
+                  ),
               }}
               style={styles.profileImage}
             />
             <TouchableOpacity
               style={styles.cameraButton}
-              onPress={() =>
-                Alert.alert(
-                  'Coming Soon',
-                  'Image upload will be available soon.'
-                )
-              }
+              onPress={handleImagePicker}
+              disabled={isUploadingImage}
             >
-              <Camera size={16} color="#FFFFFF" />
+              {isUploadingImage ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Camera size={16} color="#FFFFFF" />
+              )}
             </TouchableOpacity>
           </View>
           <View style={styles.profileInfo}>
@@ -448,6 +708,8 @@ export default function ProfileScreen() {
           />
         </View>
 
+        {/* <GamificationCard gamificationData={gamificationData} /> */}
+
         {settingsSections.map((section) => (
           <View key={section.section} style={styles.section}>
             <Text style={styles.sectionTitle}>{section.section}</Text>
@@ -458,12 +720,25 @@ export default function ProfileScreen() {
                   item={item}
                   isLast={itemIndex === section.items.length - 1}
                   onPress={() => {
-                    if (item.id === 'currency') handleCurrencySelection();
-                    else if (item.id === 'invite-friends')
+                    if (item.id === 'currency') {
+                      handleCurrencySelection();
+                    } else if (item.id === 'subscription') {
+                      router.push('/subscription');
+                    } else if (item.id === 'payment-methods') {
+                      router.push('/payment-methods');
+                    } else if (item.id === 'notifications') {
+                      router.push('/notifications');
+                    } else if (item.id === 'privacy') {
+                      router.push('/privacy-settings');
+                    } else if (item.id === 'invite-friends') {
                       router.push('/invite-friends');
-                    else if (item.id === 'friends')
+                    } else if (item.id === 'friends') {
                       router.push('/manage-friends');
-                    // Add other navigation or actions here
+                    } else if (item.id === 'help') {
+                      Alert.alert('Help & Support', 'Coming soon! Contact support at prayag.thakur@example.com');
+                    } else if (item.id === 'settings') {
+                      Alert.alert('App Settings', 'Additional settings coming soon!');
+                    }
                   }}
                 />
               ))}
@@ -728,5 +1003,111 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     textAlign: 'center',
     marginBottom: 32,
+  },
+  // Gamification Styles
+  gamificationCard: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 24,
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  gamificationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  levelBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFBEB',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  levelText: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#F59E0B',
+    marginLeft: 4,
+  },
+  streakBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF2F2',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  streakText: {
+    fontSize: 12,
+    fontFamily: 'Inter-Medium',
+    color: '#EF4444',
+    marginLeft: 4,
+  },
+  progressContainer: {
+    marginBottom: 20,
+  },
+  progressLabel: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 4,
+    marginBottom: 8,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#10B981',
+    borderRadius: 4,
+  },
+  progressText: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  achievementsPreview: {
+    marginTop: 4,
+  },
+  achievementsTitle: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#111827',
+    marginBottom: 12,
+  },
+  achievementsList: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  achievementItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  achievementIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  achievementEmoji: {
+    fontSize: 20,
+  },
+  achievementTitle: {
+    fontSize: 10,
+    fontFamily: 'Inter-Medium',
+    textAlign: 'center',
   },
 });

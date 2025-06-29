@@ -332,9 +332,6 @@ export default function ActivityScreen() {
           <Text style={styles.title}>Activity</Text>
           <Text style={styles.subtitle}>Track all your transactions</Text>
         </View>
-        <TouchableOpacity style={styles.filterButton}>
-          <Filter size={20} color="#6B7280" />
-        </TouchableOpacity>
       </View>
 
       {/* Summary Cards */}
