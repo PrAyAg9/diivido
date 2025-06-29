@@ -15,28 +15,28 @@ const demoAuth = async (req: any, res: any, next: any) => {
   try {
     // Try to find the first user in the database for demo purposes
     const firstUser = await User.findOne().limit(1);
-
+    
     if (firstUser) {
-      req.user = {
-        id: firstUser._id.toString(),
+      req.user = { 
+        id: firstUser._id.toString(), 
         _id: firstUser._id,
         fullName: firstUser.fullName,
-        email: firstUser.email,
+        email: firstUser.email
       };
     } else {
       // If no users exist, create a demo user
       const demoUser = new User({
         fullName: 'Demo User',
         email: 'demo@example.com',
-        password: 'demo123', // This won't be used
+        password: 'demo123' // This won't be used
       });
       await demoUser.save();
-
-      req.user = {
-        id: demoUser._id.toString(),
+      
+      req.user = { 
+        id: demoUser._id.toString(), 
         _id: demoUser._id,
         fullName: demoUser.fullName,
-        email: demoUser.email,
+        email: demoUser.email
       };
     }
     next();

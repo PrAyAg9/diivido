@@ -11,6 +11,8 @@ import {
 } from '@expo-google-fonts/inter';
 import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { notificationApi } from '@/services/notification-api';
+import { router } from 'expo-router';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -30,6 +32,33 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, fontError]);
 
+  useEffect(() => {
+    // Initialize notifications
+    const initializeNotifications = async () => {
+      try {
+        await notificationApi.registerDevice();
+
+        // Handle notification responses (when user taps on notification)
+        const responseSubscription = notificationApi.addNotificationResponseListener((response) => {
+          const data = response.notification.request.content.data;
+          
+          if (data.type === 'quickdraw' && data.gameId) {
+            // Navigate to Quick Draw game
+            router.push(`/quickdraw-game?gameId=${data.gameId}`);
+          }
+        });
+
+        return () => {
+          responseSubscription.remove();
+        };
+      } catch (error) {
+        console.error('Error initializing notifications:', error);
+      }
+    };
+
+    initializeNotifications();
+  }, []);
+
   if (!fontsLoaded && !fontError) {
     return null;
   }
@@ -42,6 +71,8 @@ export default function RootLayout() {
         <Stack.Screen name="create-group" options={{ headerShown: false }} />
         <Stack.Screen name="add-expense" options={{ headerShown: false }} />
         <Stack.Screen name="group-details" options={{ headerShown: false }} />
+        <Stack.Screen name="group-budget" options={{ headerShown: false }} />
+        <Stack.Screen name="quickdraw-game" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />

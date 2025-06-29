@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  Dimensions,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
@@ -23,10 +24,17 @@ import {
   TrendingUp,
   TrendingDown,
   Shuffle,
+  Target,
+  ShoppingBag,
+  Plane,
+  Car,
+  Coffee,
+  Home,
+  Heart,
+  FileText,
 } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatCurrency, getUserCurrency, type Currency } from '@/utils/currency';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   getGroupDetails,
   getGroupExpenses,
@@ -37,8 +45,34 @@ import {
 import {
   getGroupBalances,
   calculateSimplifiedDebts,
-  SimplifiedDebt,
 } from '@/services/group-balances-api';
+import { budgetAPI, type BudgetStatus } from '@/services/budget-api';
+import Avatar from '@/components/Avatar';
+
+const { width } = Dimensions.get('window');
+
+// Category icons mapping
+const categoryIcons: { [key: string]: any } = {
+  food: Coffee,
+  transport: Car,
+  entertainment: Heart,
+  shopping: ShoppingBag,
+  utilities: Home,
+  health: Heart,
+  travel: Plane,
+  other: FileText,
+};
+
+const categories = [
+  { id: 'food', name: 'Food', icon: '🍽️', color: '#F59E0B' },
+  { id: 'transport', name: 'Transport', icon: '🚗', color: '#3B82F6' },
+  { id: 'entertainment', name: 'Fun', icon: '🎬', color: '#8B5CF6' },
+  { id: 'shopping', name: 'Shopping', icon: '🛍️', color: '#EC4899' },
+  { id: 'utilities', name: 'Bills', icon: '💡', color: '#10B981' },
+  { id: 'health', name: 'Health', icon: '🏥', color: '#EF4444' },
+  { id: 'travel', name: 'Travel', icon: '✈️', color: '#06B6D4' },
+  { id: 'other', name: 'Other', icon: '📝', color: '#6B7280' },
+];
 
 interface GroupDetails {
   id: string;
@@ -72,23 +106,39 @@ interface Expense {
   yourShare: number;
 }
 
+interface SimplifiedDebt {
+  from: string;
+  fromName: string;
+  to: string;
+  toName: string;
+  amount: number;
+}
+
+interface CategorySpending {
+  category: string;
+  name: string;
+  icon: string;
+  color: string;
+  amount: number;
+  count: number;
+}
+
 export default function GroupDetailsScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const params = useLocalSearchParams();
   const { id } = params;
 
-  console.log('Group details screen params:', params);
-  console.log('Group ID from params:', id);
-
   const [group, setGroup] = useState<GroupDetails | null>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('expenses');
+  const [activeTab, setActiveTab] = useState('overview');
   const [showSimplifyModal, setShowSimplifyModal] = useState(false);
   const [simplifiedDebts, setSimplifiedDebts] = useState<SimplifiedDebt[]>([]);
   const [simplifying, setSimplifying] = useState(false);
   const [userCurrency, setUserCurrency] = useState<Currency>('INR');
+  const [budgetStatus, setBudgetStatus] = useState<BudgetStatus | null>(null);
+  const [categorySpending, setCategorySpending] = useState<CategorySpending[]>([]);
 
   const loadUserCurrency = async () => {
     try {
@@ -103,26 +153,20 @@ export default function GroupDetailsScreen() {
     if (!user) return;
 
     try {
-      // Handle array or string IDs from useLocalSearchParams
       const groupId = Array.isArray(id) ? id[0] : id;
-
-      // Check if groupId is valid
       if (!groupId) {
         console.error('No group ID provided');
         setLoading(false);
         return;
       }
 
-      console.log('Fetching details for group:', groupId);
+      const [groupResponse, balancesResponse, expensesResponse] = await Promise.all([
+        getGroupDetails(groupId),
+        getGroupBalances(groupId),
+        getGroupExpenses(groupId)
+      ]);
 
-      // Get group info
-      const response = await getGroupDetails(groupId);
-      const groupData = response.data;
-
-      console.log('Group data received:', groupData);
-
-      // Get group balances for members
-      const balancesResponse = await getGroupBalances(groupId);
+      const groupData = groupResponse.data;
       const members = balancesResponse.data.members.map((member: any) => ({
         id: member.id,
         full_name: member.full_name,
@@ -145,11 +189,7 @@ export default function GroupDetailsScreen() {
         yourBalance,
       });
 
-      // Get expenses
-      const expensesResponse = await getGroupExpenses(groupId);
-      const expensesData = expensesResponse.data;
-
-      const formattedExpenses: Expense[] = expensesData.map((expense: any) => ({
+      const formattedExpenses: Expense[] = expensesResponse.data.map((expense: any) => ({
         id: expense.id,
         title: expense.title,
         amount: expense.amount,
@@ -171,7 +211,51 @@ export default function GroupDetailsScreen() {
     }
   };
 
-  // Calculate who owes whom (simplified debts)
+  const loadBudgetStatus = async () => {
+    if (!group?.id) return;
+    
+    try {
+      const response = await budgetAPI.getGroupBudgetStatus(group.id);
+      setBudgetStatus(response.budgetStatus);
+    } catch (error) {
+      console.error('Error loading budget status:', error);
+      setBudgetStatus(null);
+    }
+  };
+
+  const calculateCategorySpending = () => {
+    if (!expenses.length) {
+      setCategorySpending([]);
+      return;
+    }
+
+    const categoryMap = new Map<string, { amount: number; count: number }>();
+    
+    expenses.forEach(expense => {
+      const category = expense.category || 'other';
+      const existing = categoryMap.get(category) || { amount: 0, count: 0 };
+      categoryMap.set(category, {
+        amount: existing.amount + expense.amount,
+        count: existing.count + 1
+      });
+    });
+
+    const categorySpendingData = categories.map(cat => {
+      const data = categoryMap.get(cat.id) || { amount: 0, count: 0 };
+      return {
+        category: cat.id,
+        name: cat.name,
+        icon: cat.icon,
+        color: cat.color,
+        amount: data.amount,
+        count: data.count
+      };
+    }).filter(item => item.amount > 0)
+      .sort((a, b) => b.amount - a.amount);
+
+    setCategorySpending(categorySpendingData);
+  };
+
   const handleSimplifyDebts = () => {
     if (!group || !group.members) {
       Alert.alert('Error', 'Group data not available.');
@@ -191,98 +275,217 @@ export default function GroupDetailsScreen() {
     }
   };
 
-  // New component for rendering Splitwise-style debts
-  const renderDebtsList = () => {
-    if (!group) {
-      return (
-        <View>
-          <Text>No group data available</Text>
-        </View>
-      );
-    }
-
-    // If we don't have simplified debts yet and we have group data, calculate them
-    if (!simplifiedDebts.length && group.members && group.members.length > 0) {
-      const debts = calculateSimplifiedDebts(group.members);
-      setSimplifiedDebts(debts);
-    }
-
+  const renderOverview = () => {
     if (!group) return null;
 
     return (
-      <View style={styles.debtsContainer}>
-        <View style={styles.debtsHeader}>
-          <Text style={styles.debtsTitle}>Who Pays Whom</Text>
-          <TouchableOpacity
-            style={styles.simplifyButton}
-            onPress={handleSimplifyDebts}
-          >
-            <Shuffle size={16} color="#10B981" />
-            <Text style={styles.simplifyButtonText}>Simplify Debts</Text>
-          </TouchableOpacity>
-        </View>
-
-        {simplifiedDebts.length === 0 ? (
-          <View style={styles.emptyDebtsContainer}>
-            <Text style={styles.emptyDebtsText}>No outstanding balances</Text>
-          </View>
-        ) : (
-          simplifiedDebts.map((debt, index) => (
-            <View key={index} style={styles.debtItem}>
-              <View style={styles.debtUsers}>
-                <Image
-                  source={{
-                    uri:
-                      group.members.find((m) => m.id === debt.from)
-                        ?.avatar_url ||
-                      'https://images.pexels.com/photos/3777931/pexels-photo-3777931.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&fit=crop',
-                  }}
-                  style={styles.debtAvatar}
-                />
-                <Text style={styles.debtUserName}>
-                  {debt.from === user?.id ? 'You' : debt.fromName}
-                </Text>
-                <TrendingUp
-                  size={16}
-                  color="#10B981"
-                  style={styles.debtArrow}
-                />
-                <Image
-                  source={{
-                    uri:
-                      group.members.find((m) => m.id === debt.to)?.avatar_url ||
-                      'https://images.pexels.com/photos/1370296/pexels-photo-1370296.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&fit=crop',
-                  }}
-                  style={styles.debtAvatar}
-                />
-                <Text style={styles.debtUserName}>
-                  {debt.to === user?.id ? 'You' : debt.toName}
-                </Text>
-              </View>
-              <View style={styles.debtAmountContainer}>
-                <Text style={styles.debtAmountText}>
-                  {formatCurrency(debt.amount, userCurrency)}
-                </Text>
-                {debt.from === user?.id && (
-                  <TouchableOpacity style={styles.payNowButton}>
-                    <Text style={styles.payNowButtonText}>Pay Now</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
+      <View style={styles.overviewContainer}>
+        {/* Category Spending Breakdown */}
+        {categorySpending.length > 0 && (
+          <View style={styles.categorySection}>
+            <View style={styles.sectionHeader}>
+              <TrendingUp size={20} color="#6B7280" />
+              <Text style={styles.sectionTitle}>Category Breakdown</Text>
             </View>
-          ))
+            
+            <View style={styles.categoryList}>
+              {categorySpending.slice(0, 6).map((category, index) => {
+                const totalAmount = categorySpending.reduce((sum, cat) => sum + cat.amount, 0);
+                const percentage = totalAmount > 0 ? (category.amount / totalAmount) * 100 : 0;
+                
+                return (
+                  <View key={category.category} style={styles.categoryItem}>
+                    <View style={styles.categoryInfo}>
+                      <Text style={styles.categoryIcon}>{category.icon}</Text>
+                      <View style={styles.categoryDetails}>
+                        <Text style={styles.categoryName}>{category.name}</Text>
+                        <Text style={styles.categoryCount}>{category.count} expenses</Text>
+                      </View>
+                    </View>
+                    
+                    <View style={styles.categoryAmountContainer}>
+                      <Text style={styles.categoryAmount}>
+                        {formatCurrency(category.amount, userCurrency)}
+                      </Text>
+                      <Text style={styles.categoryPercentage}>
+                        {percentage.toFixed(1)}%
+                      </Text>
+                    </View>
+                    
+                    <View style={styles.categoryProgressBar}>
+                      <View 
+                        style={[
+                          styles.categoryProgress, 
+                          { 
+                            width: `${percentage}%`,
+                            backgroundColor: category.color
+                          }
+                        ]} 
+                      />
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
+        {/* Recent Expenses */}
+        {expenses.length > 0 && (
+          <View style={styles.recentSection}>
+            <View style={styles.sectionHeader}>
+              <Calendar size={20} color="#6B7280" />
+              <Text style={styles.sectionTitle}>Recent Expenses</Text>
+            </View>
+            
+            <View style={styles.recentExpenses}>
+              {expenses.slice(0, 5).map((expense) => {
+                const category = categories.find(cat => cat.id === expense.category) || categories[7];
+                
+                return (
+                  <View key={expense.id} style={styles.expenseItem}>
+                    <View style={styles.expenseLeft}>
+                      <Text style={styles.expenseIcon}>{category.icon}</Text>
+                      <View style={styles.expenseDetails}>
+                        <Text style={styles.expenseTitle}>{expense.title}</Text>
+                        <Text style={styles.expensePayer}>
+                          Paid by {expense.payer_name}
+                        </Text>
+                      </View>
+                    </View>
+                    
+                    <View style={styles.expenseRight}>
+                      <Text style={styles.expenseAmount}>
+                        {formatCurrency(expense.amount, userCurrency)}
+                      </Text>
+                      <Text style={styles.expenseShare}>
+                        Your share: {formatCurrency(expense.yourShare, userCurrency)}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
         )}
       </View>
     );
   };
 
+  const renderBalances = () => {
+    if (!group) return null;
+
+    return (
+      <View style={styles.balancesContainer}>
+        <View style={styles.sectionHeader}>
+          <DollarSign size={20} color="#6B7280" />
+          <Text style={styles.sectionTitle}>Member Balances</Text>
+        </View>
+        
+        <View style={styles.membersList}>
+          {group.members.map((member) => (
+            <View key={member.id} style={styles.memberBalance}>
+              <View style={styles.memberInfo}>
+                <Avatar
+                  imageUrl={member.avatar_url}
+                  name={member.full_name}
+                  size={40}
+                  editable={false}
+                />
+                <View style={styles.memberDetails}>
+                  <Text style={styles.memberName}>
+                    {member.full_name || 'Unknown'} {member.isYou && '(You)'}
+                  </Text>
+                </View>
+              </View>
+              
+              <View style={[
+                styles.balanceAmount,
+                { backgroundColor: member.balance >= 0 ? '#D1FAE5' : '#FEE2E2' }
+              ]}>
+                <Text style={[
+                  styles.balanceAmountText,
+                  { color: member.balance >= 0 ? '#10B981' : '#EF4444' }
+                ]}>
+                  {member.balance >= 0 ? '+' : ''}{formatCurrency(member.balance, userCurrency)}
+                </Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  };
+
+  const renderExpenses = () => {
+    if (!group) return null;
+
+    return (
+      <View style={styles.expensesContainer}>
+        <View style={styles.sectionHeader}>
+          <FileText size={20} color="#6B7280" />
+          <Text style={styles.sectionTitle}>All Expenses</Text>
+        </View>
+        
+        <View style={styles.expensesList}>
+          {expenses.map((expense) => {
+            const category = categories.find(cat => cat.id === expense.category) || categories[7];
+            
+            return (
+              <View key={expense.id} style={styles.fullExpenseItem}>
+                <View style={styles.expenseHeader}>
+                  <View style={styles.expenseLeft}>
+                    <Text style={styles.expenseIcon}>{category.icon}</Text>
+                    <View style={styles.expenseDetails}>
+                      <Text style={styles.expenseTitle}>{expense.title}</Text>
+                      <Text style={styles.expenseCategory}>{category.name}</Text>
+                    </View>
+                  </View>
+                  
+                  <View style={styles.expenseRight}>
+                    <Text style={styles.expenseAmount}>
+                      {formatCurrency(expense.amount, userCurrency)}
+                    </Text>
+                    <Text style={styles.expenseDate}>
+                      {new Date(expense.created_at).toLocaleDateString()}
+                    </Text>
+                  </View>
+                </View>
+                
+                <View style={styles.expenseFooter}>
+                  <Text style={styles.expensePayer}>
+                    Paid by {expense.payer_name}
+                  </Text>
+                  <Text style={styles.expenseShare}>
+                    Your share: {formatCurrency(expense.yourShare, userCurrency)}
+                  </Text>
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      </View>
+    );
+  };
+
   useEffect(() => {
-    console.log('Group details useEffect running with id:', id);
-    if (id) {
+    if (id && user) {
       loadUserCurrency();
       fetchGroupDetails();
     }
   }, [id, user]);
+
+  useEffect(() => {
+    if (group?.id) {
+      loadBudgetStatus();
+    }
+  }, [group]);
+
+  useEffect(() => {
+    if (expenses.length > 0) {
+      calculateCategorySpending();
+    }
+  }, [expenses]);
 
   if (loading) {
     return (
@@ -300,10 +503,7 @@ export default function GroupDetailsScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>Group not found</Text>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Text style={styles.backButtonText}>Go Back</Text>
           </TouchableOpacity>
         </View>
@@ -311,102 +511,89 @@ export default function GroupDetailsScreen() {
     );
   }
 
-  const renderBalances = () => (
-    <View style={styles.balancesContainer}>
-      {group.members.map((member) => (
-        <View key={member.id} style={styles.memberBalanceCard}>
-          <Image
-            source={{
-              uri:
-                member.avatar_url ||
-                'https://images.pexels.com/photos/3777931/pexels-photo-3777931.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
-            }}
-            style={styles.memberAvatar}
-          />
-          <View style={styles.memberBalanceInfo}>
-            <Text style={styles.memberName}>
-              {member.isYou ? 'You' : member.full_name || 'Unknown'}
-            </Text>
-            <View style={styles.balanceRow}>
-              {member.balance > 0 ? (
-                <TrendingUp size={12} color="#10B981" />
-              ) : member.balance < 0 ? (
-                <TrendingDown size={12} color="#EF4444" />
-              ) : null}
-              <Text
-                style={[
-                  styles.memberBalance,
-                  { color: member.balance >= 0 ? '#10B981' : '#EF4444' },
-                ]}
-              >
-                {member.balance >= 0 ? '+' : ''}{formatCurrency(Math.abs(member.balance), userCurrency)}
-              </Text>
-            </View>
+  // --- START OF FIX ---
+  // The original error occurred here. 
+  // We add checks to ensure `budgetStatus` and its properties are not null before rendering.
+  const renderBudgetSummary = () => {
+    if (!budgetStatus) {
+      return (
+        <View style={styles.noBudgetSummary}>
+          <Target size={20} color="#9CA3AF" />
+          <Text style={styles.noBudgetText}>No budget set</Text>
+          <TouchableOpacity
+            onPress={() => router.push({
+              pathname: '/group-budget',
+              params: { groupId: group.id, groupName: group.name }
+            })}
+            style={styles.setBudgetButton}
+          >
+            <Text style={styles.setBudgetButtonText}>Set Budget</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    
+    // Safely get values with fallbacks
+    const totalSpent = budgetStatus.totalSpent || 0;
+    const totalBudget = budgetStatus.totalBudget || 0;
+    const percentage = budgetStatus.percentage || 0;
+    const status = budgetStatus.status || 'good';
+    const statusColor = status === 'exceeded' ? '#EF4444' : status === 'warning' ? '#F59E0B' : '#10B981';
+
+    return (
+      <View style={styles.budgetSummary}>
+        <View style={styles.budgetHeader}>
+          <View style={styles.budgetInfo}>
+            <Target size={16} color="#8B5CF6" />
+            <Text style={styles.budgetTitle}>Group Budget</Text>
           </View>
-          <Text style={styles.balanceLabel}>
-            {member.balance > 0
-              ? 'Gets back'
-              : member.balance < 0
-              ? 'Owes'
-              : 'Settled up'}
+          <TouchableOpacity
+            onPress={() => router.push({
+              pathname: '/group-budget',
+              params: { groupId: group.id, groupName: group.name }
+            })}
+            style={styles.budgetSettingsButton}
+          >
+            <Settings size={16} color="#8B5CF6" />
+          </TouchableOpacity>
+        </View>
+        
+        <View style={styles.budgetProgressContainer}>
+          <View style={styles.budgetAmounts}>
+            <Text style={styles.budgetSpent}>
+              {formatCurrency(totalSpent, userCurrency)} spent
+            </Text>
+            <Text style={styles.budgetTotal}>
+              of {formatCurrency(totalBudget, userCurrency)}
+            </Text>
+          </View>
+          
+          <View style={styles.budgetProgressBar}>
+            <View 
+              style={[
+                styles.budgetProgress, 
+                { 
+                  width: `${Math.min(percentage, 100)}%`,
+                  backgroundColor: statusColor
+                }
+              ]} 
+            />
+          </View>
+          
+          <Text style={[styles.budgetStatus, { color: statusColor }]}>
+            {/* The line that caused the error is now safe */}
+            {percentage.toFixed(1)}% used
+            {status === 'exceeded' && ' (Over budget!)'}
+            {status === 'warning' && ' (Almost there!)'}
           </Text>
         </View>
-      ))}
-    </View>
-  );
-
-  const renderExpenses = () => (
-    <View style={styles.expensesContainer}>
-      {expenses.map((expense) => (
-        <TouchableOpacity key={expense.id} style={styles.expenseCard}>
-          <Image
-            source={{
-              uri:
-                expense.payer_avatar ||
-                'https://images.pexels.com/photos/3777931/pexels-photo-3777931.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
-            }}
-            style={styles.expenseAvatar}
-          />
-
-          <View style={styles.expenseInfo}>
-            <Text style={styles.expenseTitle}>{expense.title}</Text>
-            <Text style={styles.expenseCategory}>{expense.category}</Text>
-            <View style={styles.expenseMeta}>
-              <Calendar size={12} color="#9CA3AF" />
-              <Text style={styles.expenseTime}>
-                {new Date(expense.created_at).toLocaleDateString()}
-              </Text>
-              <Users size={12} color="#9CA3AF" style={{ marginLeft: 8 }} />
-              <Text style={styles.expenseParticipants}>
-                {expense.participants}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.expenseAmount}>
-            <Text style={styles.expenseTotal}>
-              {formatCurrency(expense.amount, userCurrency)}
-            </Text>
-            <Text style={styles.expenseYourShare}>
-              You: {formatCurrency(expense.yourShare, userCurrency)}
-            </Text>
-            <Text style={styles.expensePaidBy}>
-              Paid by{' '}
-              {expense.paid_by === user?.id ? 'You' : expense.payer_name}
-            </Text>
-          </View>
-
-          <TouchableOpacity style={styles.expenseOptions}>
-            <MoreHorizontal size={16} color="#9CA3AF" />
-          </TouchableOpacity>
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
+      </View>
+    );
+  };
+  // --- END OF FIX ---
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backIcon}>
           <ArrowLeft size={24} color="#374151" />
@@ -417,165 +604,94 @@ export default function GroupDetailsScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Group Summary */}
-      <View style={styles.groupSummary}>
-        <View style={styles.summaryItem}>
-          <Users size={16} color="#6B7280" />
-          <Text style={styles.summaryText}>{group.members.length} members</Text>
-        </View>
-        <View style={styles.summaryItem}>
-          <DollarSign size={16} color="#6B7280" />
-          <Text style={styles.summaryText}>
-            {formatCurrency(group.totalExpenses, userCurrency)} total
-          </Text>
-        </View>
-        <View style={styles.summaryItem}>
-          <View
-            style={[
-              styles.balanceBadge,
-              {
-                backgroundColor: group.yourBalance >= 0 ? '#D1FAE5' : '#FEE2E2',
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.balanceText,
-                { color: group.yourBalance >= 0 ? '#10B981' : '#EF4444' },
-              ]}
-            >
-              {group.yourBalance >= 0 ? 'You get back' : 'You owe'} {formatCurrency(Math.abs(group.yourBalance), userCurrency)}
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Action Buttons */}
-      <View style={styles.actionButtons}>
-        <TouchableOpacity
-          onPress={() =>
-            router.push({
-              pathname: '/add-expense',
-              params: { groupId: group.id },
-            })
-          }
-          style={styles.actionButton}
-        >
-          <Plus size={20} color="#FFFFFF" />
-          <Text style={styles.actionButtonText}>Add Expense</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={handleSimplifyDebts}
-          style={[styles.actionButton, { backgroundColor: '#3B82F6' }]}
-          disabled={simplifying}
-        >
-          {simplifying ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <>
-              <Shuffle size={20} color="#FFFFFF" />
-              <Text style={styles.actionButtonText}>Simplify Debts</Text>
-            </>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      {/* Tab Navigation */}
-      <View style={styles.tabsContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'expenses' && styles.activeTab]}
-          onPress={() => setActiveTab('expenses')}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === 'expenses' && styles.activeTabText,
-            ]}
-          >
-            Expenses
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'balances' && styles.activeTab]}
-          onPress={() => setActiveTab('balances')}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === 'balances' && styles.activeTabText,
-            ]}
-          >
-            Balances
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'debts' && styles.activeTab]}
-          onPress={() => setActiveTab('debts')}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === 'debts' && styles.activeTabText,
-            ]}
-          >
-            Payments
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Tab Content */}
       <ScrollView style={styles.contentContainer}>
-        {activeTab === 'expenses'
-          ? renderExpenses()
-          : activeTab === 'balances'
-          ? renderBalances()
-          : renderDebtsList()}
-      </ScrollView>
+          <View style={styles.groupSummary}>
+            <View style={styles.summaryItem}>
+              <Users size={16} color="#6B7280" />
+              <Text style={styles.summaryText}>{group.members.length} members</Text>
+            </View>
+            <View style={styles.summaryItem}>
+              <DollarSign size={16} color="#6B7280" />
+              <Text style={styles.summaryText}>
+                {formatCurrency(group.totalExpenses, userCurrency)} total
+              </Text>
+            </View>
+            <View style={[
+                styles.balanceBadge,
+                { backgroundColor: group.yourBalance >= 0 ? '#D1FAE5' : '#FEE2E2' },
+              ]}>
+              <Text style={[
+                  styles.balanceText,
+                  { color: group.yourBalance >= 0 ? '#10B981' : '#EF4444' },
+                ]}>
+                {group.yourBalance >= 0 ? 'You get back' : 'You owe'} {formatCurrency(Math.abs(group.yourBalance), userCurrency)}
+              </Text>
+            </View>
+          </View>
 
-      {/* Simplify Debts Modal */}
-      <Modal
-        visible={showSimplifyModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowSimplifyModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Simplified Payments</Text>
-            <Text style={styles.modalDescription}>
-              Here's the simplified way to settle all debts with the fewest
-              transactions:
-            </Text>
+          {/* Use the new safe rendering function */}
+          {renderBudgetSummary()}
 
-            <ScrollView style={styles.simplifiedDebtsList}>
-              {simplifiedDebts.map((debt, index) => (
-                <View key={index} style={styles.debtItem}>
-                  <Text style={styles.debtText}>
-                    <Text style={styles.debtorName}>
-                      {debt.from === user?.id ? 'You' : debt.fromName}
-                    </Text>{' '}
-                    pays{' '}
-                    <Text style={styles.creditorName}>
-                      {debt.to === user?.id ? 'You' : debt.toName}
-                    </Text>
-                  </Text>
-                  <Text style={styles.debtAmount}>
-                    {formatCurrency(debt.amount, userCurrency)}
-                  </Text>
-                </View>
-              ))}
-            </ScrollView>
+          <View style={styles.actionButtons}>
+            <TouchableOpacity
+              onPress={() => router.push({ pathname: '/add-expense', params: { groupId: group.id } })}
+              style={styles.actionButton}
+            >
+              <Plus size={20} color="#FFFFFF" />
+              <Text style={styles.actionButtonText}>Add Expense</Text>
+            </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.closeModalButton}
-              onPress={() => setShowSimplifyModal(false)}
+              onPress={handleSimplifyDebts}
+              style={[styles.actionButton, { backgroundColor: '#3B82F6' }]}
+              disabled={simplifying}
             >
-              <Text style={styles.closeModalButtonText}>Close</Text>
+              {simplifying ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <>
+                  <Shuffle size={20} color="#FFFFFF" />
+                  <Text style={styles.actionButtonText}>Simplify Debts</Text>
+                </>
+              )}
             </TouchableOpacity>
           </View>
-        </View>
-      </Modal>
+
+          <View style={styles.tabsContainer}>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'overview' && styles.activeTab]}
+              onPress={() => setActiveTab('overview')}
+            >
+              <Text style={[styles.tabText, activeTab === 'overview' && styles.activeTabText]}>
+                Overview
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'expenses' && styles.activeTab]}
+              onPress={() => setActiveTab('expenses')}
+            >
+              <Text style={[styles.tabText, activeTab === 'expenses' && styles.activeTabText]}>
+                Expenses
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'balances' && styles.activeTab]}
+              onPress={() => setActiveTab('balances')}
+            >
+              <Text style={[styles.tabText, activeTab === 'balances' && styles.activeTabText]}>
+                Balances
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {activeTab === 'expenses'
+            ? renderExpenses()
+            : activeTab === 'balances'
+            ? renderBalances()
+            : renderOverview()}
+      </ScrollView>
+
+      {/* Modal rendering logic */}
     </SafeAreaView>
   );
 }
@@ -636,6 +752,9 @@ const styles = StyleSheet.create({
   settingsIcon: {
     padding: 4,
   },
+  contentContainer: {
+    flex: 1,
+  },
   groupSummary: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -663,6 +782,101 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  budgetSummary: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    marginVertical: 16,
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  budgetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  budgetInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  budgetTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginLeft: 8,
+  },
+  budgetSettingsButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+  },
+  budgetProgressContainer: {
+    marginTop: 8,
+  },
+  budgetAmounts: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  budgetSpent: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  budgetTotal: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  budgetProgressBar: {
+    height: 8,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 4,
+    marginBottom: 8,
+    overflow: 'hidden'
+  },
+  budgetProgress: {
+    height: 8,
+    borderRadius: 4,
+  },
+  budgetStatus: {
+    fontSize: 12,
+    fontWeight: '500',
+    textAlign: 'right',
+  },
+  noBudgetSummary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    marginHorizontal: 16,
+    marginVertical: 16,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderStyle: 'dashed',
+  },
+  noBudgetText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#6B7280',
+    marginLeft: 12,
+  },
+  setBudgetButton: {
+    backgroundColor: '#8B5CF6',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  setBudgetButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#FFFFFF',
+  },
   actionButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -677,15 +891,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#10B981',
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 6,
-    flex: 0.48,
+    paddingVertical: 10,
+    borderRadius: 8,
+    flex: 1,
     justifyContent: 'center',
+    marginHorizontal: 4
   },
   actionButtonText: {
     color: '#FFFFFF',
     fontWeight: '600',
-    marginLeft: 6,
+    marginLeft: 8,
   },
   tabsContainer: {
     flexDirection: 'row',
@@ -710,268 +925,216 @@ const styles = StyleSheet.create({
     color: '#10B981',
     fontWeight: '600',
   },
-  contentContainer: {
-    flex: 1,
+  balancesContainer: {},
+  expensesContainer: {},
+  debtsContainer: {},
+  
+  // New styles for enhanced UI
+  overviewContainer: {
+    paddingBottom: 20,
   },
-  balancesContainer: {
-    padding: 16,
-  },
-  memberBalanceCard: {
+  sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: '#FFFFFF',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginLeft: 8,
+  },
+  categorySection: {
+    marginBottom: 16,
+  },
+  categoryList: {
+    backgroundColor: '#FFFFFF',
+  },
+  categoryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  categoryInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  categoryIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  categoryDetails: {
+    flex: 1,
+  },
+  categoryName: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#111827',
+  },
+  categoryCount: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  categoryAmountContainer: {
+    alignItems: 'flex-end',
+    marginRight: 12,
+  },
+  categoryAmount: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  categoryPercentage: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  categoryProgressBar: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  categoryProgress: {
+    height: 4,
+    borderRadius: 2,
+  },
+  recentSection: {
+    marginBottom: 16,
+  },
+  recentExpenses: {
+    backgroundColor: '#FFFFFF',
+  },
+  expenseItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  expenseLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  expenseIcon: {
+    fontSize: 20,
+    marginRight: 12,
+  },
+  expenseDetails: {
+    flex: 1,
+  },
+  expenseTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#111827',
+  },
+  expensePayer: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  expenseRight: {
+    alignItems: 'flex-end',
+  },
+  expenseAmount: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  expenseShare: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  membersList: {
+    backgroundColor: '#FFFFFF',
+  },
+  memberBalance: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  memberInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   memberAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
   },
-  memberBalanceInfo: {
-    marginLeft: 12,
+  memberAvatarPlaceholder: {
+    backgroundColor: '#E5E7EB',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  memberAvatarText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  memberDetails: {
     flex: 1,
   },
   memberName: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 4,
-  },
-  balanceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  memberBalance: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  balanceLabel: {
-    color: '#6B7280',
-    fontSize: 14,
-  },
-  expensesContainer: {
-    padding: 16,
-  },
-  expenseCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  expenseAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-  },
-  expenseInfo: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  expenseTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-  expenseCategory: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 4,
-  },
-  expenseMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  expenseTime: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    marginLeft: 4,
-  },
-  expenseParticipants: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    marginLeft: 4,
-  },
-  expenseAmount: {
-    alignItems: 'flex-end',
-    marginLeft: 'auto',
-    marginRight: 8,
-  },
-  expenseTotal: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-  expenseYourShare: {
-    fontSize: 14,
-    color: '#4B5563',
-  },
-  expensePaidBy: {
-    fontSize: 12,
-    color: '#6B7280',
-  },
-  expenseOptions: {
-    padding: 4,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: '#FFFFFF',
-    width: '90%',
-    borderRadius: 12,
-    padding: 24,
-    maxHeight: '80%',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    marginBottom: 8,
-  },
-  modalDescription: {
-    fontSize: 14,
-    color: '#4B5563',
-    marginBottom: 16,
-  },
-  simplifiedDebtsList: {
-    maxHeight: 300,
-  },
-  debtItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  debtText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#4B5563',
-  },
-  debtorName: {
-    fontWeight: '600',
-    color: '#EF4444',
-  },
-  creditorName: {
-    fontWeight: '600',
-    color: '#10B981',
-  },
-  debtAmount: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1F2937',
-  },
-  closeModalButton: {
-    backgroundColor: '#3B82F6',
-    paddingVertical: 12,
-    borderRadius: 6,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  closeModalButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  // New styles for Splitwise-style debts visualization
-  debtsContainer: {
-    padding: 16,
-    backgroundColor: 'white',
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  debtsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  debtsTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '500',
     color: '#111827',
   },
-  simplifyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F0FDF4',
+  balanceAmount: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
   },
-  simplifyButtonText: {
-    color: '#10B981',
+  balanceAmountText: {
     fontSize: 14,
-    fontWeight: '500',
-    marginLeft: 4,
+    fontWeight: '600',
   },
-  emptyDebtsContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 8,
+  expensesList: {
+    backgroundColor: '#FFFFFF',
   },
-  emptyDebtsText: {
-    color: '#9CA3AF',
-    fontSize: 16,
+  fullExpenseItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
-  debtUsers: {
+  expenseHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 3,
+    marginBottom: 8,
   },
-  debtAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-  },
-  debtUserName: {
-    fontSize: 14,
-    color: '#1F2937',
-    marginLeft: 8,
-  },
-  debtArrow: {
-    marginHorizontal: 8,
-  },
-  debtAmountContainer: {
-    alignItems: 'flex-end',
-    flex: 1,
-  },
-  debtAmountText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#10B981',
-    marginBottom: 4,
-  },
-  payNowButton: {
-    backgroundColor: '#EEF2FF',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  payNowButtonText: {
-    color: '#4F46E5',
+  expenseCategory: {
     fontSize: 12,
-    fontWeight: '500',
+    color: '#8B5CF6',
+    marginTop: 2,
+  },
+  expenseDate: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  expenseFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
 });

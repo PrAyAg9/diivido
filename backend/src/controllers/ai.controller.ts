@@ -117,12 +117,27 @@ class AIController {
         'summary',
         'status',
       ];
+      const quickDrawKeywords = [
+        'quick draw',
+        'quickdraw',
+        'game',
+        'challenge',
+        'who pays',
+        'loser pays',
+        'reaction game',
+        'fastest',
+        'slowest',
+      ];
 
       const isNudgeRequest = nudgeKeywords.some((keyword) =>
         transcript.toLowerCase().includes(keyword)
       );
 
       const isBalanceRequest = balanceKeywords.some((keyword) =>
+        transcript.toLowerCase().includes(keyword)
+      );
+
+      const isQuickDrawRequest = quickDrawKeywords.some((keyword) =>
         transcript.toLowerCase().includes(keyword)
       );
 
@@ -196,6 +211,31 @@ class AIController {
           action: {
             type: 'balance',
             payload: userData.balance,
+          },
+        });
+      } else if (isQuickDrawRequest) {
+        // Handle Quick Draw game requests
+        const quickDrawResponse = `Ready for some Quick Draw action, ${user.fullName}? 🎯⚡ 
+
+This is perfect for settling who pays! Here's how it works:
+1. Create an expense and select "Loser Pays All ⚡"
+2. Everyone gets a notification to join the game
+3. When the signal appears, tap as fast as you can!
+4. Slowest reaction pays the whole bill!
+
+Want to start a Quick Draw challenge now? Just add an expense and choose the Quick Draw option!`;
+
+        const audioUrl = await this.generateSpeech(quickDrawResponse);
+
+        res.json({
+          text: quickDrawResponse,
+          audioUrl,
+          action: {
+            type: 'quickdraw',
+            payload: {
+              suggestion: 'Navigate to add expense and select Quick Draw option',
+              groups: userData.groups,
+            },
           },
         });
       } else {

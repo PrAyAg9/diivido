@@ -7,6 +7,7 @@ export interface IUser extends Document {
   fullName: string;
   avatarUrl?: string;
   phone?: string;
+  expoPushToken?: string;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -31,6 +32,10 @@ const userSchema = new Schema(
     },
     avatarUrl: String,
     phone: String,
+    expoPushToken: {
+      type: String,
+      required: false,
+    },
   },
   {
     timestamps: true,

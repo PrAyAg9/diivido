@@ -30,6 +30,8 @@ import { formatCurrency, getUserCurrency, type Currency } from '@/utils/currency
 import { aiAssistantApi } from '@/services/ai-assistant-api';
 import { createExpense } from '@/services/expenses-api';
 import { getUserGroups } from '@/services/groups-api';
+import { quickDrawApi } from '@/services/quickdraw-api';
+import { notificationApi } from '@/services/notification-api';
 import { API_URL } from '@/services/api';
 
 const { width } = Dimensions.get('window');
@@ -64,8 +66,8 @@ const splitTypes = [
   { id: 'shares', name: 'By Shares', description: 'Split by number of shares' },
   {
     id: 'loser-pays-all',
-    name: 'Loser Pays All',
-    description: 'One random person pays the entire amount',
+    name: 'Loser Pays All ⚡',
+    description: 'Play Quick Draw game - slowest reaction pays all!',
   },
 ];
 
@@ -105,8 +107,6 @@ export default function AddExpenseScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [aiSuggestions, setAiSuggestions] = useState<any>(null);
-  const [loadingAiSuggestions, setLoadingAiSuggestions] = useState(false);
 
   const fetchGroups = async () => {
     if (!user) return;
@@ -193,6 +193,57 @@ export default function AddExpenseScreen() {
     setAmount(cleanedText);
   };
 
+  const handleRandomSelection = async () => {
+    const totalAmount = parseFloat(amount);
+    
+    // Select a random person from selected members to pay the full amount
+    const randomIndex = Math.floor(Math.random() * selectedMembers.length);
+    const unluckyPerson = selectedMembers[randomIndex];
+
+    const splits = selectedMembers.map((memberId) => ({
+      userId: memberId,
+      amount: memberId === unluckyPerson ? totalAmount : 0,
+      percentage: memberId === unluckyPerson ? 100 : 0,
+      shares: memberId === unluckyPerson ? 1 : 0,
+    }));
+
+    try {
+      await createExpense({
+        groupId: selectedGroup!,
+        title: description,
+        amount: totalAmount,
+        currency: 'INR',
+        category: selectedCategory,
+        splitType: 'exact',
+        splits: splits,
+        notes: 'Random selection - loser pays all',
+        date: date.toISOString().split('T')[0],
+      });
+
+      // Show who was selected to pay
+      const unluckyMember = getCurrentGroupMembers().find(
+        (m) => m.id === unluckyPerson
+      );
+      const memberName = unluckyMember?.isYou
+        ? 'You'
+        : unluckyMember?.fullName || 'Unknown';
+      
+      Alert.alert(
+        'Random Selection',
+        `${memberName} was randomly selected to pay the full amount!`,
+        [{
+          text: 'OK',
+          onPress: () => router.replace('/(tabs)'),
+        }]
+      );
+    } catch (err: any) {
+      console.error('Error saving expense:', err);
+      setError(err.response?.data?.error || err.message || 'Failed to save expense');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSave = async () => {
     if (
       !amount ||
@@ -215,30 +266,62 @@ export default function AddExpenseScreen() {
       let actualSplitType = splitType;
 
       if (splitType === 'loser-pays-all') {
-        // Select a random person from selected members to pay the full amount
-        const randomIndex = Math.floor(Math.random() * selectedMembers.length);
-        const unluckyPerson = selectedMembers[randomIndex];
+        // Start Quick Draw game instead of random selection
+        try {
+          const gameData = {
+            groupId: selectedGroup,
+            expenseData: {
+              title: description,
+              amount: totalAmount,
+              currency: 'INR',
+              category: selectedCategory,
+            },
+          };
 
-        splits = selectedMembers.map((memberId) => ({
-          userId: memberId,
-          amount: memberId === unluckyPerson ? totalAmount : 0,
-          percentage: memberId === unluckyPerson ? 100 : 0,
-          shares: memberId === unluckyPerson ? 1 : 0,
-        }));
-
-        actualSplitType = 'exact'; // Backend will handle it as exact amounts
-
-        // Show who was selected to pay
-        const unluckyMember = getCurrentGroupMembers().find(
-          (m) => m.id === unluckyPerson
-        );
-        const memberName = unluckyMember?.isYou
-          ? 'You'
-          : unluckyMember?.fullName || 'Unknown';
-        Alert.alert(
-          'Random Selection',
-          `${memberName} was randomly selected to pay the full amount!`
-        );
+          const gameResult = await quickDrawApi.startGame(gameData);
+          
+          Alert.alert(
+            'Quick Draw Started! ⚡',
+            `${gameResult.message} All group members will receive a notification to join the game!`,
+            [
+              {
+                text: 'Join Game',
+                onPress: () => {
+                  // Navigate to Quick Draw game screen
+                  router.push(`/quickdraw-game?gameId=${gameResult.gameId}`);
+                },
+              },
+              {
+                text: 'OK',
+                style: 'default',
+              },
+            ]
+          );
+          
+          setSaving(false);
+          return; // Don't create the expense yet - game will handle it
+        } catch (gameError) {
+          console.error('Error starting Quick Draw game:', gameError);
+          Alert.alert(
+            'Game Error',
+            'Could not start Quick Draw game. Would you like to use random selection instead?',
+            [
+              {
+                text: 'Cancel',
+                style: 'cancel',
+                onPress: () => setSaving(false),
+              },
+              {
+                text: 'Random Selection',
+                onPress: () => {
+                  // Fallback to original random selection
+                  handleRandomSelection();
+                },
+              },
+            ]
+          );
+          return;
+        }
       } else {
         // Regular equal split
         splits = selectedMembers.map((memberId) => {
@@ -332,41 +415,8 @@ export default function AddExpenseScreen() {
     }
   };
 
-  const getAISuggestions = async (expenseDescription: string) => {
-    if (!expenseDescription.trim() || expenseDescription.length < 3) return;
-    
-    try {
-      setLoadingAiSuggestions(true);
-      const suggestions = await aiAssistantApi.getExpenseSuggestions(expenseDescription);
-      setAiSuggestions(suggestions);
-      
-      // Auto-apply category if confident
-      if (suggestions.category && suggestions.category !== 'other') {
-        setSelectedCategory(suggestions.category);
-      }
-      
-      // Auto-apply estimated amount if available and amount field is empty
-      if (suggestions.amount && !amount) {
-        setAmount(suggestions.amount.toString());
-      }
-    } catch (error) {
-      console.error('Error getting AI suggestions:', error);
-    } finally {
-      setLoadingAiSuggestions(false);
-    }
-  };
-
   const handleDescriptionChange = (text: string) => {
     setDescription(text);
-    
-    // Debounce AI suggestions
-    const timeoutId = setTimeout(() => {
-      if (text.trim().length > 3) {
-        getAISuggestions(text);
-      }
-    }, 1000);
-    
-    return () => clearTimeout(timeoutId);
   };
 
   if (loading) {
@@ -688,47 +738,6 @@ export default function AddExpenseScreen() {
             <Text style={styles.photoButtonText}>Add Receipt Photo</Text>
           </TouchableOpacity>
         </View>
-
-        {/* AI Suggestions */}
-        {(loadingAiSuggestions || aiSuggestions) && (
-          <View style={styles.aiSuggestionsContainer}>
-            <View style={styles.aiHeader}>
-              <Sparkles size={16} color="#10B981" />
-              <Text style={styles.aiTitle}>AI Suggestions</Text>
-            </View>
-            
-            {loadingAiSuggestions ? (
-              <View style={styles.aiLoading}>
-                <ActivityIndicator size="small" color="#10B981" />
-                <Text style={styles.aiLoadingText}>Analyzing your expense...</Text>
-              </View>
-            ) : aiSuggestions ? (
-              <View style={styles.aiContent}>
-                {aiSuggestions.suggestions && aiSuggestions.suggestions.length > 0 && (
-                  <View style={styles.aiSuggestionsSection}>
-                    <Text style={styles.aiSectionTitle}>💡 Smart Tips:</Text>
-                    {aiSuggestions.suggestions.slice(0, 2).map((suggestion: string, index: number) => (
-                      <Text key={index} style={styles.aiSuggestion}>
-                        • {suggestion}
-                      </Text>
-                    ))}
-                  </View>
-                )}
-                
-                {aiSuggestions.tips && aiSuggestions.tips.length > 0 && (
-                  <View style={styles.aiSuggestionsSection}>
-                    <Text style={styles.aiSectionTitle}>💰 Money-Saving Tips:</Text>
-                    {aiSuggestions.tips.slice(0, 2).map((tip: string, index: number) => (
-                      <Text key={index} style={styles.aiTip}>
-                        • {tip}
-                      </Text>
-                    ))}
-                  </View>
-                )}
-              </View>
-            ) : null}
-          </View>
-        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -1178,59 +1187,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#10B981',
     marginRight: 8,
-  },
-  aiSuggestionsContainer: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 16,
-  },
-  aiHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  aiTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginLeft: 8,
-  },
-  aiLoading: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  aiLoadingText: {
-    fontSize: 14,
-    color: '#64748B',
-    marginLeft: 8,
-    fontStyle: 'italic',
-  },
-  aiContent: {
-    gap: 12,
-  },
-  aiSuggestionsSection: {
-    marginBottom: 8,
-  },
-  aiSectionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#334155',
-    marginBottom: 6,
-  },
-  aiSuggestion: {
-    fontSize: 13,
-    color: '#475569',
-    lineHeight: 18,
-    marginBottom: 2,
-  },
-  aiTip: {
-    fontSize: 13,
-    color: '#059669',
-    lineHeight: 18,
-    marginBottom: 2,
   },
 });

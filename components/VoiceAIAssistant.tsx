@@ -11,6 +11,10 @@ import {
   Alert,
   Vibration,
   StatusBar,
+  TextInput,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Audio } from 'expo-av';
 import * as Speech from 'expo-speech';
@@ -27,17 +31,29 @@ import {
 import { BlurView } from 'expo-blur';
 import { aiAssistantApi } from '@/services/ai-assistant-api';
 
+// const { width, height } = Dimensions.get('window');
+
+interface ChatMessage {
+  id: string;
+  text: string;
+  isUser: boolean;
+  timestamp: Date;
+}
+
 const { width, height } = Dimensions.get('window');
 
 export default function VoiceAIAssistant() {
   const [isListening, setIsListening] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isResponding, setIsResponding] = useState(false);
-  const [showEmergencyChat, setShowEmergencyChat] = useState(false);
+  const [showChat, setShowChat] = useState(false);
   const [voiceFailCount, setVoiceFailCount] = useState(0);
   const [lastResponse, setLastResponse] = useState<string>('');
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [inputText, setInputText] = useState('');
+  const [sendingMessage, setSendingMessage] = useState(false);
   
   // Animations
   const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -186,7 +202,10 @@ export default function VoiceAIAssistant() {
         "Send a funny reminder to Sarah about dinner",
         "Tell Mike he owes me for coffee in a witty way",
         "Check my balance with friends",
-        "Remind everyone about movie night expenses"
+        "Remind everyone about movie night expenses",
+        "Start a Quick Draw game for coffee",
+        "Let's play Quick Draw for who pays the bill",
+        "Challenge everyone to a Quick Draw game"
       ];
       
       const randomTranscript = mockTranscripts[Math.floor(Math.random() * mockTranscripts.length)];
@@ -238,9 +257,9 @@ export default function VoiceAIAssistant() {
       setVoiceFailCount(newFailCount);
       setIsProcessing(false);
       
-      // Show emergency chat after 2 failed attempts
+      // Show chat after 2 failed attempts
       if (newFailCount >= 2) {
-        setShowEmergencyChat(true);
+        setShowChat(true);
       } else {
         Alert.alert('Voice Error', 'Could not understand. Please try again.');
       }
@@ -269,6 +288,74 @@ export default function VoiceAIAssistant() {
       stopListening();
     } else if (!isProcessing && !isResponding) {
       startListening();
+    }
+  };
+
+  const sendChatMessage = async () => {
+    if (!inputText.trim() || sendingMessage) return;
+
+    const userMessage: ChatMessage = {
+      id: Date.now().toString(),
+      text: inputText.trim(),
+      isUser: true,
+      timestamp: new Date(),
+    };
+
+    setChatMessages(prev => [...prev, userMessage]);
+    setInputText('');
+    setSendingMessage(true);
+
+    try {
+      const response = await aiAssistantApi.processVoiceCommand(userMessage.text);
+      
+      const aiMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        text: response.text || "I'm here to help! Ask me anything about your expenses or groups.",
+        isUser: false,
+        timestamp: new Date(),
+      };
+
+      setChatMessages(prev => [...prev, aiMessage]);
+
+      // Handle special actions like nudging friends
+      if (response.action?.type === 'notification' && response.action.payload?.friendName) {
+        try {
+          await aiAssistantApi.sendWittyNudge(response.action.payload.friendName, userMessage.text);
+          const nudgeMessage: ChatMessage = {
+            id: (Date.now() + 2).toString(),
+            text: `✅ Sent a witty nudge to ${response.action.payload.friendName} about your money!`,
+            isUser: false,
+            timestamp: new Date(),
+          };
+          setChatMessages(prev => [...prev, nudgeMessage]);
+        } catch (error) {
+          console.error('Error sending nudge:', error);
+        }
+      }
+    } catch (error) {
+      console.error('Error sending chat message:', error);
+      const errorMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        text: "Sorry, I'm having trouble right now. Please try again.",
+        isUser: false,
+        timestamp: new Date(),
+      };
+      setChatMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setSendingMessage(false);
+    }
+  };
+
+  const openChat = () => {
+    setShowChat(true);
+    if (chatMessages.length === 0) {
+      const welcomeMessage: ChatMessage = {
+        id: Date.now().toString(),
+        text: "Hi! I'm Divi, your expense assistant. I can help you with expenses, nudge friends for money, or answer questions about your groups. What can I do for you?",
+        isUser: false,
+        timestamp: new Date(),
+      };
+      setChatMessages([welcomeMessage]);
     }
   };
 
@@ -356,13 +443,21 @@ export default function VoiceAIAssistant() {
         <Animated.View style={styles.statusContainer}>
           <Text style={styles.statusText}>
             {isListening
-              ? '🎤 Listening...'
+              ? 'Ask Divi'
               : isProcessing
               ? '🤔 Processing...'
               : isResponding
               ? '🔊 Speaking...'
               : '⚡ Tap to nudge friends'}
           </Text>
+          {isListening && (
+            <TouchableOpacity 
+              onPress={openChat}
+              style={styles.askDiviButton}
+            >
+              <MessageCircle size={14} color="#10B981" />
+            </TouchableOpacity>
+          )}
         </Animated.View>
       </View>
 
@@ -375,48 +470,94 @@ export default function VoiceAIAssistant() {
         </Animated.View>
       )}
 
-      {/* Emergency Chat Modal */}
+      {/* Chat Modal */}
       <Modal
-        visible={showEmergencyChat}
+        visible={showChat}
         transparent={true}
         animationType="slide"
         statusBarTranslucent
       >
-        <BlurView intensity={30} style={styles.modalOverlay}>
-          <View style={styles.emergencyChat}>
-            <View style={styles.chatHeader}>
-              <Text style={styles.chatTitle}>Voice Assistant</Text>
-              <TouchableOpacity
-                onPress={() => setShowEmergencyChat(false)}
-                style={styles.closeButton}
-              >
-                <X size={24} color="#6B7280" />
-              </TouchableOpacity>
-            </View>
-            
-            <View style={styles.chatContent}>
-              <MessageCircle size={48} color="#10B981" />
-              <Text style={styles.chatMessage}>
-                I'm having trouble with voice right now. 
-                You can type your request or try voice again.
-              </Text>
-              
-              <View style={styles.chatActions}>
+        <KeyboardAvoidingView 
+          style={{ flex: 1 }} 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <BlurView intensity={30} style={styles.modalOverlay}>
+            <View style={styles.chatContainer}>
+              <View style={styles.chatHeader}>
+                <Text style={styles.chatTitle}>Ask Divi</Text>
                 <TouchableOpacity
-                  style={styles.tryAgainButton}
-                  onPress={() => {
-                    setShowEmergencyChat(false);
-                    setVoiceFailCount(0);
-                    setTimeout(() => startListening(), 500);
-                  }}
+                  onPress={() => setShowChat(false)}
+                  style={styles.closeButton}
                 >
-                  <Mic size={20} color="#FFFFFF" />
-                  <Text style={styles.tryAgainText}>Try Voice Again</Text>
+                  <X size={24} color="#6B7280" />
                 </TouchableOpacity>
               </View>
+              
+              <ScrollView style={styles.messagesContainer} showsVerticalScrollIndicator={false}>
+                {chatMessages.map((message) => (
+                  <View 
+                    key={message.id} 
+                    style={[
+                      styles.messageItem,
+                      message.isUser ? styles.userMessage : styles.aiMessage
+                    ]}
+                  >
+                    <Text style={[
+                      styles.messageText,
+                      message.isUser ? styles.userMessageText : styles.aiMessageText
+                    ]}>
+                      {message.text}
+                    </Text>
+                    <Text style={styles.messageTime}>
+                      {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </Text>
+                  </View>
+                ))}
+                {sendingMessage && (
+                  <View style={[styles.messageItem, styles.aiMessage]}>
+                    <ActivityIndicator size="small" color="#10B981" />
+                    <Text style={styles.aiMessageText}>Thinking...</Text>
+                  </View>
+                )}
+              </ScrollView>
+              
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={styles.textInput}
+                  value={inputText}
+                  onChangeText={setInputText}
+                  placeholder="Ask Divi or say 'nudge John about my money'..."
+                  placeholderTextColor="#9CA3AF"
+                  multiline
+                  maxLength={500}
+                />
+                <TouchableOpacity 
+                  style={[styles.sendButton, (!inputText.trim() || sendingMessage) && styles.sendButtonDisabled]}
+                  onPress={sendChatMessage}
+                  disabled={!inputText.trim() || sendingMessage}
+                >
+                  {sendingMessage ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Send size={20} color="#FFFFFF" />
+                  )}
+                </TouchableOpacity>
+              </View>
+              
+              <TouchableOpacity
+                style={styles.voiceRetryButton}
+                onPress={() => {
+                  setShowChat(false);
+                  setVoiceFailCount(0);
+                  setTimeout(() => startListening(), 500);
+                }}
+              >
+                <Mic size={20} color="#10B981" />
+                <Text style={styles.voiceRetryText}>Try Voice Instead</Text>
+              </TouchableOpacity>
             </View>
-          </View>
-        </BlurView>
+          </BlurView>
+        </KeyboardAvoidingView>
       </Modal>
     </>
   );
@@ -453,9 +594,9 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   voiceButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 60,  // Reduced from 80
+    height: 60, // Reduced from 80
+    borderRadius: 30, // Reduced from 40
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -472,18 +613,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statusContainer: {
-    marginTop: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    marginTop: 8, // Reduced from 12
+    paddingHorizontal: 12, // Reduced from 16
+    paddingVertical: 6, // Reduced from 8
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    borderRadius: 20,
-    maxWidth: 200,
+    borderRadius: 16, // Reduced from 20
+    maxWidth: 180, // Reduced from 200
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   statusText: {
     color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 11, // Reduced from 12
     fontWeight: '600',
     textAlign: 'center',
+    flex: 1,
+  },
+  askDiviButton: {
+    marginLeft: 8,
+    padding: 4,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   responseBubble: {
     position: 'absolute',
@@ -564,6 +715,102 @@ const styles = StyleSheet.create({
   tryAgainText: {
     color: '#FFFFFF',
     fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  // New chat styles
+  chatContainer: {
+    width: width * 0.95,
+    height: height * 0.7,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginHorizontal: width * 0.025,
+    marginTop: height * 0.1,
+  },
+  messagesContainer: {
+    flex: 1,
+    padding: 16,
+  },
+  messageItem: {
+    marginBottom: 12,
+    maxWidth: '80%',
+  },
+  userMessage: {
+    alignSelf: 'flex-end',
+    backgroundColor: '#10B981',
+    borderRadius: 16,
+    borderBottomRightRadius: 4,
+    padding: 12,
+  },
+  aiMessage: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 16,
+    borderBottomLeftRadius: 4,
+    padding: 12,
+  },
+  messageText: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  userMessageText: {
+    color: '#FFFFFF',
+  },
+  aiMessageText: {
+    color: '#1F2937',
+  },
+  messageTime: {
+    fontSize: 10,
+    color: '#9CA3AF',
+    marginTop: 4,
+    textAlign: 'right',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+  },
+  textInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginRight: 12,
+    maxHeight: 100,
+    fontSize: 14,
+    color: '#1F2937',
+  },
+  sendButton: {
+    backgroundColor: '#10B981',
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sendButtonDisabled: {
+    backgroundColor: '#9CA3AF',
+  },
+  voiceRetryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F3F4F6',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 16,
+  },
+  voiceRetryText: {
+    color: '#10B981',
+    fontSize: 14,
     fontWeight: '600',
     marginLeft: 8,
   },

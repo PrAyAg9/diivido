@@ -10,6 +10,17 @@ export interface IGroup extends Document {
     role: 'admin' | 'member';
     joinedAt: Date;
   }[];
+  budget?: {
+    totalAmount: number;
+    currency: string;
+    description?: string;
+    setBy: mongoose.Types.ObjectId;
+    setAt: Date;
+    lastAlertSent?: {
+      percentage: number;
+      sentAt: Date;
+    };
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -45,6 +56,29 @@ const groupSchema = new Schema(
         },
       },
     ],
+    budget: {
+      totalAmount: {
+        type: Number,
+        required: false,
+      },
+      currency: {
+        type: String,
+        default: 'USD',
+      },
+      description: String,
+      setBy: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+      },
+      setAt: {
+        type: Date,
+        default: Date.now,
+      },
+      lastAlertSent: {
+        percentage: Number,
+        sentAt: Date,
+      },
+    },
   },
   {
     timestamps: true,
