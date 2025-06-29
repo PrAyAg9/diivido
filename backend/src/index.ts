@@ -14,6 +14,7 @@ import paymentRoutes from './routes/payment.routes';
 import userRoutes from './routes/user.routes';
 import invitationRoutes from './routes/invitation.routes';
 import friendsRoutes from './routes/friends.routes';
+import aiRoutes from './routes/ai.routes';
 
 
 
@@ -38,6 +39,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/invitations', invitationRoutes);
 app.use('/api/friends', friendsRoutes);
+app.use('/api/ai', aiRoutes);
 
 // Error handling middleware
 app.use(

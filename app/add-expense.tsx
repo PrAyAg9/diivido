@@ -23,9 +23,11 @@ import {
   Check,
   ChevronRight,
   CircleAlert as AlertCircle,
+  Sparkles,
 } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatCurrency, getUserCurrency, type Currency } from '@/utils/currency';
+import { aiAssistantApi } from '@/services/ai-assistant-api';
 import { createExpense } from '@/services/expenses-api';
 import { getUserGroups } from '@/services/groups-api';
 import { API_URL } from '@/services/api';
@@ -103,6 +105,8 @@ export default function AddExpenseScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [aiSuggestions, setAiSuggestions] = useState<any>(null);
+  const [loadingAiSuggestions, setLoadingAiSuggestions] = useState(false);
 
   const fetchGroups = async () => {
     if (!user) return;
@@ -328,6 +332,43 @@ export default function AddExpenseScreen() {
     }
   };
 
+  const getAISuggestions = async (expenseDescription: string) => {
+    if (!expenseDescription.trim() || expenseDescription.length < 3) return;
+    
+    try {
+      setLoadingAiSuggestions(true);
+      const suggestions = await aiAssistantApi.getExpenseSuggestions(expenseDescription);
+      setAiSuggestions(suggestions);
+      
+      // Auto-apply category if confident
+      if (suggestions.category && suggestions.category !== 'other') {
+        setSelectedCategory(suggestions.category);
+      }
+      
+      // Auto-apply estimated amount if available and amount field is empty
+      if (suggestions.amount && !amount) {
+        setAmount(suggestions.amount.toString());
+      }
+    } catch (error) {
+      console.error('Error getting AI suggestions:', error);
+    } finally {
+      setLoadingAiSuggestions(false);
+    }
+  };
+
+  const handleDescriptionChange = (text: string) => {
+    setDescription(text);
+    
+    // Debounce AI suggestions
+    const timeoutId = setTimeout(() => {
+      if (text.trim().length > 3) {
+        getAISuggestions(text);
+      }
+    }, 1000);
+    
+    return () => clearTimeout(timeoutId);
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -437,7 +478,7 @@ export default function AddExpenseScreen() {
           <TextInput
             style={styles.descriptionInput}
             value={description}
-            onChangeText={setDescription}
+            onChangeText={handleDescriptionChange}
             placeholder="What was this expense for?"
             placeholderTextColor="#9CA3AF"
           />
@@ -647,6 +688,47 @@ export default function AddExpenseScreen() {
             <Text style={styles.photoButtonText}>Add Receipt Photo</Text>
           </TouchableOpacity>
         </View>
+
+        {/* AI Suggestions */}
+        {(loadingAiSuggestions || aiSuggestions) && (
+          <View style={styles.aiSuggestionsContainer}>
+            <View style={styles.aiHeader}>
+              <Sparkles size={16} color="#10B981" />
+              <Text style={styles.aiTitle}>AI Suggestions</Text>
+            </View>
+            
+            {loadingAiSuggestions ? (
+              <View style={styles.aiLoading}>
+                <ActivityIndicator size="small" color="#10B981" />
+                <Text style={styles.aiLoadingText}>Analyzing your expense...</Text>
+              </View>
+            ) : aiSuggestions ? (
+              <View style={styles.aiContent}>
+                {aiSuggestions.suggestions && aiSuggestions.suggestions.length > 0 && (
+                  <View style={styles.aiSuggestionsSection}>
+                    <Text style={styles.aiSectionTitle}>💡 Smart Tips:</Text>
+                    {aiSuggestions.suggestions.slice(0, 2).map((suggestion: string, index: number) => (
+                      <Text key={index} style={styles.aiSuggestion}>
+                        • {suggestion}
+                      </Text>
+                    ))}
+                  </View>
+                )}
+                
+                {aiSuggestions.tips && aiSuggestions.tips.length > 0 && (
+                  <View style={styles.aiSuggestionsSection}>
+                    <Text style={styles.aiSectionTitle}>💰 Money-Saving Tips:</Text>
+                    {aiSuggestions.tips.slice(0, 2).map((tip: string, index: number) => (
+                      <Text key={index} style={styles.aiTip}>
+                        • {tip}
+                      </Text>
+                    ))}
+                  </View>
+                )}
+              </View>
+            ) : null}
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -1096,5 +1178,59 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#10B981',
     marginRight: 8,
+  },
+  aiSuggestionsContainer: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 16,
+  },
+  aiHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  aiTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginLeft: 8,
+  },
+  aiLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  aiLoadingText: {
+    fontSize: 14,
+    color: '#64748B',
+    marginLeft: 8,
+    fontStyle: 'italic',
+  },
+  aiContent: {
+    gap: 12,
+  },
+  aiSuggestionsSection: {
+    marginBottom: 8,
+  },
+  aiSectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#334155',
+    marginBottom: 6,
+  },
+  aiSuggestion: {
+    fontSize: 13,
+    color: '#475569',
+    lineHeight: 18,
+    marginBottom: 2,
+  },
+  aiTip: {
+    fontSize: 13,
+    color: '#059669',
+    lineHeight: 18,
+    marginBottom: 2,
   },
 });
