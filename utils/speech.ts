@@ -12,28 +12,33 @@ export class WebSpeech {
   private static async speakWithElevenLabs(text: string): Promise<boolean> {
     try {
       if (!ELEVEN_LABS_CONFIG.apiKey) {
-        console.log('Eleven Labs API key not configured, falling back to native TTS');
+        console.log(
+          'Eleven Labs API key not configured, falling back to native TTS'
+        );
         return false;
       }
 
-      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${ELEVEN_LABS_CONFIG.voiceId}`, {
-        method: 'POST',
-        headers: {
-          'Accept': 'audio/mpeg',
-          'Content-Type': 'application/json',
-          'xi-api-key': ELEVEN_LABS_CONFIG.apiKey,
-        },
-        body: JSON.stringify({
-          text: text,
-          model_id: ELEVEN_LABS_CONFIG.model,
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75,
-            style: 0.0,
-            use_speaker_boost: true,
+      const response = await fetch(
+        `https://api.elevenlabs.io/v1/text-to-speech/${ELEVEN_LABS_CONFIG.voiceId}`,
+        {
+          method: 'POST',
+          headers: {
+            Accept: 'audio/mpeg',
+            'Content-Type': 'application/json',
+            'xi-api-key': ELEVEN_LABS_CONFIG.apiKey,
           },
-        }),
-      });
+          body: JSON.stringify({
+            text: text,
+            model_id: ELEVEN_LABS_CONFIG.model,
+            voice_settings: {
+              stability: 0.5,
+              similarity_boost: 0.75,
+              style: 0.0,
+              use_speaker_boost: true,
+            },
+          }),
+        }
+      );
 
       if (!response.ok) {
         console.log('Eleven Labs API error:', response.status);
@@ -42,7 +47,7 @@ export class WebSpeech {
 
       const audioBlob = await response.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
-      
+
       return new Promise((resolve) => {
         const audio = new Audio(audioUrl);
         audio.onended = () => {
@@ -77,34 +82,36 @@ export class WebSpeech {
         if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
           return new Promise((resolve) => {
             const utterance = new SpeechSynthesisUtterance(text);
-            
+
             // Configure voice options for better female voice
             utterance.rate = options?.rate || 1.0; // Slightly faster
             utterance.pitch = options?.pitch || 1.1;
             utterance.volume = 1;
-            
+
             // Try to use the best available female voice
             const voices = speechSynthesis.getVoices();
-            const femaleVoice = voices.find(voice => 
-              voice.name.toLowerCase().includes('samantha') ||
-              voice.name.toLowerCase().includes('karen') ||
-              voice.name.toLowerCase().includes('allison') ||
-              voice.name.toLowerCase().includes('female') ||
-              voice.name.toLowerCase().includes('woman') ||
-              (voice.name.toLowerCase().includes('google') && voice.name.toLowerCase().includes('us'))
+            const femaleVoice = voices.find(
+              (voice) =>
+                voice.name.toLowerCase().includes('samantha') ||
+                voice.name.toLowerCase().includes('karen') ||
+                voice.name.toLowerCase().includes('allison') ||
+                voice.name.toLowerCase().includes('female') ||
+                voice.name.toLowerCase().includes('woman') ||
+                (voice.name.toLowerCase().includes('google') &&
+                  voice.name.toLowerCase().includes('us'))
             );
-            
+
             if (femaleVoice) {
               utterance.voice = femaleVoice;
               console.log('🎵 Using voice:', femaleVoice.name);
             }
-            
+
             utterance.onend = () => resolve(true);
             utterance.onerror = () => {
               console.log('Web speech synthesis error');
               resolve(false);
             };
-            
+
             speechSynthesis.speak(utterance);
           });
         } else {
@@ -135,7 +142,11 @@ export class WebSpeech {
   }
 
   static stop() {
-    if (Platform.OS === 'web' && typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    if (
+      Platform.OS === 'web' &&
+      typeof window !== 'undefined' &&
+      'speechSynthesis' in window
+    ) {
       speechSynthesis.cancel();
     }
   }

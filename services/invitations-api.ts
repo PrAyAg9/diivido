@@ -29,13 +29,18 @@ invitationAxios.interceptors.request.use(
 // Helper function to handle network errors gracefully
 const handleNetworkError = (error: any, context: string) => {
   console.error(`${context} error:`, error.response?.data || error.message);
-  
-  if (error.code === 'NETWORK_ERROR' || error.message.includes('Network Error')) {
-    console.warn(`${context}: Backend server appears to be offline. This is normal in demo mode.`);
+
+  if (
+    error.code === 'NETWORK_ERROR' ||
+    error.message.includes('Network Error')
+  ) {
+    console.warn(
+      `${context}: Backend server appears to be offline. This is normal in demo mode.`
+    );
     // Don't show alert for network errors in demo mode
     return { isNetworkError: true };
   }
-  
+
   return { isNetworkError: false };
 };
 
@@ -56,18 +61,18 @@ export const sendUserInvitation = async (
     return response;
   } catch (error: any) {
     const { isNetworkError } = handleNetworkError(error, 'Send invitation');
-    
+
     if (isNetworkError) {
       // Return mock success for demo mode
       return {
         data: {
           success: true,
           message: 'Invitation sent successfully (demo mode)',
-          invitationId: 'demo-' + Date.now()
-        }
+          invitationId: 'demo-' + Date.now(),
+        },
       };
     }
-    
+
     throw error;
   }
 };
@@ -89,18 +94,18 @@ export const resendUserInvitation = async (
     return response;
   } catch (error: any) {
     const { isNetworkError } = handleNetworkError(error, 'Resend invitation');
-    
+
     if (isNetworkError) {
       // Return mock success for demo mode
       return {
         data: {
           success: true,
           message: 'Invitation resent successfully (demo mode)',
-          invitationId: 'demo-resend-' + Date.now()
-        }
+          invitationId: 'demo-resend-' + Date.now(),
+        },
       };
     }
-    
+
     throw error;
   }
 };
@@ -114,17 +119,17 @@ export const checkEmailExists = async (email: string) => {
     return response;
   } catch (error: any) {
     const { isNetworkError } = handleNetworkError(error, 'Check email');
-    
+
     if (isNetworkError) {
       // Return mock response for demo mode
       return {
         data: {
           exists: false,
-          message: 'Email check completed (demo mode)'
-        }
+          message: 'Email check completed (demo mode)',
+        },
       };
     }
-    
+
     throw error;
   }
 };
@@ -135,18 +140,21 @@ export const getPendingInvitations = async () => {
     const response = await invitationAxios.get('/invitations/user');
     return response;
   } catch (error: any) {
-    const { isNetworkError } = handleNetworkError(error, 'Get pending invitations');
-    
+    const { isNetworkError } = handleNetworkError(
+      error,
+      'Get pending invitations'
+    );
+
     if (isNetworkError) {
       // Return mock empty array for demo mode
       return {
         data: {
           invitations: [],
-          message: 'No pending invitations (demo mode)'
-        }
+          message: 'No pending invitations (demo mode)',
+        },
       };
     }
-    
+
     throw error;
   }
 };

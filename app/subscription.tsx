@@ -12,14 +12,14 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Crown, Check, Zap } from 'lucide-react-native';
-import { 
-    PurchasesPackage, 
-    PurchasesOffering,
-    PACKAGE_TYPE,
-    PurchasesStoreProduct,
-    PRODUCT_CATEGORY,
-    PRODUCT_TYPE,
-    PresentedOfferingContext,
+import {
+  PurchasesPackage,
+  PurchasesOffering,
+  PACKAGE_TYPE,
+  PurchasesStoreProduct,
+  PRODUCT_CATEGORY,
+  PRODUCT_TYPE,
+  PresentedOfferingContext,
 } from 'react-native-purchases';
 import SubscriptionService from '@/services/subscription.service';
 
@@ -29,84 +29,82 @@ const useAuth = () => ({ user: { id: 'test-user-123' } });
 // --- MOCK SUBSCRIPTION DATA ---
 // FIXED: The mock product now includes all required fields from PurchasesStoreProduct
 const mockMonthlyProduct: PurchasesStoreProduct = {
-    identifier: "pro_monthly",
-    description: "Full access to all pro features",
-    title: "Divido Pro",
-    price: 199.0,
-    priceString: "₹199.00",
-    currencyCode: "INR",
-    introPrice: null,
-    discounts: [],
-    productCategory: PRODUCT_CATEGORY.SUBSCRIPTION,
-    productType: PRODUCT_TYPE.NON_CONSUMABLE,
-    subscriptionPeriod: "P1M",
-    presentedOfferingIdentifier: null,
-    pricePerWeek: 49.75,
-    pricePerMonth: 199.0,
-    pricePerYear: 2388.0,
-    pricePerWeekString: "₹49.75",
-    pricePerMonthString: "₹199.00",
-    pricePerYearString: "₹2,388.00",
-    defaultOption: null,
-    subscriptionOptions: [],
-    presentedOfferingContext: {} as PresentedOfferingContext,
+  identifier: 'pro_monthly',
+  description: 'Full access to all pro features',
+  title: 'Divido Pro',
+  price: 199.0,
+  priceString: '₹199.00',
+  currencyCode: 'INR',
+  introPrice: null,
+  discounts: [],
+  productCategory: PRODUCT_CATEGORY.SUBSCRIPTION,
+  productType: PRODUCT_TYPE.NON_CONSUMABLE,
+  subscriptionPeriod: 'P1M',
+  presentedOfferingIdentifier: null,
+  pricePerWeek: 49.75,
+  pricePerMonth: 199.0,
+  pricePerYear: 2388.0,
+  pricePerWeekString: '₹49.75',
+  pricePerMonthString: '₹199.00',
+  pricePerYearString: '₹2,388.00',
+  defaultOption: null,
+  subscriptionOptions: [],
+  presentedOfferingContext: {} as PresentedOfferingContext,
 };
 
 const mockAnnualProduct: PurchasesStoreProduct = {
-    identifier: "pro_annual",
-    description: "Full access to all pro features for a year",
-    title: "Divido Pro (Annual)",
-    price: 1999.0,
-    priceString: "₹1,999.00",
-    currencyCode: "INR",
-    introPrice: null,
-    discounts: [],
-    productCategory: PRODUCT_CATEGORY.SUBSCRIPTION,
-    productType: PRODUCT_TYPE.NON_CONSUMABLE,
-    subscriptionPeriod: "P1Y",
-    presentedOfferingIdentifier: null,
-    pricePerWeek: 38.44,
-    pricePerMonth: 166.58,
-    pricePerYear: 1999.0,
-    pricePerWeekString: "₹38.44",
-    pricePerMonthString: "₹166.58",
-    pricePerYearString: "₹1,999.00",
-    defaultOption: null,
-    subscriptionOptions: [],
-    presentedOfferingContext: {} as PresentedOfferingContext,
+  identifier: 'pro_annual',
+  description: 'Full access to all pro features for a year',
+  title: 'Divido Pro (Annual)',
+  price: 1999.0,
+  priceString: '₹1,999.00',
+  currencyCode: 'INR',
+  introPrice: null,
+  discounts: [],
+  productCategory: PRODUCT_CATEGORY.SUBSCRIPTION,
+  productType: PRODUCT_TYPE.NON_CONSUMABLE,
+  subscriptionPeriod: 'P1Y',
+  presentedOfferingIdentifier: null,
+  pricePerWeek: 38.44,
+  pricePerMonth: 166.58,
+  pricePerYear: 1999.0,
+  pricePerWeekString: '₹38.44',
+  pricePerMonthString: '₹166.58',
+  pricePerYearString: '₹1,999.00',
+  defaultOption: null,
+  subscriptionOptions: [],
+  presentedOfferingContext: {} as PresentedOfferingContext,
 };
-
 
 // This simulates what RevenueCat would return if the real service fails or in development.
 const mockOffering: PurchasesOffering = {
-    identifier: "default",
-    serverDescription: "Default Offering",
-    metadata: {},
-    availablePackages: [
-        {
-          identifier: "$rc_monthly",
-          packageType: PACKAGE_TYPE.MONTHLY,
-          product: mockMonthlyProduct,
-          offeringIdentifier: 'default',
-          presentedOfferingContext: {} as PresentedOfferingContext
-        },
-        {
-          identifier: "$rc_annual",
-          packageType: PACKAGE_TYPE.ANNUAL,
-          product: mockAnnualProduct,
-          offeringIdentifier: 'default',
-          presentedOfferingContext: {} as PresentedOfferingContext
-        },
-    ],
-    lifetime: null,
-    annual: null,
-    sixMonth: null,
-    threeMonth: null,
-    twoMonth: null,
-    monthly: null,
-    weekly: null,
+  identifier: 'default',
+  serverDescription: 'Default Offering',
+  metadata: {},
+  availablePackages: [
+    {
+      identifier: '$rc_monthly',
+      packageType: PACKAGE_TYPE.MONTHLY,
+      product: mockMonthlyProduct,
+      offeringIdentifier: 'default',
+      presentedOfferingContext: {} as PresentedOfferingContext,
+    },
+    {
+      identifier: '$rc_annual',
+      packageType: PACKAGE_TYPE.ANNUAL,
+      product: mockAnnualProduct,
+      offeringIdentifier: 'default',
+      presentedOfferingContext: {} as PresentedOfferingContext,
+    },
+  ],
+  lifetime: null,
+  annual: null,
+  sixMonth: null,
+  threeMonth: null,
+  twoMonth: null,
+  monthly: null,
+  weekly: null,
 };
-
 
 export default function SubscriptionScreen() {
   const router = useRouter();
@@ -131,8 +129,8 @@ export default function SubscriptionScreen() {
   const initializeRevenueCat = async () => {
     // Prevent any action on web platform.
     if (Platform.OS === 'web') {
-        setIsLoading(false);
-        return;
+      setIsLoading(false);
+      return;
     }
     try {
       setIsLoading(true);
@@ -142,8 +140,8 @@ export default function SubscriptionScreen() {
         SubscriptionService.getCurrentOffering(),
         SubscriptionService.getSubscriptionStatus(),
       ]);
-      
-      setOfferings(currentOffering || mockOffering); 
+
+      setOfferings(currentOffering || mockOffering);
       setSubscriptionStatus(status);
     } catch (error) {
       console.error('Error initializing RevenueCat:', error);
@@ -158,13 +156,15 @@ export default function SubscriptionScreen() {
     setSelectedPlan(packageToPurchase.identifier);
 
     try {
-      const result = await SubscriptionService.purchasePackage(packageToPurchase);
+      const result = await SubscriptionService.purchasePackage(
+        packageToPurchase
+      );
       if (result.success) {
         const newStatus = await SubscriptionService.getSubscriptionStatus();
         setSubscriptionStatus(newStatus);
-        Alert.alert('Success!', 'Welcome to Divido Pro!',
-          [{ text: 'Awesome!', onPress: () => router.back() }]
-        );
+        Alert.alert('Success!', 'Welcome to Divido Pro!', [
+          { text: 'Awesome!', onPress: () => router.back() },
+        ]);
       } else if (result.error && !result.error.includes('cancelled')) {
         Alert.alert('Purchase Failed', result.error);
       }
@@ -176,7 +176,7 @@ export default function SubscriptionScreen() {
       setSelectedPlan('');
     }
   };
-  
+
   const handleRestorePurchases = async () => {
     setIsProcessing(true);
     try {
@@ -187,10 +187,16 @@ export default function SubscriptionScreen() {
         if (newStatus.isSubscribed) {
           Alert.alert('Success', 'Your purchases have been restored!');
         } else {
-          Alert.alert('No Purchases', 'No previous purchases found to restore.');
+          Alert.alert(
+            'No Purchases',
+            'No previous purchases found to restore.'
+          );
         }
       } else {
-        Alert.alert('Restore Failed', result.error || 'Failed to restore purchases');
+        Alert.alert(
+          'Restore Failed',
+          result.error || 'Failed to restore purchases'
+        );
       }
     } catch (error) {
       console.error('Restore error:', error);
@@ -216,15 +222,27 @@ export default function SubscriptionScreen() {
     { text: 'Advanced analytics', included: false },
     { text: 'Priority support', included: false },
   ];
-  
-  const renderFeatureList = (features: { text: string; included: boolean }[]) => (
+
+  const renderFeatureList = (
+    features: { text: string; included: boolean }[]
+  ) => (
     <View style={styles.featuresContainer}>
       {features.map((feature, index) => (
         <View key={index} style={styles.feature}>
-          <View style={[styles.featureIcon, { backgroundColor: feature.included ? '#ECFDF5' : '#F3F4F6' }]}>
+          <View
+            style={[
+              styles.featureIcon,
+              { backgroundColor: feature.included ? '#ECFDF5' : '#F3F4F6' },
+            ]}
+          >
             <Check size={12} color={feature.included ? '#10B981' : '#9CA3AF'} />
           </View>
-          <Text style={[styles.featureText, { color: feature.included ? '#111827' : '#9CA3AF' }]}>
+          <Text
+            style={[
+              styles.featureText,
+              { color: feature.included ? '#111827' : '#9CA3AF' },
+            ]}
+          >
             {feature.text}
           </Text>
         </View>
@@ -239,20 +257,28 @@ export default function SubscriptionScreen() {
       </TouchableOpacity>
       <Text style={styles.title}>Subscription</Text>
       {Platform.OS !== 'web' ? (
-        <TouchableOpacity onPress={handleRestorePurchases} style={styles.restoreButton} disabled={isProcessing}>
+        <TouchableOpacity
+          onPress={handleRestorePurchases}
+          style={styles.restoreButton}
+          disabled={isProcessing}
+        >
           <Text style={styles.restoreButtonText}>Restore</Text>
         </TouchableOpacity>
-      ) : <View style={styles.placeholder} />}
+      ) : (
+        <View style={styles.placeholder} />
+      )}
     </View>
   );
-  
+
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
         {renderHeader()}
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#10B981" />
-          <Text style={styles.loadingText}>Loading subscription options...</Text>
+          <Text style={styles.loadingText}>
+            Loading subscription options...
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -260,14 +286,16 @@ export default function SubscriptionScreen() {
 
   // Explicitly handle web platform UI
   if (Platform.OS === 'web') {
-      return (
-        <SafeAreaView style={styles.container}>
-            {renderHeader()}
-            <View style={styles.loadingContainer}>
-                <Text style={styles.loadingText}>In-app subscriptions are available on our mobile app.</Text>
-            </View>
-        </SafeAreaView>
-      );
+    return (
+      <SafeAreaView style={styles.container}>
+        {renderHeader()}
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>
+            In-app subscriptions are available on our mobile app.
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
   }
 
   return (
@@ -275,15 +303,18 @@ export default function SubscriptionScreen() {
       {renderHeader()}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.heroSection}>
-          <View style={styles.heroIcon}><Zap size={32} color="#10B981" /></View>
+          <View style={styles.heroIcon}>
+            <Zap size={32} color="#10B981" />
+          </View>
           <Text style={styles.heroTitle}>
-            {subscriptionStatus.isSubscribed ? 'You\'re a Pro!' : 'Unlock Premium Features'}
+            {subscriptionStatus.isSubscribed
+              ? "You're a Pro!"
+              : 'Unlock Premium Features'}
           </Text>
           <Text style={styles.heroDescription}>
-            {subscriptionStatus.isSubscribed 
+            {subscriptionStatus.isSubscribed
               ? `Your Pro plan is active. Thanks for supporting Divido!`
-              : 'Upgrade to Divido Pro for unlimited groups and advanced analytics.'
-            }
+              : 'Upgrade to Divido Pro for unlimited groups and advanced analytics.'}
           </Text>
         </View>
 
@@ -294,7 +325,10 @@ export default function SubscriptionScreen() {
               <Text style={styles.subscribedTitle}>Divido Pro Active</Text>
               {subscriptionStatus.expirationDate && (
                 <Text style={styles.subscribedDescription}>
-                  {subscriptionStatus.willRenew ? 'Renews on:' : 'Expires on:'} {new Date(subscriptionStatus.expirationDate).toLocaleDateString()}
+                  {subscriptionStatus.willRenew ? 'Renews on:' : 'Expires on:'}{' '}
+                  {new Date(
+                    subscriptionStatus.expirationDate
+                  ).toLocaleDateString()}
                 </Text>
               )}
             </View>
@@ -302,7 +336,14 @@ export default function SubscriptionScreen() {
         ) : (
           <View style={styles.plansContainer}>
             {offerings?.availablePackages.map((packageItem) => (
-              <View key={packageItem.identifier} style={[styles.planCard, packageItem.packageType === PACKAGE_TYPE.MONTHLY && styles.popularPlan]}>
+              <View
+                key={packageItem.identifier}
+                style={[
+                  styles.planCard,
+                  packageItem.packageType === PACKAGE_TYPE.MONTHLY &&
+                    styles.popularPlan,
+                ]}
+              >
                 {packageItem.packageType === PACKAGE_TYPE.MONTHLY && (
                   <View style={styles.popularBadge}>
                     <Crown size={16} color="#FFFFFF" />
@@ -310,38 +351,57 @@ export default function SubscriptionScreen() {
                   </View>
                 )}
                 <View style={styles.planHeader}>
-                  <Text style={styles.planName}>{SubscriptionService.getPackageDuration(packageItem)} Pro</Text>
+                  <Text style={styles.planName}>
+                    {SubscriptionService.getPackageDuration(packageItem)} Pro
+                  </Text>
                   <View style={styles.priceContainer}>
-                    <Text style={styles.price}>{SubscriptionService.getFormattedPrice(packageItem)}</Text>
-                    <Text style={styles.period}>/{packageItem.packageType === PACKAGE_TYPE.MONTHLY ? 'month' : 'year'}</Text>
+                    <Text style={styles.price}>
+                      {SubscriptionService.getFormattedPrice(packageItem)}
+                    </Text>
+                    <Text style={styles.period}>
+                      /
+                      {packageItem.packageType === PACKAGE_TYPE.MONTHLY
+                        ? 'month'
+                        : 'year'}
+                    </Text>
                   </View>
                 </View>
                 {renderFeatureList(proFeatures)}
                 <TouchableOpacity
-                  style={[styles.planButton, { backgroundColor: '#10B981' }, isProcessing && selectedPlan === packageItem.identifier && styles.processingButton]}
+                  style={[
+                    styles.planButton,
+                    { backgroundColor: '#10B981' },
+                    isProcessing &&
+                      selectedPlan === packageItem.identifier &&
+                      styles.processingButton,
+                  ]}
                   onPress={() => handlePurchase(packageItem)}
                   disabled={isProcessing}
                 >
-                  {isProcessing && selectedPlan === packageItem.identifier ? 
-                    <ActivityIndicator size="small" color="#FFFFFF" /> : 
+                  {isProcessing && selectedPlan === packageItem.identifier ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
                     <Text style={styles.planButtonText}>Upgrade to Pro</Text>
-                  }
+                  )}
                 </TouchableOpacity>
               </View>
             ))}
-            
+
             <View style={[styles.planCard, styles.freePlan]}>
-                <View style={styles.planHeader}>
-                  <Text style={styles.planName}>Free Plan</Text>
-                  <View style={styles.priceContainer}>
-                    <Text style={styles.price}>₹0</Text>
-                    <Text style={styles.period}>/forever</Text>
-                  </View>
+              <View style={styles.planHeader}>
+                <Text style={styles.planName}>Free Plan</Text>
+                <View style={styles.priceContainer}>
+                  <Text style={styles.price}>₹0</Text>
+                  <Text style={styles.period}>/forever</Text>
                 </View>
-                {renderFeatureList(freeFeatures)}
-                <TouchableOpacity style={[styles.planButton, styles.currentPlanButton]} disabled={true}>
-                    <Text style={styles.currentPlanButtonText}>Current Plan</Text>
-                </TouchableOpacity>
+              </View>
+              {renderFeatureList(freeFeatures)}
+              <TouchableOpacity
+                style={[styles.planButton, styles.currentPlanButton]}
+                disabled={true}
+              >
+                <Text style={styles.currentPlanButtonText}>Current Plan</Text>
+              </TouchableOpacity>
             </View>
           </View>
         )}
@@ -369,7 +429,7 @@ const styles = StyleSheet.create({
     padding: 8,
     position: 'absolute',
     left: 12,
-    zIndex: 1
+    zIndex: 1,
   },
   title: {
     fontSize: 18,
@@ -437,7 +497,7 @@ const styles = StyleSheet.create({
     padding: 24,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#FBBF24'
+    borderColor: '#FBBF24',
   },
   subscribedTitle: {
     fontSize: 20,
@@ -468,7 +528,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   freePlan: {
-      borderColor: '#D1D5DB'
+    borderColor: '#D1D5DB',
   },
   popularBadge: {
     position: 'absolute',
@@ -542,18 +602,17 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   currentPlanButton: {
-      backgroundColor: '#F3F4F6',
-      borderWidth: 1,
-      borderColor: '#E5E7EB'
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   currentPlanButtonText: {
-      color: '#6B7280'
+    color: '#6B7280',
   },
   processingButton: {
     opacity: 0.7,
   },
   placeholder: {
-      width: 60,
-  }
+    width: 60,
+  },
 });
-

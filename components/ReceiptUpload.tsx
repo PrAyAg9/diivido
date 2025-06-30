@@ -40,21 +40,21 @@ export default function ReceiptUpload({
     if (disabled || !cloudinaryConfig) return;
 
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Sorry, we need camera roll permissions to upload receipts.');
+        Alert.alert(
+          'Permission Required',
+          'Sorry, we need camera roll permissions to upload receipts.'
+        );
         return;
       }
 
-      Alert.alert(
-        'Add Receipt',
-        'Choose how you want to add a receipt',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Camera', onPress: openCamera },
-          { text: 'Gallery', onPress: openGallery },
-        ]
-      );
+      Alert.alert('Add Receipt', 'Choose how you want to add a receipt', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Camera', onPress: openCamera },
+        { text: 'Gallery', onPress: openGallery },
+      ]);
     } catch (error) {
       console.error('Error requesting permissions:', error);
     }
@@ -64,7 +64,10 @@ export default function ReceiptUpload({
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Sorry, we need camera permissions to take a photo.');
+        Alert.alert(
+          'Permission Required',
+          'Sorry, we need camera permissions to take a photo.'
+        );
         return;
       }
 
@@ -108,17 +111,20 @@ export default function ReceiptUpload({
     try {
       setLoading(true);
       const result = await cloudinaryAPI.uploadImage(
-        imageUri, 
+        imageUri,
         cloudinaryConfig,
         `receipt_${Date.now()}.jpg`,
         'receipts'
       );
-      
+
       setCurrentReceiptUrl(result.secure_url);
       onReceiptChange?.(result.secure_url);
     } catch (error) {
       console.error('Error uploading receipt:', error);
-      Alert.alert('Upload Failed', 'Failed to upload receipt. Please try again.');
+      Alert.alert(
+        'Upload Failed',
+        'Failed to upload receipt. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
@@ -136,8 +142,8 @@ export default function ReceiptUpload({
           onPress: () => {
             setCurrentReceiptUrl(null);
             onReceiptChange?.(null);
-          }
-        }
+          },
+        },
       ]
     );
   };
@@ -155,19 +161,22 @@ export default function ReceiptUpload({
     return (
       <>
         <View style={styles.receiptContainer}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.receiptPreview}
             onPress={() => setShowPreview(true)}
           >
-            <Image source={{ uri: currentReceiptUrl }} style={styles.receiptImage} />
+            <Image
+              source={{ uri: currentReceiptUrl }}
+              style={styles.receiptImage}
+            />
             <View style={styles.receiptOverlay}>
               <ImageIcon size={20} color="#FFFFFF" />
               <Text style={styles.receiptText}>Tap to view</Text>
             </View>
           </TouchableOpacity>
-          
+
           <View style={styles.receiptActions}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.actionButton}
               onPress={pickImage}
               disabled={disabled}
@@ -175,8 +184,8 @@ export default function ReceiptUpload({
               <Upload size={16} color="#10B981" />
               <Text style={styles.actionText}>Replace</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={[styles.actionButton, styles.removeButton]}
               onPress={removeReceipt}
               disabled={disabled}
@@ -197,18 +206,18 @@ export default function ReceiptUpload({
           <SafeAreaView style={styles.previewModal}>
             <View style={styles.previewHeader}>
               <Text style={styles.previewTitle}>Receipt</Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.closeButton}
                 onPress={() => setShowPreview(false)}
               >
                 <X size={24} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
-            
+
             <View style={styles.previewContent}>
-              <Image 
-                source={{ uri: currentReceiptUrl }} 
-                style={styles.previewImage} 
+              <Image
+                source={{ uri: currentReceiptUrl }}
+                style={styles.previewImage}
                 resizeMode="contain"
               />
             </View>
@@ -219,7 +228,7 @@ export default function ReceiptUpload({
   }
 
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[styles.uploadContainer, disabled && styles.disabled]}
       onPress={pickImage}
       disabled={disabled}

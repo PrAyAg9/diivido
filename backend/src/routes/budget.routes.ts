@@ -11,13 +11,13 @@ const demoAuth = async (req: any, res: any, next: any) => {
   try {
     const { User } = await import('../models/user.model');
     const firstUser = await User.findOne().limit(1);
-    
+
     if (firstUser) {
-      req.user = { 
-        id: firstUser._id.toString(), 
+      req.user = {
+        id: firstUser._id.toString(),
         _id: firstUser._id,
         fullName: firstUser.fullName,
-        email: firstUser.email
+        email: firstUser.email,
       };
     } else {
       req.user = { id: null, fullName: 'Anonymous User' };
@@ -33,9 +33,15 @@ const demoAuth = async (req: any, res: any, next: any) => {
 router.use(demoAuth);
 
 // Budget routes
-router.post('/suggestions', budgetController.getBudgetSuggestions);
-router.post('/groups/:groupId/budget', budgetController.setGroupBudget);
-router.get('/groups/:groupId/budget-status', budgetController.getGroupBudgetStatus);
-router.delete('/groups/:groupId/budget', budgetController.removeGroupBudget);
+router.post('/suggestions', budgetController.getBudgetSuggestions as any);
+router.post('/groups/:groupId/budget', budgetController.setGroupBudget as any);
+router.get(
+  '/groups/:groupId/budget-status',
+  budgetController.getGroupBudgetStatus as any
+);
+router.delete(
+  '/groups/:groupId/budget',
+  budgetController.removeGroupBudget as any
+);
 
 export default router;

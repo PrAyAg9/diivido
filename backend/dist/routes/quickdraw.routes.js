@@ -16,21 +16,21 @@ const demoAuth = async (req, res, next) => {
                 id: firstUser._id.toString(),
                 _id: firstUser._id,
                 fullName: firstUser.fullName,
-                email: firstUser.email
+                email: firstUser.email,
             };
         }
         else {
             const demoUser = new User({
                 fullName: 'Demo Player',
                 email: 'demoplayer@example.com',
-                password: 'demo123'
+                password: 'demo123',
             });
             await demoUser.save();
             req.user = {
                 id: demoUser._id.toString(),
                 _id: demoUser._id,
                 fullName: demoUser.fullName,
-                email: demoUser.email
+                email: demoUser.email,
             };
         }
         next();

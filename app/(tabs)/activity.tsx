@@ -26,7 +26,12 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserExpenses } from '@/services/expenses-api';
 import { getUserPayments } from '@/services/payments-api';
-import { convertAndFormatAmount, formatCurrency, getUserCurrency, type Currency } from '@/utils/currency';
+import {
+  convertAndFormatAmount,
+  formatCurrency,
+  getUserCurrency,
+  type Currency,
+} from '@/utils/currency';
 import CustomHeader from '@/components/CustomHeader';
 import Footer from '@/components/Footer';
 
@@ -64,7 +69,9 @@ const getActivityIcon = (type: string) => {
 const getActivityDescription = (activity: any) => {
   switch (activity.type) {
     case 'expense':
-      return `${activity.paidBy} paid • Your share: ${activity.formattedYourShare || '₹0'}`;
+      return `${activity.paidBy} paid • Your share: ${
+        activity.formattedYourShare || '₹0'
+      }`;
     case 'payment':
       return `You received payment`;
     case 'settlement':
@@ -148,9 +155,13 @@ export default function ActivityScreen() {
       // Transform expenses to activities with formatted amounts
       const expenseActivities: Activity[] = await Promise.all(
         expenses.map(async (expense: any) => {
-          const formattedAmount = await convertAndFormatAmount(expense.amount || 0);
-          const formattedYourShare = await convertAndFormatAmount(expense.yourShare || 0);
-          
+          const formattedAmount = await convertAndFormatAmount(
+            expense.amount || 0
+          );
+          const formattedYourShare = await convertAndFormatAmount(
+            expense.yourShare || 0
+          );
+
           return {
             id: `expense_${expense.id}`,
             type: 'expense' as const,
@@ -182,8 +193,10 @@ export default function ActivityScreen() {
       // Transform payments to activities with formatted amounts
       const paymentActivities: Activity[] = await Promise.all(
         payments.map(async (payment: any) => {
-          const formattedAmount = await convertAndFormatAmount(payment.amount || 0);
-          
+          const formattedAmount = await convertAndFormatAmount(
+            payment.amount || 0
+          );
+
           return {
             id: `payment_${payment.id}`,
             type: 'payment' as const,
@@ -212,9 +225,10 @@ export default function ActivityScreen() {
             participants: 2,
             yourShare:
               payment.fromUserId === user.id ? -payment.amount : payment.amount,
-            formattedYourShare: payment.fromUserId === user.id 
-              ? `-${formattedAmount}` 
-              : `+${formattedAmount}`,
+            formattedYourShare:
+              payment.fromUserId === user.id
+                ? `-${formattedAmount}`
+                : `+${formattedAmount}`,
             category: 'Payment',
             createdAt: payment.createdAt || new Date().toISOString(),
           };
@@ -312,7 +326,7 @@ export default function ActivityScreen() {
       setFormattedTotalReceived(receivedFormatted);
       setFormattedTotalExpenses(expensesFormatted);
     };
-    
+
     formatSummaryAmounts();
   }, [totalReceived, totalExpenses]);
 
@@ -503,11 +517,14 @@ export default function ActivityScreen() {
                           numberOfLines={1}
                           ellipsizeMode="tail"
                         >
-                          {activity.formattedAmount || `₹${activity.amount.toFixed(2)}`}
+                          {activity.formattedAmount ||
+                            `₹${activity.amount.toFixed(2)}`}
                         </Text>
                         {activity.type === 'expense' && (
                           <Text style={styles.yourShare}>
-                            You: {activity.formattedYourShare || `₹${activity.yourShare.toFixed(2)}`}
+                            You:{' '}
+                            {activity.formattedYourShare ||
+                              `₹${activity.yourShare.toFixed(2)}`}
                           </Text>
                         )}
                         <Text style={styles.activityTime}>{activity.time}</Text>
@@ -531,7 +548,7 @@ export default function ActivityScreen() {
           </View>
         )}
       </ScrollView>
-      
+
       <Footer />
     </View>
   );

@@ -29,7 +29,9 @@ const isExpoGo = () => {
 export const notificationApi = {
   // Request notification permissions (stub)
   requestPermissions: async (): Promise<boolean> => {
-    console.log('Notifications temporarily disabled - use development build for push notifications');
+    console.log(
+      'Notifications temporarily disabled - use development build for push notifications'
+    );
     return false;
   },
 
@@ -40,23 +42,30 @@ export const notificationApi = {
 
   // Get push notification token (stub)
   getPushToken: async (): Promise<string | null> => {
-    console.log('Push tokens temporarily disabled - use development build for push notifications');
+    console.log(
+      'Push tokens temporarily disabled - use development build for push notifications'
+    );
     return null;
   },
 
   // Register device for push notifications (stub)
   registerDevice: async (): Promise<void> => {
-    console.log('Device registration temporarily disabled - use development build for push notifications');
+    console.log(
+      'Device registration temporarily disabled - use development build for push notifications'
+    );
   },
 
   // Send a Quick Draw notification to group members
-  sendQuickDrawNotification: async (gameId: string, groupId: string): Promise<void> => {
+  sendQuickDrawNotification: async (
+    gameId: string,
+    groupId: string
+  ): Promise<void> => {
     try {
       const authToken = await AsyncStorage.getItem('authToken');
       await fetch(`${API_URL}/notifications/quickdraw`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${authToken}`,
+          Authorization: `Bearer ${authToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ gameId, groupId }),
@@ -79,7 +88,12 @@ export const notificationApi = {
   },
 
   // Schedule a local notification (stub)
-  scheduleLocalNotification: async (notificationData: PushNotificationData): Promise<void> => {
-    console.log('Local notifications temporarily disabled:', notificationData.title);
+  scheduleLocalNotification: async (
+    notificationData: PushNotificationData
+  ): Promise<void> => {
+    console.log(
+      'Local notifications temporarily disabled:',
+      notificationData.title
+    );
   },
 };

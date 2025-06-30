@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { AuthenticatedRequest } from '../types/express';
 import axios from 'axios';
 import { User } from '../models/user.model';
 import { Group } from '../models/group.model';
@@ -40,13 +41,6 @@ const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 const ELEVEN_LABS_API_KEY = process.env.ELEVEN_LABS_API_KEY;
 const ELEVEN_LABS_VOICE_ID =
   process.env.ELEVEN_LABS_VOICE_ID || 'EXAVITQu4vr4xnSDxMaL'; // Default voice
-
-// Extend Express Request type to include user property
-interface AuthenticatedRequest extends Request {
-  user?: {
-    id: string;
-  };
-}
 
 class AIController {
   // Process voice commands using Gemini AI
@@ -233,7 +227,8 @@ Want to start a Quick Draw challenge now? Just add an expense and choose the Qui
           action: {
             type: 'quickdraw',
             payload: {
-              suggestion: 'Navigate to add expense and select Quick Draw option',
+              suggestion:
+                'Navigate to add expense and select Quick Draw option',
               groups: userData.groups,
             },
           },

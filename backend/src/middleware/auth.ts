@@ -9,7 +9,11 @@ interface JwtPayload {
 declare global {
   namespace Express {
     interface Request {
-      user?: any;
+      user?: {
+        id: string;
+        email?: string;
+        fullName?: string;
+      };
     }
   }
 }
@@ -29,7 +33,11 @@ export const auth = async (req: Request, res: Response, next: NextFunction) => {
       throw new Error();
     }
 
-    req.user = user;
+    req.user = {
+      id: user._id.toString(),
+      email: user.email,
+      fullName: user.fullName,
+    };
     next();
   } catch (error) {
     res.status(401).json({ error: 'Please authenticate.' });

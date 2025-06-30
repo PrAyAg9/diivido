@@ -33,8 +33,8 @@ interface MoneyRequest {
 export default function ChatScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const friendName = params.friendName as string || 'Friend';
-  const friendId = params.friendId as string || '1';
+  const friendName = (params.friendName as string) || 'Friend';
+  const friendId = (params.friendId as string) || '1';
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -100,8 +100,9 @@ export default function ChatScreen() {
         'No problem',
         'Sounds good',
       ];
-      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-      
+      const randomResponse =
+        responses[Math.floor(Math.random() * responses.length)];
+
       const friendResponse: Message = {
         id: (Date.now() + 1).toString(),
         text: randomResponse,
@@ -109,8 +110,8 @@ export default function ChatScreen() {
         isUser: false,
         type: 'text',
       };
-      
-      setMessages(prev => [...prev, friendResponse]);
+
+      setMessages((prev) => [...prev, friendResponse]);
     }, 1000 + Math.random() * 2000);
   };
 
@@ -141,7 +142,10 @@ export default function ChatScreen() {
     setRequestDescription('');
     setShowMoneyRequest(false);
 
-    Alert.alert('Request Sent', `Money request for ₹${amount} has been sent to ${friendName}`);
+    Alert.alert(
+      'Request Sent',
+      `Money request for ₹${amount} has been sent to ${friendName}`
+    );
   };
 
   const formatTime = (date: Date) => {
@@ -154,49 +158,64 @@ export default function ChatScreen() {
 
   const renderMessage = ({ item }: { item: Message }) => {
     const isMoneyRequest = item.type === 'money_request';
-    
+
     return (
-      <View style={[
-        styles.messageContainer,
-        item.isUser ? styles.userMessage : styles.friendMessage
-      ]}>
-        <View style={[
-          styles.messageBubble,
-          item.isUser ? styles.userBubble : styles.friendBubble,
-          isMoneyRequest && styles.moneyRequestBubble
-        ]}>
+      <View
+        style={[
+          styles.messageContainer,
+          item.isUser ? styles.userMessage : styles.friendMessage,
+        ]}
+      >
+        <View
+          style={[
+            styles.messageBubble,
+            item.isUser ? styles.userBubble : styles.friendBubble,
+            isMoneyRequest && styles.moneyRequestBubble,
+          ]}
+        >
           {isMoneyRequest && (
             <View style={styles.moneyRequestHeader}>
-              <DollarSign size={16} color={item.isUser ? '#FFFFFF' : '#10B981'} />
-              <Text style={[
-                styles.moneyRequestLabel,
-                { color: item.isUser ? '#FFFFFF' : '#10B981' }
-              ]}>
+              <DollarSign
+                size={16}
+                color={item.isUser ? '#FFFFFF' : '#10B981'}
+              />
+              <Text
+                style={[
+                  styles.moneyRequestLabel,
+                  { color: item.isUser ? '#FFFFFF' : '#10B981' },
+                ]}
+              >
                 Money Request
               </Text>
             </View>
           )}
-          
+
           {isMoneyRequest && item.amount && (
-            <Text style={[
-              styles.moneyAmount,
-              { color: item.isUser ? '#FFFFFF' : '#111827' }
-            ]}>
+            <Text
+              style={[
+                styles.moneyAmount,
+                { color: item.isUser ? '#FFFFFF' : '#111827' },
+              ]}
+            >
               ₹{item.amount}
             </Text>
           )}
-          
-          <Text style={[
-            styles.messageText,
-            { color: item.isUser ? '#FFFFFF' : '#111827' }
-          ]}>
+
+          <Text
+            style={[
+              styles.messageText,
+              { color: item.isUser ? '#FFFFFF' : '#111827' },
+            ]}
+          >
             {item.text}
           </Text>
-          
-          <Text style={[
-            styles.messageTime,
-            { color: item.isUser ? '#E5E7EB' : '#9CA3AF' }
-          ]}>
+
+          <Text
+            style={[
+              styles.messageTime,
+              { color: item.isUser ? '#E5E7EB' : '#9CA3AF' },
+            ]}
+          >
             {formatTime(item.timestamp)}
           </Text>
         </View>
@@ -207,7 +226,7 @@ export default function ChatScreen() {
   const renderMoneyRequestForm = () => (
     <View style={styles.moneyRequestForm}>
       <Text style={styles.formTitle}>Request Money</Text>
-      
+
       <View style={styles.formField}>
         <Text style={styles.fieldLabel}>Amount (₹)</Text>
         <TextInput
@@ -219,7 +238,7 @@ export default function ChatScreen() {
           placeholderTextColor="#9CA3AF"
         />
       </View>
-      
+
       <View style={styles.formField}>
         <Text style={styles.fieldLabel}>What for?</Text>
         <TextInput
@@ -231,7 +250,7 @@ export default function ChatScreen() {
           multiline
         />
       </View>
-      
+
       <View style={styles.formActions}>
         <TouchableOpacity
           style={styles.cancelButton}
@@ -239,7 +258,7 @@ export default function ChatScreen() {
         >
           <Text style={styles.cancelButtonText}>Cancel</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={styles.sendRequestButton}
           onPress={sendMoneyRequest}
@@ -253,7 +272,10 @@ export default function ChatScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
           <ArrowLeft size={24} color="#111827" />
         </TouchableOpacity>
         <View style={styles.headerInfo}>
@@ -296,10 +318,7 @@ export default function ChatScreen() {
             maxLength={500}
           />
           <TouchableOpacity
-            style={[
-              styles.sendButton,
-              { opacity: inputText.trim() ? 1 : 0.5 }
-            ]}
+            style={[styles.sendButton, { opacity: inputText.trim() ? 1 : 0.5 }]}
             onPress={sendMessage}
             disabled={!inputText.trim()}
           >

@@ -50,7 +50,7 @@ const demoAuth = async (req, res, next) => {
                 id: firstUser._id.toString(),
                 _id: firstUser._id,
                 fullName: firstUser.fullName,
-                email: firstUser.email
+                email: firstUser.email,
             };
         }
         else {

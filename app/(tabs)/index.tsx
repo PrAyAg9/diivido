@@ -44,7 +44,7 @@ const { width } = Dimensions.get('window');
 // Helper function to get time-based greeting
 // const getTimeBasedGreeting = () => {
 //   const hour = new Date().getHours();
-  
+
 //   if (hour < 12) {
 //     return ' Good morning';
 //   } else if (hour < 17) {
@@ -384,9 +384,10 @@ export default function DashboardScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
-        contentContainerStyle={{ paddingBottom: Platform.OS === 'android' ? 20 : 0 }}
+        contentContainerStyle={{
+          paddingBottom: Platform.OS === 'android' ? 20 : 0,
+        }}
       >
-
         {/* Balance Summary Card */}
         <View style={styles.balanceCard}>
           <View style={styles.balanceHeader}>
@@ -481,7 +482,9 @@ export default function DashboardScreen() {
                 </View>
                 <View style={styles.userAmount}>
                   <Text style={styles.amountOwed}>
-                    -{user.formattedAmount || formatCurrency(user.amount, userCurrency)}
+                    -
+                    {user.formattedAmount ||
+                      formatCurrency(user.amount, userCurrency)}
                   </Text>
                   <ArrowUpRight size={16} color="#EF4444" />
                 </View>
@@ -528,7 +531,9 @@ export default function DashboardScreen() {
                 </View>
                 <View style={styles.userAmount}>
                   <Text style={styles.amountOwed}>
-                    +{user.formattedAmount || formatCurrency(user.amount, userCurrency)}
+                    +
+                    {user.formattedAmount ||
+                      formatCurrency(user.amount, userCurrency)}
                   </Text>
                   <ArrowDownLeft size={16} color="#10B981" />
                 </View>
@@ -574,7 +579,10 @@ export default function DashboardScreen() {
                     ]}
                   >
                     {activity.formattedYouOwe ||
-                      `${activity.youOwe > 0 ? '-' : '+'}${formatCurrency(Math.abs(activity.youOwe), userCurrency)}`}
+                      `${activity.youOwe > 0 ? '-' : '+'}${formatCurrency(
+                        Math.abs(activity.youOwe),
+                        userCurrency
+                      )}`}
                   </Text>
                 </View>
               </TouchableOpacity>

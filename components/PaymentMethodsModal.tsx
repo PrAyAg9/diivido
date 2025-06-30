@@ -18,10 +18,10 @@ import {
   Check,
   Settings,
 } from 'lucide-react-native';
-import { 
-  UPI_APPS, 
-  getInstalledUPIApps, 
-  type UPIApp 
+import {
+  UPI_APPS,
+  getInstalledUPIApps,
+  type UPIApp,
 } from '@/services/upi-payment-api';
 
 interface PaymentMethodsModalProps {
@@ -49,7 +49,7 @@ const PaymentMethodsModal: React.FC<PaymentMethodsModalProps> = ({
     try {
       const apps = await getInstalledUPIApps();
       setInstalledUPIApps(apps);
-      
+
       // Set first installed app as default if none selected
       if (apps.length > 0 && !defaultUPIApp) {
         setDefaultUPIApp(apps[0].id);
@@ -77,9 +77,7 @@ const PaymentMethodsModal: React.FC<PaymentMethodsModalProps> = ({
     Alert.alert(
       `${app.name} Settings`,
       'This feature will allow you to configure app-specific settings.',
-      [
-        { text: 'OK' }
-      ]
+      [{ text: 'OK' }]
     );
   };
 
@@ -127,7 +125,8 @@ const PaymentMethodsModal: React.FC<PaymentMethodsModalProps> = ({
                 <Smartphone size={48} color="#9CA3AF" />
                 <Text style={styles.emptyTitle}>No UPI Apps Found</Text>
                 <Text style={styles.emptyText}>
-                  Install UPI apps like Google Pay, PhonePe, or Paytm to enable quick payments
+                  Install UPI apps like Google Pay, PhonePe, or Paytm to enable
+                  quick payments
                 </Text>
               </View>
             ) : (
@@ -142,13 +141,20 @@ const PaymentMethodsModal: React.FC<PaymentMethodsModalProps> = ({
                     onPress={() => handleSetDefaultUPI(app.id)}
                     disabled={!upiEnabled}
                   >
-                    <View style={[styles.appIcon, { backgroundColor: `${app.color}20` }]}>
+                    <View
+                      style={[
+                        styles.appIcon,
+                        { backgroundColor: `${app.color}20` },
+                      ]}
+                    >
                       <Text style={styles.appEmoji}>{app.icon}</Text>
                     </View>
-                    
+
                     <View style={styles.appInfo}>
                       <Text style={styles.appName}>{app.name}</Text>
-                      <Text style={styles.appDisplayName}>{app.displayName}</Text>
+                      <Text style={styles.appDisplayName}>
+                        {app.displayName}
+                      </Text>
                     </View>
 
                     <View style={styles.appActions}>
@@ -158,7 +164,7 @@ const PaymentMethodsModal: React.FC<PaymentMethodsModalProps> = ({
                           <Text style={styles.defaultText}>Default</Text>
                         </View>
                       )}
-                      
+
                       <TouchableOpacity
                         style={styles.settingsButton}
                         onPress={() => openUPIAppSettings(app)}
@@ -178,11 +184,13 @@ const PaymentMethodsModal: React.FC<PaymentMethodsModalProps> = ({
             <Text style={styles.sectionDescription}>
               Apps available for UPI payments (install to use)
             </Text>
-            
+
             <View style={styles.allAppsContainer}>
               {UPI_APPS.map((app) => {
-                const isInstalled = installedUPIApps.some(installed => installed.id === app.id);
-                
+                const isInstalled = installedUPIApps.some(
+                  (installed) => installed.id === app.id
+                );
+
                 return (
                   <View
                     key={app.id}
@@ -191,21 +199,30 @@ const PaymentMethodsModal: React.FC<PaymentMethodsModalProps> = ({
                       !isInstalled && styles.appListItemDisabled,
                     ]}
                   >
-                    <View style={[styles.appIcon, { backgroundColor: `${app.color}20` }]}>
+                    <View
+                      style={[
+                        styles.appIcon,
+                        { backgroundColor: `${app.color}20` },
+                      ]}
+                    >
                       <Text style={styles.appEmoji}>{app.icon}</Text>
                     </View>
-                    
+
                     <View style={styles.appInfo}>
-                      <Text style={[
-                        styles.appName,
-                        !isInstalled && styles.appNameDisabled,
-                      ]}>
+                      <Text
+                        style={[
+                          styles.appName,
+                          !isInstalled && styles.appNameDisabled,
+                        ]}
+                      >
                         {app.name}
                       </Text>
-                      <Text style={[
-                        styles.appDisplayName,
-                        !isInstalled && styles.appDisplayNameDisabled,
-                      ]}>
+                      <Text
+                        style={[
+                          styles.appDisplayName,
+                          !isInstalled && styles.appDisplayNameDisabled,
+                        ]}
+                      >
                         {isInstalled ? 'Installed' : 'Not installed'}
                       </Text>
                     </View>
@@ -227,12 +244,27 @@ const PaymentMethodsModal: React.FC<PaymentMethodsModalProps> = ({
             <Text style={styles.sectionDescription}>
               Alternative payment recording options
             </Text>
-            
+
             <View style={styles.manualMethodsContainer}>
               {[
-                { id: 'cash', name: 'Cash Payment', icon: '💵', description: 'Record cash transactions' },
-                { id: 'bank', name: 'Bank Transfer', icon: '🏦', description: 'NEFT, RTGS, IMPS transfers' },
-                { id: 'other', name: 'Other Methods', icon: '💳', description: 'Custom payment methods' },
+                {
+                  id: 'cash',
+                  name: 'Cash Payment',
+                  icon: '💵',
+                  description: 'Record cash transactions',
+                },
+                {
+                  id: 'bank',
+                  name: 'Bank Transfer',
+                  icon: '🏦',
+                  description: 'NEFT, RTGS, IMPS transfers',
+                },
+                {
+                  id: 'other',
+                  name: 'Other Methods',
+                  icon: '💳',
+                  description: 'Custom payment methods',
+                },
               ].map((method) => (
                 <View key={method.id} style={styles.manualMethodCard}>
                   <View style={styles.methodIcon}>
@@ -240,7 +272,9 @@ const PaymentMethodsModal: React.FC<PaymentMethodsModalProps> = ({
                   </View>
                   <View style={styles.methodInfo}>
                     <Text style={styles.methodName}>{method.name}</Text>
-                    <Text style={styles.methodDescription}>{method.description}</Text>
+                    <Text style={styles.methodDescription}>
+                      {method.description}
+                    </Text>
                   </View>
                   <View style={styles.enabledBadge}>
                     <Check size={16} color="#10B981" />

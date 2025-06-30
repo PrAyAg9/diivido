@@ -13,10 +13,9 @@ class BudgetController {
     constructor() {
         // Get AI budget suggestions based on user description
         this.getBudgetSuggestions = async (req, res) => {
-            var _a, _b;
             try {
                 const { description, groupId } = req.body;
-                const userId = ((_a = req.user) === null || _a === void 0 ? void 0 : _a.id) || ((_b = req.user) === null || _b === void 0 ? void 0 : _b._id);
+                const userId = req.user.id;
                 if (!description) {
                     res.status(400).json({ error: 'Description is required' });
                     return;
@@ -68,7 +67,7 @@ class BudgetController {
                         res.json({
                             success: true,
                             suggestions: aiResponse.suggestions,
-                            description: description
+                            description: description,
                         });
                     }
                     else {
@@ -80,26 +79,26 @@ class BudgetController {
                     console.error('Error parsing AI response:', parseError);
                     const fallbackSuggestions = [
                         {
-                            name: "Saver Plan",
+                            name: 'Saver Plan',
                             amount: 1500,
-                            reason: "Budget-friendly option focusing on essentials."
+                            reason: 'Budget-friendly option focusing on essentials.',
                         },
                         {
-                            name: "Comfort Plan",
+                            name: 'Comfort Plan',
                             amount: 3000,
-                            reason: "Good balance of comfort and value."
+                            reason: 'Good balance of comfort and value.',
                         },
                         {
-                            name: "Luxury Plan",
+                            name: 'Luxury Plan',
                             amount: 5500,
-                            reason: "Premium experience with top-tier options."
-                        }
+                            reason: 'Premium experience with top-tier options.',
+                        },
                     ];
                     res.json({
                         success: true,
                         suggestions: fallbackSuggestions,
                         description: description,
-                        fallback: true
+                        fallback: true,
                     });
                 }
             }
@@ -110,11 +109,10 @@ class BudgetController {
         };
         // Set group budget
         this.setGroupBudget = async (req, res) => {
-            var _a, _b;
             try {
                 const { groupId } = req.params;
                 const { amount, currency = 'USD', description } = req.body;
-                const userId = ((_a = req.user) === null || _a === void 0 ? void 0 : _a.id) || ((_b = req.user) === null || _b === void 0 ? void 0 : _b._id);
+                const userId = req.user.id;
                 if (!amount || amount <= 0) {
                     res.status(400).json({ error: 'Valid budget amount is required' });
                     return;
@@ -136,8 +134,10 @@ class BudgetController {
                     totalAmount: amount,
                     currency: currency,
                     description: description,
-                    setBy: userId,
-                    setAt: new Date()
+                    setBy: typeof userId === 'string'
+                        ? require('mongoose').Types.ObjectId(userId)
+                        : userId,
+                    setAt: new Date(),
                 };
                 await group.save();
                 // Send notification to all group members
@@ -146,7 +146,7 @@ class BudgetController {
                     type: 'budget_set',
                     groupId: groupId,
                     amount: amount,
-                    currency: currency
+                    currency: currency,
                 });
                 res.json({
                     success: true,
@@ -154,8 +154,8 @@ class BudgetController {
                     budget: {
                         amount: amount,
                         currency: currency,
-                        description: description
-                    }
+                        description: description,
+                    },
                 });
             }
             catch (error) {
@@ -165,10 +165,9 @@ class BudgetController {
         };
         // Get group budget and spending summary
         this.getGroupBudgetStatus = async (req, res) => {
-            var _a, _b;
             try {
                 const { groupId } = req.params;
-                const userId = ((_a = req.user) === null || _a === void 0 ? void 0 : _a.id) || ((_b = req.user) === null || _b === void 0 ? void 0 : _b._id);
+                const userId = req.user.id;
                 // Find group
                 const group = await group_model_1.Group.findById(groupId);
                 if (!group) {
@@ -194,7 +193,13 @@ class BudgetController {
                         totalSpent: totalSpent,
                         remaining: group.budget.totalAmount - totalSpent,
                         percentage: Math.round(percentage * 100) / 100,
-                        status: percentage >= 100 ? 'exceeded' : percentage >= 90 ? 'warning' : percentage >= 50 ? 'halfway' : 'good'
+                        status: percentage >= 100
+                            ? 'exceeded'
+                            : percentage >= 90
+                                ? 'warning'
+                                : percentage >= 50
+                                    ? 'halfway'
+                                    : 'good',
                     };
                     // Check if we should send budget alerts
                     await this.checkAndSendBudgetAlerts(group, totalSpent, percentage);
@@ -203,11 +208,11 @@ class BudgetController {
                     success: true,
                     groupName: group.name,
                     budgetStatus: budgetStatus,
-                    recentExpenses: expenses.slice(-5).map(expense => ({
+                    recentExpenses: expenses.slice(-5).map((expense) => ({
                         title: expense.title,
                         amount: expense.amount,
-                        date: expense.date
-                    }))
+                        date: expense.date,
+                    })),
                 });
             }
             catch (error) {
@@ -228,13 +233,13 @@ class BudgetController {
                 if (shouldSendAlert) {
                     const groupMembers = group.members.map((member) => ({
                         userId: member.userId.toString(),
-                        userName: member.userId.fullName || 'Member'
+                        userName: member.userId.fullName || 'Member',
                     }));
                     await notification_service_1.default.sendBudgetAlert(groupMembers, group.name, totalSpent, group.budget.totalAmount, percentage);
                     // Update last alert sent
                     group.budget.lastAlertSent = {
                         percentage: Math.floor(percentage / 10) * 10, // Round to nearest 10%
-                        sentAt: new Date()
+                        sentAt: new Date(),
                     };
                     await group.save();
                 }
@@ -245,10 +250,9 @@ class BudgetController {
         };
         // Remove group budget
         this.removeGroupBudget = async (req, res) => {
-            var _a, _b;
             try {
                 const { groupId } = req.params;
-                const userId = ((_a = req.user) === null || _a === void 0 ? void 0 : _a.id) || ((_b = req.user) === null || _b === void 0 ? void 0 : _b._id);
+                const userId = req.user.id;
                 const group = await group_model_1.Group.findById(groupId);
                 if (!group) {
                     res.status(404).json({ error: 'Group not found' });
@@ -264,7 +268,7 @@ class BudgetController {
                 await group.save();
                 res.json({
                     success: true,
-                    message: 'Group budget removed successfully'
+                    message: 'Group budget removed successfully',
                 });
             }
             catch (error) {

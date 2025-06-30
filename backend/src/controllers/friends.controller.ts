@@ -12,13 +12,30 @@ interface IFriendRequest {
 }
 
 // Create FriendRequest model if it doesn't exist
-const FriendRequestSchema = new mongoose.Schema({
-  fromUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  toUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  status: { type: String, enum: ['pending', 'accepted', 'rejected'], default: 'pending' },
-}, { timestamps: true });
+const FriendRequestSchema = new mongoose.Schema(
+  {
+    fromUserId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    toUserId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    status: {
+      type: String,
+      enum: ['pending', 'accepted', 'rejected'],
+      default: 'pending',
+    },
+  },
+  { timestamps: true }
+);
 
-const FriendRequest = mongoose.models.FriendRequest || mongoose.model('FriendRequest', FriendRequestSchema);
+const FriendRequest =
+  mongoose.models.FriendRequest ||
+  mongoose.model('FriendRequest', FriendRequestSchema);
 
 export const getFriends = async (req: Request, res: Response) => {
   try {
@@ -30,21 +47,19 @@ export const getFriends = async (req: Request, res: Response) => {
 
     // Get friend relationships where user is either sender or receiver and status is accepted
     const friendships = await FriendRequest.find({
-      $or: [
-        { fromUserId: userId },
-        { toUserId: userId }
-      ],
-      status: 'accepted'
+      $or: [{ fromUserId: userId }, { toUserId: userId }],
+      status: 'accepted',
     })
-    .populate('fromUserId', 'fullName email avatarUrl')
-    .populate('toUserId', 'fullName email avatarUrl');
+      .populate('fromUserId', 'fullName email avatarUrl')
+      .populate('toUserId', 'fullName email avatarUrl');
 
     // Transform to friends format
     const friends = friendships.map((friendship: any) => {
-      const friend = friendship.fromUserId._id.toString() === userId 
-        ? friendship.toUserId 
-        : friendship.fromUserId;
-      
+      const friend =
+        friendship.fromUserId._id.toString() === userId
+          ? friendship.toUserId
+          : friendship.fromUserId;
+
       return {
         id: friend._id,
         fullName: friend.fullName,
@@ -58,24 +73,23 @@ export const getFriends = async (req: Request, res: Response) => {
 
     // Also get pending requests
     const pendingRequests = await FriendRequest.find({
-      $or: [
-        { fromUserId: userId },
-        { toUserId: userId }
-      ],
-      status: 'pending'
+      $or: [{ fromUserId: userId }, { toUserId: userId }],
+      status: 'pending',
     })
-    .populate('fromUserId', 'fullName email avatarUrl')
-    .populate('toUserId', 'fullName email avatarUrl');
+      .populate('fromUserId', 'fullName email avatarUrl')
+      .populate('toUserId', 'fullName email avatarUrl');
 
     const pendingFriends = pendingRequests.map((request: any) => {
-      const friend = request.fromUserId._id.toString() === userId 
-        ? request.toUserId 
-        : request.fromUserId;
-      
-      const status = request.fromUserId._id.toString() === userId 
-        ? 'pending_sent' 
-        : 'pending_received';
-      
+      const friend =
+        request.fromUserId._id.toString() === userId
+          ? request.toUserId
+          : request.fromUserId;
+
+      const status =
+        request.fromUserId._id.toString() === userId
+          ? 'pending_sent'
+          : 'pending_received';
+
       return {
         id: friend._id,
         fullName: friend.fullName,
@@ -86,7 +100,7 @@ export const getFriends = async (req: Request, res: Response) => {
         updatedAt: request.updatedAt,
       };
     });
-    
+
     friends.push(...pendingFriends);
 
     return res.json({ data: friends });
@@ -110,26 +124,34 @@ export const sendFriendRequest = async (req: Request, res: Response) => {
     }
 
     // Find user by email
-    const targetUser = await User.findOne({ email }).select('_id fullName email avatarUrl');
+    const targetUser = await User.findOne({ email }).select(
+      '_id fullName email avatarUrl'
+    );
 
     if (!targetUser) {
       return res.status(404).json({ error: 'User not found' });
     }
 
     if (targetUser._id.toString() === userId) {
-      return res.status(400).json({ error: 'Cannot send friend request to yourself' });
+      return res
+        .status(400)
+        .json({ error: 'Cannot send friend request to yourself' });
     }
 
     // Check if friendship or request already exists
     const existingRequest = await FriendRequest.findOne({
       $or: [
         { fromUserId: userId, toUserId: targetUser._id },
-        { fromUserId: targetUser._id, toUserId: userId }
-      ]
+        { fromUserId: targetUser._id, toUserId: userId },
+      ],
     });
 
     if (existingRequest) {
-      return res.status(400).json({ error: 'Friend request already exists or you are already friends' });
+      return res
+        .status(400)
+        .json({
+          error: 'Friend request already exists or you are already friends',
+        });
     }
 
     // Create friend request
@@ -141,7 +163,7 @@ export const sendFriendRequest = async (req: Request, res: Response) => {
 
     await friendRequest.save();
 
-    return res.json({ 
+    return res.json({
       data: {
         id: friendRequest._id,
         fromUserId: friendRequest.fromUserId,
@@ -156,7 +178,7 @@ export const sendFriendRequest = async (req: Request, res: Response) => {
         },
         createdAt: friendRequest.createdAt,
         updatedAt: friendRequest.updatedAt,
-      }
+      },
     });
   } catch (error) {
     console.error('Error in sendFriendRequest:', error);
@@ -177,7 +199,7 @@ export const acceptFriendRequest = async (req: Request, res: Response) => {
     const friendRequest = await FriendRequest.findOne({
       _id: requestId,
       toUserId: userId,
-      status: 'pending'
+      status: 'pending',
     });
 
     if (!friendRequest) {
@@ -190,20 +212,22 @@ export const acceptFriendRequest = async (req: Request, res: Response) => {
     await friendRequest.save();
 
     // Get the friend user details
-    const friendUser = await User.findById(friendRequest.fromUserId).select('_id fullName email avatarUrl');
+    const friendUser = await User.findById(friendRequest.fromUserId).select(
+      '_id fullName email avatarUrl'
+    );
 
     if (!friendUser) {
       return res.status(500).json({ error: 'Failed to get friend details' });
     }
 
-    return res.json({ 
+    return res.json({
       data: {
         id: friendUser._id,
         fullName: friendUser.fullName,
         email: friendUser.email,
         avatarUrl: friendUser.avatarUrl,
         status: 'accepted',
-      }
+      },
     });
   } catch (error) {
     console.error('Error in acceptFriendRequest:', error);
@@ -224,7 +248,7 @@ export const rejectFriendRequest = async (req: Request, res: Response) => {
     const result = await FriendRequest.deleteOne({
       _id: requestId,
       toUserId: userId,
-      status: 'pending'
+      status: 'pending',
     });
 
     if (result.deletedCount === 0) {
@@ -251,9 +275,9 @@ export const removeFriend = async (req: Request, res: Response) => {
     const result = await FriendRequest.deleteOne({
       $or: [
         { fromUserId: userId, toUserId: friendId },
-        { fromUserId: friendId, toUserId: userId }
+        { fromUserId: friendId, toUserId: userId },
       ],
-      status: 'accepted'
+      status: 'accepted',
     });
 
     if (result.deletedCount === 0) {
@@ -283,12 +307,12 @@ export const searchUsers = async (req: Request, res: Response) => {
     // Search for users by email (partial match)
     const users = await User.find({
       email: { $regex: email as string, $options: 'i' },
-      _id: { $ne: userId }  // Exclude current user
+      _id: { $ne: userId }, // Exclude current user
     })
-    .select('_id fullName email avatarUrl')
-    .limit(10);
+      .select('_id fullName email avatarUrl')
+      .limit(10);
 
-    const userData = users.map(user => ({
+    const userData = users.map((user) => ({
       id: user._id,
       fullName: user.fullName,
       email: user.email,

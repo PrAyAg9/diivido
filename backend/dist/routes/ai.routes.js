@@ -20,7 +20,7 @@ const demoAuth = async (req, res, next) => {
                 id: firstUser._id.toString(),
                 _id: firstUser._id,
                 fullName: firstUser.fullName,
-                email: firstUser.email
+                email: firstUser.email,
             };
         }
         else {
@@ -28,14 +28,14 @@ const demoAuth = async (req, res, next) => {
             const demoUser = new user_model_1.User({
                 fullName: 'Demo User',
                 email: 'demo@example.com',
-                password: 'demo123' // This won't be used
+                password: 'demo123', // This won't be used
             });
             await demoUser.save();
             req.user = {
                 id: demoUser._id.toString(),
                 _id: demoUser._id,
                 fullName: demoUser.fullName,
-                email: demoUser.email
+                email: demoUser.email,
             };
         }
         next();

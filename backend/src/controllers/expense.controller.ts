@@ -1,8 +1,12 @@
 import { Request, Response } from 'express';
+import { AuthenticatedRequest } from '../types/express';
 import { Expense } from '../models/expense.model';
 import { Group } from '../models/group.model';
 
-export const createExpense = async (req: Request, res: Response) => {
+export const createExpense = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
   try {
     const {
       groupId,
@@ -17,7 +21,7 @@ export const createExpense = async (req: Request, res: Response) => {
       date,
     } = req.body;
 
-    const userId = req.user.id || req.user.userId || req.user._id;
+    const userId = req.user.id;
     console.log('Creating expense:', { userId, groupId, title, amount });
 
     // Verify group membership
@@ -51,10 +55,13 @@ export const createExpense = async (req: Request, res: Response) => {
   }
 };
 
-export const getGroupExpenses = async (req: Request, res: Response) => {
+export const getGroupExpenses = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
   try {
     const { groupId } = req.params;
-    const userId = req.user.id || req.user.userId || req.user._id;
+    const userId = req.user.id;
 
     console.log('Getting expenses for group:', groupId, 'User:', userId);
 
@@ -114,10 +121,13 @@ export const getGroupExpenses = async (req: Request, res: Response) => {
   }
 };
 
-export const updateExpense = async (req: Request, res: Response) => {
+export const updateExpense = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
   try {
     const { id } = req.params;
-    const userId = req.user._id;
+    const userId = req.user.id;
     const updates = req.body;
 
     const expense = await Expense.findOne({ _id: id, paidBy: userId });
@@ -137,10 +147,13 @@ export const updateExpense = async (req: Request, res: Response) => {
   }
 };
 
-export const markSplitAsPaid = async (req: Request, res: Response) => {
+export const markSplitAsPaid = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
   try {
     const { expenseId } = req.params;
-    const userId = req.user._id;
+    const userId = req.user.id;
 
     const expense = await Expense.findById(expenseId);
 
@@ -165,9 +178,12 @@ export const markSplitAsPaid = async (req: Request, res: Response) => {
   }
 };
 
-export const getUserExpenses = async (req: Request, res: Response) => {
+export const getUserExpenses = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
   try {
-    const userId = req.user.id || req.user.userId || req.user._id;
+    const userId = req.user.id;
     console.log('Getting expenses for user:', userId);
 
     // Find all expenses where the user is either the payer or in the splits

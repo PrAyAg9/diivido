@@ -8,11 +8,24 @@ const user_model_1 = require("../models/user.model");
 const mongoose_1 = __importDefault(require("mongoose"));
 // Create FriendRequest model if it doesn't exist
 const FriendRequestSchema = new mongoose_1.default.Schema({
-    fromUserId: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'User', required: true },
-    toUserId: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'User', required: true },
-    status: { type: String, enum: ['pending', 'accepted', 'rejected'], default: 'pending' },
+    fromUserId: {
+        type: mongoose_1.default.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true,
+    },
+    toUserId: {
+        type: mongoose_1.default.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true,
+    },
+    status: {
+        type: String,
+        enum: ['pending', 'accepted', 'rejected'],
+        default: 'pending',
+    },
 }, { timestamps: true });
-const FriendRequest = mongoose_1.default.models.FriendRequest || mongoose_1.default.model('FriendRequest', FriendRequestSchema);
+const FriendRequest = mongoose_1.default.models.FriendRequest ||
+    mongoose_1.default.model('FriendRequest', FriendRequestSchema);
 const getFriends = async (req, res) => {
     var _a;
     try {
@@ -22,11 +35,8 @@ const getFriends = async (req, res) => {
         }
         // Get friend relationships where user is either sender or receiver and status is accepted
         const friendships = await FriendRequest.find({
-            $or: [
-                { fromUserId: userId },
-                { toUserId: userId }
-            ],
-            status: 'accepted'
+            $or: [{ fromUserId: userId }, { toUserId: userId }],
+            status: 'accepted',
         })
             .populate('fromUserId', 'fullName email avatarUrl')
             .populate('toUserId', 'fullName email avatarUrl');
@@ -47,11 +57,8 @@ const getFriends = async (req, res) => {
         });
         // Also get pending requests
         const pendingRequests = await FriendRequest.find({
-            $or: [
-                { fromUserId: userId },
-                { toUserId: userId }
-            ],
-            status: 'pending'
+            $or: [{ fromUserId: userId }, { toUserId: userId }],
+            status: 'pending',
         })
             .populate('fromUserId', 'fullName email avatarUrl')
             .populate('toUserId', 'fullName email avatarUrl');
@@ -98,17 +105,23 @@ const sendFriendRequest = async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
         if (targetUser._id.toString() === userId) {
-            return res.status(400).json({ error: 'Cannot send friend request to yourself' });
+            return res
+                .status(400)
+                .json({ error: 'Cannot send friend request to yourself' });
         }
         // Check if friendship or request already exists
         const existingRequest = await FriendRequest.findOne({
             $or: [
                 { fromUserId: userId, toUserId: targetUser._id },
-                { fromUserId: targetUser._id, toUserId: userId }
-            ]
+                { fromUserId: targetUser._id, toUserId: userId },
+            ],
         });
         if (existingRequest) {
-            return res.status(400).json({ error: 'Friend request already exists or you are already friends' });
+            return res
+                .status(400)
+                .json({
+                error: 'Friend request already exists or you are already friends',
+            });
         }
         // Create friend request
         const friendRequest = new FriendRequest({
@@ -132,7 +145,7 @@ const sendFriendRequest = async (req, res) => {
                 },
                 createdAt: friendRequest.createdAt,
                 updatedAt: friendRequest.updatedAt,
-            }
+            },
         });
     }
     catch (error) {
@@ -153,7 +166,7 @@ const acceptFriendRequest = async (req, res) => {
         const friendRequest = await FriendRequest.findOne({
             _id: requestId,
             toUserId: userId,
-            status: 'pending'
+            status: 'pending',
         });
         if (!friendRequest) {
             return res.status(404).json({ error: 'Friend request not found' });
@@ -174,7 +187,7 @@ const acceptFriendRequest = async (req, res) => {
                 email: friendUser.email,
                 avatarUrl: friendUser.avatarUrl,
                 status: 'accepted',
-            }
+            },
         });
     }
     catch (error) {
@@ -195,7 +208,7 @@ const rejectFriendRequest = async (req, res) => {
         const result = await FriendRequest.deleteOne({
             _id: requestId,
             toUserId: userId,
-            status: 'pending'
+            status: 'pending',
         });
         if (result.deletedCount === 0) {
             return res.status(404).json({ error: 'Friend request not found' });
@@ -220,9 +233,9 @@ const removeFriend = async (req, res) => {
         const result = await FriendRequest.deleteOne({
             $or: [
                 { fromUserId: userId, toUserId: friendId },
-                { fromUserId: friendId, toUserId: userId }
+                { fromUserId: friendId, toUserId: userId },
             ],
-            status: 'accepted'
+            status: 'accepted',
         });
         if (result.deletedCount === 0) {
             return res.status(404).json({ error: 'Friendship not found' });
@@ -249,11 +262,11 @@ const searchUsers = async (req, res) => {
         // Search for users by email (partial match)
         const users = await user_model_1.User.find({
             email: { $regex: email, $options: 'i' },
-            _id: { $ne: userId } // Exclude current user
+            _id: { $ne: userId }, // Exclude current user
         })
             .select('_id fullName email avatarUrl')
             .limit(10);
-        const userData = users.map(user => ({
+        const userData = users.map((user) => ({
             id: user._id,
             fullName: user.fullName,
             email: user.email,

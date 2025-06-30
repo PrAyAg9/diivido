@@ -66,13 +66,17 @@ const SettleUpModal: React.FC<SettleUpModalProps> = ({
   groupId,
   onPaymentComplete,
 }) => {
-  const [step, setStep] = useState<'options' | 'upi_apps' | 'manual_form' | 'upi_form'>('options');
+  const [step, setStep] = useState<
+    'options' | 'upi_apps' | 'manual_form' | 'upi_form'
+  >('options');
   const [selectedOption, setSelectedOption] = useState<string>('');
   const [installedUPIApps, setInstalledUPIApps] = useState<UPIApp[]>([]);
   const [loading, setLoading] = useState(false);
   const [upiId, setUpiId] = useState(payeeUser.upiId || '');
   const [note, setNote] = useState('');
-  const [manualPaymentData, setManualPaymentData] = useState<Partial<ManualPaymentData>>({
+  const [manualPaymentData, setManualPaymentData] = useState<
+    Partial<ManualPaymentData>
+  >({
     paymentMethod: 'cash',
   });
   const [receiptUrl, setReceiptUrl] = useState<string>('');
@@ -95,7 +99,7 @@ const SettleUpModal: React.FC<SettleUpModalProps> = ({
 
   const handleOptionSelect = (optionId: string) => {
     setSelectedOption(optionId);
-    
+
     switch (optionId) {
       case 'upi_quick':
         handleQuickUPIPayment();
@@ -132,7 +136,7 @@ const SettleUpModal: React.FC<SettleUpModalProps> = ({
     }
 
     setLoading(true);
-    
+
     const paymentRequest: PaymentRequest = {
       recipientUPI: upiId,
       recipientName: payeeUser.name,
@@ -177,7 +181,7 @@ const SettleUpModal: React.FC<SettleUpModalProps> = ({
     }
 
     setLoading(true);
-    
+
     const paymentRequest: PaymentRequest = {
       recipientUPI: upiId,
       recipientName: payeeUser.name,
@@ -262,7 +266,10 @@ const SettleUpModal: React.FC<SettleUpModalProps> = ({
 
   const handleUPIFormSubmit = () => {
     if (!validateUPIId(upiId)) {
-      Alert.alert('Invalid UPI ID', 'Please enter a valid UPI ID (e.g., user@paytm)');
+      Alert.alert(
+        'Invalid UPI ID',
+        'Please enter a valid UPI ID (e.g., user@paytm)'
+      );
       return;
     }
     handleQuickUPIPayment();
@@ -271,7 +278,7 @@ const SettleUpModal: React.FC<SettleUpModalProps> = ({
   const renderOptions = () => (
     <View style={styles.content}>
       <Text style={styles.subtitle}>Choose a payment method</Text>
-      
+
       <ScrollView showsVerticalScrollIndicator={false}>
         {getPaymentOptions().map((option, index) => (
           <TouchableOpacity
@@ -283,7 +290,12 @@ const SettleUpModal: React.FC<SettleUpModalProps> = ({
             onPress={() => handleOptionSelect(option.id)}
             activeOpacity={0.7}
           >
-            <View style={[styles.optionIcon, { backgroundColor: `${option.color}20` }]}>
+            <View
+              style={[
+                styles.optionIcon,
+                { backgroundColor: `${option.color}20` },
+              ]}
+            >
               <Text style={styles.optionEmoji}>{option.icon}</Text>
             </View>
             <View style={styles.optionContent}>
@@ -300,7 +312,7 @@ const SettleUpModal: React.FC<SettleUpModalProps> = ({
   const renderUPIApps = () => (
     <View style={styles.content}>
       <Text style={styles.subtitle}>Select UPI App</Text>
-      
+
       <ScrollView showsVerticalScrollIndicator={false}>
         {installedUPIApps.map((app, index) => (
           <TouchableOpacity
@@ -312,7 +324,9 @@ const SettleUpModal: React.FC<SettleUpModalProps> = ({
             onPress={() => handleUPIAppSelect(app)}
             activeOpacity={0.7}
           >
-            <View style={[styles.optionIcon, { backgroundColor: `${app.color}20` }]}>
+            <View
+              style={[styles.optionIcon, { backgroundColor: `${app.color}20` }]}
+            >
               <Text style={styles.optionEmoji}>{app.icon}</Text>
             </View>
             <View style={styles.optionContent}>
@@ -322,7 +336,7 @@ const SettleUpModal: React.FC<SettleUpModalProps> = ({
             <ArrowRight size={20} color="#9CA3AF" />
           </TouchableOpacity>
         ))}
-        
+
         {installedUPIApps.length === 0 && (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>No UPI apps found</Text>
@@ -338,7 +352,7 @@ const SettleUpModal: React.FC<SettleUpModalProps> = ({
   const renderUPIForm = () => (
     <View style={styles.content}>
       <Text style={styles.subtitle}>Enter UPI Details</Text>
-      
+
       <View style={styles.form}>
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>UPI ID</Text>
@@ -381,7 +395,7 @@ const SettleUpModal: React.FC<SettleUpModalProps> = ({
   const renderManualForm = () => (
     <View style={styles.content}>
       <Text style={styles.subtitle}>Record Manual Payment</Text>
-      
+
       <View style={styles.form}>
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>Payment Method</Text>
@@ -395,15 +409,24 @@ const SettleUpModal: React.FC<SettleUpModalProps> = ({
                 key={method.id}
                 style={[
                   styles.methodButton,
-                  manualPaymentData.paymentMethod === method.id && styles.methodButtonActive,
+                  manualPaymentData.paymentMethod === method.id &&
+                    styles.methodButtonActive,
                 ]}
-                onPress={() => setManualPaymentData(prev => ({ ...prev, paymentMethod: method.id as any }))}
+                onPress={() =>
+                  setManualPaymentData((prev) => ({
+                    ...prev,
+                    paymentMethod: method.id as any,
+                  }))
+                }
               >
                 <Text style={styles.methodEmoji}>{method.icon}</Text>
-                <Text style={[
-                  styles.methodLabel,
-                  manualPaymentData.paymentMethod === method.id && styles.methodLabelActive,
-                ]}>
+                <Text
+                  style={[
+                    styles.methodLabel,
+                    manualPaymentData.paymentMethod === method.id &&
+                      styles.methodLabelActive,
+                  ]}
+                >
                   {method.label}
                 </Text>
               </TouchableOpacity>
@@ -416,7 +439,9 @@ const SettleUpModal: React.FC<SettleUpModalProps> = ({
           <TextInput
             style={styles.textInput}
             value={manualPaymentData.note}
-            onChangeText={(text) => setManualPaymentData(prev => ({ ...prev, note: text }))}
+            onChangeText={(text) =>
+              setManualPaymentData((prev) => ({ ...prev, note: text }))
+            }
             placeholder="Payment details"
             multiline
           />
@@ -457,18 +482,20 @@ const SettleUpModal: React.FC<SettleUpModalProps> = ({
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <X size={24} color="#374151" />
           </TouchableOpacity>
-          
+
           <View style={styles.headerContent}>
             <Text style={styles.title}>Settle Up</Text>
             <View style={styles.paymentDetails}>
-              <Avatar 
+              <Avatar
                 imageUrl={payeeUser.avatarUrl}
                 name={payeeUser.name}
-                size={40} 
+                size={40}
               />
               <View style={styles.paymentInfo}>
                 <Text style={styles.payeeName}>{payeeUser.name}</Text>
-                <Text style={styles.amount}>{formatCurrency(amount, currency)}</Text>
+                <Text style={styles.amount}>
+                  {formatCurrency(amount, currency)}
+                </Text>
               </View>
             </View>
           </View>

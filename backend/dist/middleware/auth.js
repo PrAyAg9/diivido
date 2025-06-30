@@ -18,7 +18,11 @@ const auth = async (req, res, next) => {
         if (!user) {
             throw new Error();
         }
-        req.user = user;
+        req.user = {
+            id: user._id.toString(),
+            email: user.email,
+            fullName: user.fullName,
+        };
         next();
     }
     catch (error) {

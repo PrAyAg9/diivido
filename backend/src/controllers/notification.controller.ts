@@ -1,39 +1,53 @@
-// backend/src/controllers/notification.controller.ts
-
 import { Request, Response } from 'express';
 import { User } from '../models/user.model';
 import { Group } from '../models/group.model';
 import { Expo, ExpoPushMessage } from 'expo-server-sdk';
+import { Types } from 'mongoose';
 
 // Create a new Expo SDK client
 const expo = new Expo();
 
+// --- Interfaces --- //
+
+// Extends the default Express Request to include a typed user property
+interface AuthenticatedRequest extends Request {
+  user?: {
+    id: string; // Standardize on 'id' for the authenticated user
+  };
+}
+
+// Defines the shape of a user object when populated, including the push token
 interface UserWithPushToken {
-  _id: string;
+  _id: Types.ObjectId; // Mongoose documents use _id
   fullName: string;
   email: string;
   expoPushToken?: string;
 }
 
+// --- Controller Class --- //
+
 class NotificationController {
-  // Register device for push notifications
-  registerDevice = async (req: Request, res: Response): Promise<void> => {
+  // Register a device for push notifications
+  public registerDevice = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const { pushToken } = req.body;
-      const userId = req.user?.id || req.user?._id;
+      const userId = req.user?.id; // FIX: Standardize on req.user.id
+
+      if (!userId) {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
+      }
 
       if (!pushToken) {
         res.status(400).json({ error: 'Push token is required' });
         return;
       }
 
-      // Validate the push token
       if (!Expo.isExpoPushToken(pushToken)) {
         res.status(400).json({ error: 'Invalid push token format' });
         return;
       }
 
-      // Update user with push token
       await User.findByIdAndUpdate(userId, { expoPushToken: pushToken });
 
       res.json({ success: true, message: 'Device registered for notifications' });
@@ -43,91 +57,72 @@ class NotificationController {
     }
   };
 
-  // Send Quick Draw notification to group members
-  sendQuickDrawNotification = async (req: Request, res: Response): Promise<void> => {
+  // Send a Quick Draw game invitation notification to group members
+  public sendQuickDrawNotification = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const { gameId, groupId } = req.body;
-      const currentUserId = req.user?.id || req.user?._id;
+      const currentUserId = req.user?.id; // FIX: Standardize on req.user.id
 
       if (!gameId || !groupId) {
         res.status(400).json({ error: 'Game ID and Group ID are required' });
         return;
       }
 
-      // Get group and populate members
-      const group = await Group.findById(groupId).populate('members.userId', 'fullName email pushToken');
+      const group = await Group.findById(groupId).populate<{ members: { userId: UserWithPushToken }[] }>('members.userId', 'fullName email expoPushToken');
       
       if (!group) {
         res.status(404).json({ error: 'Group not found' });
         return;
       }
 
-      // Get current user's name for the notification
       const currentUser = await User.findById(currentUserId);
       const initiatorName = currentUser?.fullName || 'Someone';
 
-      // Collect push tokens from group members (excluding current user)
-      const pushTokens: string[] = [];
-      const memberNames: string[] = [];
+      const messages: ExpoPushMessage[] = [];
+      const sentToNames: string[] = [];
 
-      group.members.forEach((member: any) => {
-        const user = member.userId as UserWithPushToken;
-        if (user._id.toString() !== currentUserId.toString() && user.expoPushToken) {
+      group.members.forEach(member => {
+        // The populated user object is on member.userId
+        const user = member.userId;
+        
+        // FIX: Check if user and token exist, and user is not the initiator
+        if (user && user.expoPushToken && user._id.toString() !== currentUserId) {
           if (Expo.isExpoPushToken(user.expoPushToken)) {
-            pushTokens.push(user.expoPushToken);
-            memberNames.push(user.fullName);
+            messages.push({
+              to: user.expoPushToken,
+              sound: 'default',
+              title: '⚡ Quick Draw Challenge!',
+              body: `${initiatorName} started a Quick Draw! Who will pay this time? Tap to join!`,
+              data: { type: 'quickdraw', gameId, groupId, initiator: initiatorName },
+              priority: 'high',
+              ttl: 300,
+            });
+            sentToNames.push(user.fullName);
           }
         }
       });
 
-      if (pushTokens.length === 0) {
-        res.json({ 
-          success: true, 
-          message: 'No valid push tokens found for group members',
-          sentTo: 0 
-        });
+      if (messages.length === 0) {
+        res.json({ success: true, message: 'No other members with notifications enabled found.', sentTo: 0 });
         return;
       }
 
-      // Create push messages
-      const messages: ExpoPushMessage[] = pushTokens.map(pushToken => ({
-        to: pushToken,
-        sound: 'default',
-        title: '⚡ Quick Draw Challenge!',
-        body: `${initiatorName} started a Quick Draw! Who will pay this time? Tap to join!`,
-        data: {
-          type: 'quickdraw',
-          gameId,
-          groupId,
-          initiator: initiatorName,
-        },
-        priority: 'high',
-        ttl: 300, // 5 minutes
-      }));
-
-      // Send notifications in chunks
+      // Send notifications
       const chunks = expo.chunkPushNotifications(messages);
-      const receipts = [];
-
       for (const chunk of chunks) {
         try {
-          const chunkReceipts = await expo.sendPushNotificationsAsync(chunk);
-          receipts.push(...chunkReceipts);
+          await expo.sendPushNotificationsAsync(chunk);
         } catch (error) {
           console.error('Error sending notification chunk:', error);
         }
       }
 
-      console.log(`📱 Quick Draw notifications sent to ${pushTokens.length} players:`);
-      memberNames.forEach(name => {
-        console.log(`  → ${name}: Quick Draw invitation sent!`);
-      });
-
+      console.log(`📱 Quick Draw notifications sent to ${messages.length} players:`, sentToNames);
       res.json({
         success: true,
-        message: `Quick Draw notifications sent to ${pushTokens.length} players`,
-        sentTo: pushTokens.length,
-        memberNames
+        message: `Quick Draw notifications sent to ${messages.length} players`,
+        sentTo: messages.length,
+        memberNames: sentToNames,
       });
 
     } catch (error) {
@@ -136,20 +131,26 @@ class NotificationController {
     }
   };
 
-  // Send expense nudge notification
-  sendNudgeNotification = async (req: Request, res: Response): Promise<void> => {
+  // Send a nudge notification to a specific user
+  public sendNudgeNotification = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const { targetUserId, message, amount } = req.body;
-      const currentUserId = req.user?.id || req.user?._id;
+      const currentUserId = req.user?.id; // FIX: Standardize on req.user.id
 
       if (!targetUserId || !message) {
         res.status(400).json({ error: 'Target user ID and message are required' });
         return;
       }
+      
+      if (targetUserId === currentUserId) {
+        res.status(400).json({ error: "You can't nudge yourself!" });
+        return;
+      }
 
-      // Get users
-      const currentUser = await User.findById(currentUserId);
-      const targetUser = await User.findById(targetUserId);
+      const [currentUser, targetUser] = await Promise.all([
+        User.findById(currentUserId),
+        User.findById(targetUserId)
+      ]);
 
       if (!targetUser) {
         res.status(404).json({ error: 'Target user not found' });
@@ -157,43 +158,25 @@ class NotificationController {
       }
 
       if (!targetUser.expoPushToken || !Expo.isExpoPushToken(targetUser.expoPushToken)) {
-        res.json({ 
-          success: true, 
-          message: 'User does not have valid push notifications enabled',
-          sent: false 
-        });
+        res.json({ success: false, message: 'User does not have notifications enabled.' });
         return;
       }
 
       const senderName = currentUser?.fullName || 'Someone';
-      const amountText = amount ? ` $${amount}` : '';
 
-      // Create push message
       const pushMessage: ExpoPushMessage = {
         to: targetUser.expoPushToken,
         sound: 'default',
         title: `💰 Friendly Reminder from ${senderName}`,
         body: message,
-        data: {
-          type: 'nudge',
-          fromUserId: currentUserId,
-          fromUserName: senderName,
-          amount: amount || null,
-        },
+        data: { type: 'nudge', fromUserId: currentUserId, fromUserName: senderName, amount: amount || null },
         priority: 'normal',
       };
 
-      // Send notification
-      const receipt = await expo.sendPushNotificationsAsync([pushMessage]);
+      await expo.sendPushNotificationsAsync([pushMessage]);
 
       console.log(`🎯 Nudge sent to ${targetUser.fullName}: ${message}`);
-
-      res.json({
-        success: true,
-        message: `Nudge sent to ${targetUser.fullName}`,
-        sent: true,
-        receipt: receipt[0]
-      });
+      res.json({ success: true, message: `Nudge sent to ${targetUser.fullName}` });
 
     } catch (error) {
       console.error('Error sending nudge notification:', error);
@@ -201,8 +184,8 @@ class NotificationController {
     }
   };
 
-  // Send game result notification
-  sendGameResultNotification = async (req: Request, res: Response): Promise<void> => {
+  // Send game result notifications to all group members
+  public sendGameResultNotification = async (req: Request, res: Response): Promise<void> => {
     try {
       const { gameId, groupId, winner, loser, expenseTitle } = req.body;
 
@@ -211,20 +194,18 @@ class NotificationController {
         return;
       }
 
-      // Get group and populate members
-      const group = await Group.findById(groupId).populate('members.userId', 'fullName email pushToken');
+      const group = await Group.findById(groupId).populate<{ members: { userId: UserWithPushToken }[] }>('members.userId', 'fullName email expoPushToken');
       
       if (!group) {
         res.status(404).json({ error: 'Group not found' });
         return;
       }
 
-      // Collect push tokens and create personalized messages
       const messages: ExpoPushMessage[] = [];
 
-      group.members.forEach((member: any) => {
-        const user = member.userId as UserWithPushToken;
-        if (user.expoPushToken && Expo.isExpoPushToken(user.expoPushToken)) {
+      group.members.forEach(member => {
+        const user = member.userId;
+        if (user && user.expoPushToken && Expo.isExpoPushToken(user.expoPushToken)) {
           let title: string;
           let body: string;
 
@@ -244,42 +225,25 @@ class NotificationController {
             sound: 'default',
             title,
             body,
-            data: {
-              type: 'quickdraw_result',
-              gameId,
-              groupId,
-              winner,
-              loser,
-              expenseTitle,
-            },
+            data: { type: 'quickdraw_result', gameId, groupId, winner, loser, expenseTitle },
             priority: 'normal',
           });
         }
       });
 
-      if (messages.length === 0) {
-        res.json({ success: true, message: 'No valid push tokens found', sentTo: 0 });
-        return;
-      }
-
-      // Send notifications
-      const chunks = expo.chunkPushNotifications(messages);
-      for (const chunk of chunks) {
-        try {
-          await expo.sendPushNotificationsAsync(chunk);
-        } catch (error) {
-          console.error('Error sending result notification chunk:', error);
+      if (messages.length > 0) {
+        const chunks = expo.chunkPushNotifications(messages);
+        for (const chunk of chunks) {
+          try {
+            await expo.sendPushNotificationsAsync(chunk);
+          } catch (error) {
+            console.error('Error sending result notification chunk:', error);
+          }
         }
       }
 
       console.log(`🎯 Game result notifications sent to ${messages.length} players`);
-      console.log(`   Winner: ${winner}, Loser: ${loser}, Expense: ${expenseTitle}`);
-
-      res.json({
-        success: true,
-        message: `Game result notifications sent to ${messages.length} players`,
-        sentTo: messages.length
-      });
+      res.json({ success: true, message: 'Game result notifications sent.', sentTo: messages.length });
 
     } catch (error) {
       console.error('Error sending game result notification:', error);

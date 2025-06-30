@@ -30,9 +30,7 @@ export default function TabLayout() {
           name="index"
           options={{
             title: 'Dashboard',
-            tabBarIcon: ({ color, size }) => (
-              <Home size={size} color={color} />
-            ),
+            tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
           }}
         />
         <Tabs.Screen
@@ -57,12 +55,10 @@ export default function TabLayout() {
           name="profile"
           options={{
             title: 'Profile',
-            tabBarIcon: ({ color, size }) => (
-              <User size={size} color={color} />
-            ),
+            tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
           }}
         />
-      </Tabs>      
+      </Tabs>
       {/* Voice AI Assistant - Available on all tabs, no welcome here */}
       <VoiceAIAssistant />
     </View>

@@ -7,6 +7,7 @@ The Divido expense tracking app has been successfully transformed into a vocal, 
 ## ✅ Completed Features
 
 ### 🤖 AI Assistant "Divi"
+
 - **Enhanced TTS**: Eleven Labs integration with fallback to native speech synthesis
 - **Cross-platform**: Works on web (Web Speech API) and mobile (expo-speech)
 - **Voice Recognition**: Web Speech API for web, simulated for mobile
@@ -15,29 +16,33 @@ The Divido expense tracking app has been successfully transformed into a vocal, 
 - **Welcome Experience**: Greets users only on dashboard and once per session
 
 ### 🔐 Authentication
+
 - **Supabase Auth**: Email/password authentication system
 - **Clean UI**: Removed all Firebase/Google/Apple auth code
 - **Secure**: Proper token management and session handling
 
 ### 👥 Friends & Social
+
 - **Find Friends**: Search users by email address
 - **Friend Requests**: Send and manage friend requests
 - **Group Integration**: Add friends to expense groups
 - **Profile Management**: Clean profile screen with friend management
 
 ### 🎨 UI/UX Polish
+
 - **Custom Header**: Consistent navigation across all screens
 - **Modern Design**: Clean, accessible interface
 - **Responsive**: Works on web and mobile
 - **Error Handling**: Comprehensive error states and user feedback
 
 ### 🗣️ Voice Features
-- **Text-to-Speech**: 
+
+- **Text-to-Speech**:
   - Primary: Eleven Labs API (premium female voice)
   - Fallback: Native browser/device TTS
   - Rate: 1.0x (slightly faster than default)
   - Pitch: 1.1 (feminine tone)
-- **Speech Recognition**: 
+- **Speech Recognition**:
   - Web: Web Speech API
   - Mobile: Simulated (tap to speak)
 - **Audio Feedback**: Haptic feedback and visual cues
@@ -45,7 +50,9 @@ The Divido expense tracking app has been successfully transformed into a vocal, 
 ## 🔧 Technical Setup
 
 ### Environment Variables
+
 Create `.env` file with:
+
 ```env
 EXPO_PUBLIC_SUPABASE_URL=your_supabase_url
 EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
@@ -54,6 +61,7 @@ EXPO_PUBLIC_ELEVEN_LABS_API_KEY=your_eleven_labs_api_key (optional)
 ```
 
 ### Key Dependencies
+
 - **expo**: Core framework
 - **@supabase/supabase-js**: Database and auth
 - **@google/generative-ai**: AI assistant
@@ -64,12 +72,14 @@ EXPO_PUBLIC_ELEVEN_LABS_API_KEY=your_eleven_labs_api_key (optional)
 ## 🚀 Running the App
 
 ### Development
+
 ```bash
 npm start
 # Press 'w' for web, scan QR for mobile
 ```
 
 ### Production Build
+
 ```bash
 npm run build
 # Outputs to dist/ directory
@@ -87,6 +97,7 @@ npm run build
 ## 🎵 Voice Assistant (Divi)
 
 ### Features
+
 - **Always Available**: Bottom-right corner on all tabs
 - **Voice Commands**: Tap mic button to speak
 - **Smart Responses**: Powered by Google Gemini
@@ -94,6 +105,7 @@ npm run build
 - **Context Aware**: Understands app state and user needs
 
 ### Voice Flow
+
 1. Tap mic button or status text to open chat
 2. Speak or type your message
 3. Divi processes with Gemini AI
@@ -103,6 +115,7 @@ npm run build
 ## 🔍 Friend Discovery
 
 ### Search Features
+
 - **Email Search**: Find users by exact email
 - **Real-time Results**: Instant search results
 - **Friend Requests**: Send/receive friend requests
@@ -112,11 +125,13 @@ npm run build
 ## 🛡️ Error Handling
 
 ### Network Issues
+
 - Graceful degradation for offline use
 - Retry mechanisms for failed requests
 - User-friendly error messages
 
 ### Voice Issues
+
 - Automatic fallback to text if speech fails
 - Clear indicators for voice availability
 - Alternative input methods always available
@@ -124,16 +139,19 @@ npm run build
 ## 📊 Database Schema
 
 ### Users
+
 - Authentication via Supabase Auth
 - Profile information (name, email, avatar)
 - Friend relationships
 
 ### Groups & Expenses
+
 - Group management with member roles
 - Expense tracking and splitting
 - Real-time updates
 
 ### Friend Requests
+
 - Pending/accepted/rejected states
 - Bidirectional relationships
 - Email-based discovery
@@ -141,6 +159,7 @@ npm run build
 ## 🔄 Testing
 
 ### Manual Testing Checklist
+
 - [ ] Sign up new user
 - [ ] Voice assistant speaks on login
 - [ ] Find friends by email search
@@ -150,6 +169,7 @@ npm run build
 - [ ] Cross-platform compatibility
 
 ### Error Testing
+
 - [ ] Network disconnection
 - [ ] Invalid friend email search
 - [ ] TTS unavailable fallback
@@ -158,6 +178,7 @@ npm run build
 ## 🌟 Next Steps (Optional Enhancements)
 
 ### Advanced Features
+
 - [ ] Push notifications for friend requests
 - [ ] Group chat with voice messages
 - [ ] Receipt scanning with camera
@@ -165,6 +186,7 @@ npm run build
 - [ ] Expense analytics with AI insights
 
 ### Voice Enhancements
+
 - [ ] Custom wake word detection
 - [ ] Multiple language support
 - [ ] Voice profiles for different users
@@ -173,6 +195,7 @@ npm run build
 ## 🎉 Success Metrics
 
 The app successfully provides:
+
 - **Vocal AI Experience**: Divi as the main interface
 - **Seamless Friend Discovery**: Easy email-based search
 - **Modern UI**: Clean, accessible design

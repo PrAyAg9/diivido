@@ -1,14 +1,16 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-import express from 'express';
+import express, { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import morgan from 'morgan';
 
 // Validate required environment variables
 const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET'];
-const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+const missingEnvVars = requiredEnvVars.filter(
+  (varName) => !process.env[varName]
+);
 
 if (missingEnvVars.length > 0) {
   console.error('Missing required environment variables:', missingEnvVars);
@@ -28,8 +30,6 @@ import quickDrawRoutes from './routes/quickdraw.routes';
 import budgetRoutes from './routes/budget.routes';
 import notificationRoutes from './routes/notification.routes';
 
-
-
 const app = express();
 
 // Middleware
@@ -44,18 +44,18 @@ mongoose
   .catch((error: Error) => console.error('MongoDB connection error:', error));
 
 // Health check endpoint
-app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'OK', 
+app.get('/health', (req: Request, res: Response) => {
+  res.status(200).json({
+    status: 'OK',
     message: 'Divido Backend is running',
     timestamp: new Date().toISOString(),
-    version: '1.0.0'
+    version: '1.0.0',
   });
 });
 
 // Root endpoint
-app.get('/', (req, res) => {
-  res.status(200).json({ 
+app.get('/', (req: Request, res: Response) => {
+  res.status(200).json({
     message: 'Welcome to Divido Backend API',
     version: '1.0.0',
     endpoints: {
@@ -70,8 +70,8 @@ app.get('/', (req, res) => {
       ai: '/api/ai',
       quickdraw: '/api/quickdraw',
       budget: '/api/budget',
-      notifications: '/api/notifications'
-    }
+      notifications: '/api/notifications',
+    },
   });
 });
 

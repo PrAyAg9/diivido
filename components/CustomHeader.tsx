@@ -9,35 +9,34 @@ interface CustomHeaderProps {
   backgroundColor?: string;
 }
 
-export default function CustomHeader({ 
-  title, 
-  rightComponent, 
-  leftComponent, 
-  backgroundColor = '#FFFFFF' 
+export default function CustomHeader({
+  title,
+  rightComponent,
+  leftComponent,
+  backgroundColor = '#FFFFFF',
 }: CustomHeaderProps) {
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[
-      styles.container, 
-      { 
-        backgroundColor,
-        paddingTop: Platform.OS === 'android' ? insets.top + 20 : insets.top + 12,
-        paddingBottom: 16,
-      }
-    ]}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor,
+          paddingTop:
+            Platform.OS === 'android' ? insets.top + 20 : insets.top + 12,
+          paddingBottom: 16,
+        },
+      ]}
+    >
       <View style={styles.content}>
-        <View style={styles.leftSection}>
-          {leftComponent}
-        </View>
-        
+        <View style={styles.leftSection}>{leftComponent}</View>
+
         <View style={styles.centerSection}>
           <Text style={styles.title}>{title}</Text>
         </View>
-        
-        <View style={styles.rightSection}>
-          {rightComponent}
-        </View>
+
+        <View style={styles.rightSection}>{rightComponent}</View>
       </View>
     </View>
   );

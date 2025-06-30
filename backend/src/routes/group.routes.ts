@@ -11,9 +11,9 @@ const router = Router();
 
 router.use(auth);
 
-router.post('/', createGroup);
-router.get('/', getGroups);
-router.get('/:id', getGroupById);
-router.post('/:id/members', addMember);
+router.post('/', createGroup as any);
+router.get('/', getGroups as any);
+router.get('/:id', getGroupById as any);
+router.post('/:id/members', addMember as any);
 
 export default router;

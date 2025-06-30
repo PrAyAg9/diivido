@@ -51,7 +51,8 @@ export default function ManageFriendsScreen() {
           id: '1',
           fullName: 'John Doe',
           email: 'john@example.com',
-          avatarUrl: 'https://images.pexels.com/photos/1674752/pexels-photo-1674752.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
+          avatarUrl:
+            'https://images.pexels.com/photos/1674752/pexels-photo-1674752.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
           status: 'accepted',
         },
         {
@@ -78,15 +79,15 @@ export default function ManageFriendsScreen() {
   const handleAcceptRequest = async (friendId: string) => {
     try {
       await friendsApi.acceptFriendRequest(friendId);
-      
-      setFriends(prev =>
-        prev.map(friend =>
+
+      setFriends((prev) =>
+        prev.map((friend) =>
           friend.id === friendId
             ? { ...friend, status: 'accepted' as const }
             : friend
         )
       );
-      
+
       Alert.alert('Success', 'Friend request accepted!');
     } catch (error) {
       console.error('Error accepting request:', error);
@@ -97,9 +98,9 @@ export default function ManageFriendsScreen() {
   const handleRejectRequest = async (friendId: string) => {
     try {
       await friendsApi.rejectFriendRequest(friendId);
-      
-      setFriends(prev => prev.filter(friend => friend.id !== friendId));
-      
+
+      setFriends((prev) => prev.filter((friend) => friend.id !== friendId));
+
       Alert.alert('Success', 'Friend request rejected');
     } catch (error) {
       console.error('Error rejecting request:', error);
@@ -119,9 +120,11 @@ export default function ManageFriendsScreen() {
           onPress: async () => {
             try {
               await friendsApi.removeFriend(friendId);
-              
-              setFriends(prev => prev.filter(friend => friend.id !== friendId));
-              
+
+              setFriends((prev) =>
+                prev.filter((friend) => friend.id !== friendId)
+              );
+
               Alert.alert('Success', 'Friend removed');
             } catch (error) {
               console.error('Error removing friend:', error);
@@ -142,14 +145,16 @@ export default function ManageFriendsScreen() {
     loadFriends();
   };
 
-  const acceptedFriends = friends.filter(f => f.status === 'accepted');
-  const pendingReceived = friends.filter(f => f.status === 'pending_received');
-  const pendingSent = friends.filter(f => f.status === 'pending_sent');
+  const acceptedFriends = friends.filter((f) => f.status === 'accepted');
+  const pendingReceived = friends.filter(
+    (f) => f.status === 'pending_received'
+  );
+  const pendingSent = friends.filter((f) => f.status === 'pending_sent');
 
   if (loading) {
     return (
       <View style={styles.container}>
-        <CustomHeader 
+        <CustomHeader
           title="Manage Friends"
           leftComponent={
             <TouchableOpacity
@@ -170,7 +175,7 @@ export default function ManageFriendsScreen() {
 
   return (
     <View style={styles.container}>
-      <CustomHeader 
+      <CustomHeader
         title="Manage Friends"
         leftComponent={
           <TouchableOpacity
@@ -198,7 +203,9 @@ export default function ManageFriendsScreen() {
                 <View style={styles.friendInfo}>
                   <Image
                     source={{
-                      uri: friend.avatarUrl || 'https://images.pexels.com/photos/1674752/pexels-photo-1674752.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
+                      uri:
+                        friend.avatarUrl ||
+                        'https://images.pexels.com/photos/1674752/pexels-photo-1674752.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
                     }}
                     style={styles.avatar}
                   />
@@ -235,7 +242,9 @@ export default function ManageFriendsScreen() {
                 <View style={styles.friendInfo}>
                   <Image
                     source={{
-                      uri: friend.avatarUrl || 'https://images.pexels.com/photos/1674752/pexels-photo-1674752.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
+                      uri:
+                        friend.avatarUrl ||
+                        'https://images.pexels.com/photos/1674752/pexels-photo-1674752.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
                     }}
                     style={styles.avatar}
                   />
@@ -255,13 +264,17 @@ export default function ManageFriendsScreen() {
         {/* Friends */}
         {acceptedFriends.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Friends ({acceptedFriends.length})</Text>
+            <Text style={styles.sectionTitle}>
+              Friends ({acceptedFriends.length})
+            </Text>
             {acceptedFriends.map((friend) => (
               <View key={friend.id} style={styles.friendCard}>
                 <View style={styles.friendInfo}>
                   <Image
                     source={{
-                      uri: friend.avatarUrl || 'https://images.pexels.com/photos/1674752/pexels-photo-1674752.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
+                      uri:
+                        friend.avatarUrl ||
+                        'https://images.pexels.com/photos/1674752/pexels-photo-1674752.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
                     }}
                     style={styles.avatar}
                   />

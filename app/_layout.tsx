@@ -39,14 +39,15 @@ export default function RootLayout() {
         await notificationApi.registerDevice();
 
         // Handle notification responses (when user taps on notification)
-        const responseSubscription = notificationApi.addNotificationResponseListener((response) => {
-          const data = response.notification.request.content.data;
-          
-          if (data.type === 'quickdraw' && data.gameId) {
-            // Navigate to Quick Draw game
-            router.push(`/quickdraw-game?gameId=${data.gameId}`);
-          }
-        });
+        const responseSubscription =
+          notificationApi.addNotificationResponseListener((response) => {
+            const data = response.notification.request.content.data;
+
+            if (data.type === 'quickdraw' && data.gameId) {
+              // Navigate to Quick Draw game
+              router.push(`/quickdraw-game?gameId=${data.gameId}`);
+            }
+          });
 
         return () => {
           responseSubscription.remove();

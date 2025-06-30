@@ -30,7 +30,7 @@ export default function AIDemoScreen() {
       description: 'Talk to Divvy naturally',
       examples: [
         'Remind John about the dinner money',
-        'What\'s my balance?',
+        "What's my balance?",
         'Help me split the restaurant bill',
       ],
       icon: Mic,
@@ -55,7 +55,7 @@ export default function AIDemoScreen() {
       examples: [
         '💸 Hey Sarah! Your wallet called, it misses the $25 from dinner! 😉',
         '🍕 Pizza debt alert! Alex owes $15. Payment in pepperoni accepted! 🍕',
-        '💰 Friendly reminder: That $30 isn\'t going to pay itself! 😊',
+        "💰 Friendly reminder: That $30 isn't going to pay itself! 😊",
       ],
       icon: MessageCircle,
       color: '#F59E0B',
@@ -118,7 +118,8 @@ export default function AIDemoScreen() {
           </View>
           <Text style={styles.heroTitle}>Meet Divvy AI</Text>
           <Text style={styles.heroSubtitle}>
-            Your intelligent expense assistant powered by Gemini AI and Eleven Labs
+            Your intelligent expense assistant powered by Gemini AI and Eleven
+            Labs
           </Text>
         </View>
 
@@ -128,7 +129,7 @@ export default function AIDemoScreen() {
           {features.map((feature) => {
             const IconComponent = feature.icon;
             const isSelected = selectedFeature === feature.id;
-            
+
             return (
               <TouchableOpacity
                 key={feature.id}
@@ -136,18 +137,27 @@ export default function AIDemoScreen() {
                   styles.featureCard,
                   isSelected && styles.featureCardSelected,
                 ]}
-                onPress={() => setSelectedFeature(isSelected ? null : feature.id)}
+                onPress={() =>
+                  setSelectedFeature(isSelected ? null : feature.id)
+                }
               >
                 <View style={styles.featureHeader}>
-                  <View style={[styles.featureIcon, { backgroundColor: `${feature.color}20` }]}>
+                  <View
+                    style={[
+                      styles.featureIcon,
+                      { backgroundColor: `${feature.color}20` },
+                    ]}
+                  >
                     <IconComponent size={20} color={feature.color} />
                   </View>
                   <View style={styles.featureInfo}>
                     <Text style={styles.featureTitle}>{feature.title}</Text>
-                    <Text style={styles.featureDescription}>{feature.description}</Text>
+                    <Text style={styles.featureDescription}>
+                      {feature.description}
+                    </Text>
                   </View>
                 </View>
-                
+
                 {isSelected && (
                   <View style={styles.featureExamples}>
                     <Text style={styles.examplesTitle}>Examples:</Text>
@@ -171,7 +181,9 @@ export default function AIDemoScreen() {
               <View key={index} style={styles.quickActionCard}>
                 <Text style={styles.quickActionIcon}>{action.icon}</Text>
                 <Text style={styles.quickActionTitle}>{action.title}</Text>
-                <Text style={styles.quickActionDescription}>{action.description}</Text>
+                <Text style={styles.quickActionDescription}>
+                  {action.description}
+                </Text>
               </View>
             ))}
           </View>

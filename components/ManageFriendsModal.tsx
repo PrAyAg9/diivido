@@ -28,13 +28,13 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import Avatar from '@/components/Avatar';
-import { 
-  getUserSentInvitations, 
-  getUserFriends, 
-  resendInvitation, 
+import {
+  getUserSentInvitations,
+  getUserFriends,
+  resendInvitation,
   getInvitationStats,
   type SentInvitation,
-  type Friend 
+  type Friend,
 } from '@/services/invitation-api';
 
 interface CombinedContact {
@@ -63,7 +63,9 @@ const ManageFriendsModal: React.FC<ManageFriendsModalProps> = ({
   const [contacts, setContacts] = useState<CombinedContact[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTab, setSelectedTab] = useState<'all' | 'active' | 'pending'>('all');
+  const [selectedTab, setSelectedTab] = useState<'all' | 'active' | 'pending'>(
+    'all'
+  );
   const [stats, setStats] = useState({
     total: 0,
     active: 0,
@@ -89,7 +91,7 @@ const ManageFriendsModal: React.FC<ManageFriendsModalProps> = ({
       // Combine friends and invitations into one list
       const combinedContacts: CombinedContact[] = [
         // Add friends
-        ...friends.map(friend => ({
+        ...friends.map((friend) => ({
           id: friend.id,
           name: friend.fullName,
           email: friend.email,
@@ -100,8 +102,8 @@ const ManageFriendsModal: React.FC<ManageFriendsModalProps> = ({
         })),
         // Add pending invitations
         ...sentInvitations
-          .filter(inv => inv.status === 'pending')
-          .map(inv => ({
+          .filter((inv) => inv.status === 'pending')
+          .map((inv) => ({
             id: inv.id,
             name: inv.email.split('@')[0], // Use email prefix as name
             email: inv.email,
@@ -115,8 +117,10 @@ const ManageFriendsModal: React.FC<ManageFriendsModalProps> = ({
       setStats({
         total: combinedContacts.length,
         active: friends.length,
-        pending: sentInvitations.filter(inv => inv.status === 'pending').length,
-        declined: sentInvitations.filter(inv => inv.status === 'declined').length,
+        pending: sentInvitations.filter((inv) => inv.status === 'pending')
+          .length,
+        declined: sentInvitations.filter((inv) => inv.status === 'declined')
+          .length,
       });
     } catch (error) {
       console.error('Error loading contacts:', error);
@@ -125,17 +129,19 @@ const ManageFriendsModal: React.FC<ManageFriendsModalProps> = ({
     }
   };
 
-  const filteredContacts = contacts.filter(contact => {
-    const matchesSearch = contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         contact.email.toLowerCase().includes(searchQuery.toLowerCase());
-    
+  const filteredContacts = contacts.filter((contact) => {
+    const matchesSearch =
+      contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      contact.email.toLowerCase().includes(searchQuery.toLowerCase());
+
     const matchesTab = selectedTab === 'all' || contact.status === selectedTab;
-    
+
     return matchesSearch && matchesTab;
   });
 
   const handleRemoveContact = (contact: CombinedContact) => {
-    const actionText = contact.type === 'friend' ? 'remove' : 'cancel invitation for';
+    const actionText =
+      contact.type === 'friend' ? 'remove' : 'cancel invitation for';
     Alert.alert(
       contact.type === 'friend' ? 'Remove Friend' : 'Cancel Invitation',
       `Are you sure you want to ${actionText} ${contact.name}?`,
@@ -149,16 +155,20 @@ const ManageFriendsModal: React.FC<ManageFriendsModalProps> = ({
               // For friends, you'd call a remove friend API
               // For invitations, you'd call a cancel invitation API
               // For now, just remove from local state
-              setContacts(contacts.filter(c => c.id !== contact.id));
-              
-              const successMessage = contact.type === 'friend' 
-                ? `${contact.name} has been removed from your friends list.`
-                : `Invitation to ${contact.name} has been cancelled.`;
-              
+              setContacts(contacts.filter((c) => c.id !== contact.id));
+
+              const successMessage =
+                contact.type === 'friend'
+                  ? `${contact.name} has been removed from your friends list.`
+                  : `Invitation to ${contact.name} has been cancelled.`;
+
               Alert.alert('Success', successMessage);
             } catch (error) {
               console.error('Error removing contact:', error);
-              Alert.alert('Error', 'Failed to remove contact. Please try again.');
+              Alert.alert(
+                'Error',
+                'Failed to remove contact. Please try again.'
+              );
             }
           },
         },
@@ -218,7 +228,8 @@ const ManageFriendsModal: React.FC<ManageFriendsModalProps> = ({
           </TouchableOpacity>
           <Text style={styles.title}>Manage Friends</Text>
           <Text style={styles.subtitle}>
-            {stats.total} contact{stats.total !== 1 ? 's' : ''} • {stats.active} active
+            {stats.total} contact{stats.total !== 1 ? 's' : ''} • {stats.active}{' '}
+            active
           </Text>
         </View>
 
@@ -259,10 +270,7 @@ const ManageFriendsModal: React.FC<ManageFriendsModalProps> = ({
           ].map((tab) => (
             <TouchableOpacity
               key={tab.key}
-              style={[
-                styles.tab,
-                selectedTab === tab.key && styles.activeTab,
-              ]}
+              style={[styles.tab, selectedTab === tab.key && styles.activeTab]}
               onPress={() => setSelectedTab(tab.key as any)}
             >
               <Text
@@ -304,7 +312,7 @@ const ManageFriendsModal: React.FC<ManageFriendsModalProps> = ({
                     name={contact.name}
                     size={50}
                   />
-                  
+
                   <View style={styles.friendInfo}>
                     <View style={styles.friendHeader}>
                       <Text style={styles.friendName}>{contact.name}</Text>
@@ -324,9 +332,9 @@ const ManageFriendsModal: React.FC<ManageFriendsModalProps> = ({
                         </Text>
                       </View>
                     </View>
-                    
+
                     <Text style={styles.friendEmail}>{contact.email}</Text>
-                    
+
                     <View style={styles.friendMeta}>
                       <Text style={styles.metaText}>
                         Added {formatDate(contact.addedAt)}
@@ -358,7 +366,7 @@ const ManageFriendsModal: React.FC<ManageFriendsModalProps> = ({
                           <MessageCircle size={16} color="#10B981" />
                           <Text style={styles.chatButtonText}>Chat</Text>
                         </TouchableOpacity>
-                        
+
                         <TouchableOpacity
                           style={styles.requestMoneyButton}
                           onPress={() => {
@@ -374,16 +382,18 @@ const ManageFriendsModal: React.FC<ManageFriendsModalProps> = ({
                           }}
                         >
                           <DollarSign size={16} color="#F59E0B" />
-                          <Text style={styles.requestMoneyButtonText}>Request</Text>
+                          <Text style={styles.requestMoneyButtonText}>
+                            Request
+                          </Text>
                         </TouchableOpacity>
                       </>
                     )}
-                    
+
                     <TouchableOpacity
                       style={styles.actionButton}
                       onPress={() => {
                         const actions = [];
-                        
+
                         if (contact.status === 'active') {
                           actions.push({
                             text: 'Message',
@@ -399,23 +409,33 @@ const ManageFriendsModal: React.FC<ManageFriendsModalProps> = ({
                             },
                           });
                         }
-                        
+
                         if (contact.status === 'pending') {
                           actions.push({
                             text: 'Resend Invite',
                             onPress: () => handleResendInvite(contact),
                           });
                         }
-                        
+
                         actions.push({
-                          text: contact.type === 'friend' ? 'Remove Friend' : 'Cancel Invitation',
+                          text:
+                            contact.type === 'friend'
+                              ? 'Remove Friend'
+                              : 'Cancel Invitation',
                           style: 'destructive' as const,
                           onPress: () => handleRemoveContact(contact),
                         });
-                        
-                        actions.push({ text: 'Cancel', style: 'cancel' as const });
-                        
-                        Alert.alert('Contact Actions', `What would you like to do with ${contact.name}?`, actions);
+
+                        actions.push({
+                          text: 'Cancel',
+                          style: 'cancel' as const,
+                        });
+
+                        Alert.alert(
+                          'Contact Actions',
+                          `What would you like to do with ${contact.name}?`,
+                          actions
+                        );
                       }}
                     >
                       <MoreVertical size={20} color="#6B7280" />

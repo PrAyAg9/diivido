@@ -1,6 +1,7 @@
 // src/controllers/budget.controller.ts
 
 import { Request, Response } from 'express';
+import { AuthenticatedRequest } from '../types/express';
 import { Group } from '../models/group.model';
 import { Expense } from '../models/expense.model';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -15,12 +16,14 @@ interface BudgetSuggestion {
 }
 
 class BudgetController {
-
   // Get AI budget suggestions based on user description
-  getBudgetSuggestions = async (req: Request, res: Response): Promise<void> => {
+  getBudgetSuggestions = async (
+    req: AuthenticatedRequest,
+    res: Response
+  ): Promise<void> => {
     try {
       const { description, groupId } = req.body;
-      const userId = req.user?.id || req.user?._id;
+      const userId = req.user.id;
 
       if (!description) {
         res.status(400).json({ error: 'Description is required' });
@@ -34,8 +37,8 @@ class BudgetController {
         return;
       }
 
-      const isMember = group.members.some((member: any) => 
-        member.userId.toString() === userId.toString()
+      const isMember = group.members.some(
+        (member: any) => member.userId.toString() === userId.toString()
       );
 
       if (!isMember) {
@@ -77,59 +80,60 @@ class BudgetController {
       try {
         // Parse AI response
         const aiResponse = JSON.parse(responseText);
-        
+
         if (aiResponse.suggestions && Array.isArray(aiResponse.suggestions)) {
           res.json({
             success: true,
             suggestions: aiResponse.suggestions,
-            description: description
+            description: description,
           });
         } else {
           throw new Error('Invalid AI response format');
         }
-
       } catch (parseError) {
         // Fallback with default suggestions if AI parsing fails
         console.error('Error parsing AI response:', parseError);
-        
+
         const fallbackSuggestions: BudgetSuggestion[] = [
           {
-            name: "Saver Plan",
+            name: 'Saver Plan',
             amount: 1500,
-            reason: "Budget-friendly option focusing on essentials."
+            reason: 'Budget-friendly option focusing on essentials.',
           },
           {
-            name: "Comfort Plan", 
+            name: 'Comfort Plan',
             amount: 3000,
-            reason: "Good balance of comfort and value."
+            reason: 'Good balance of comfort and value.',
           },
           {
-            name: "Luxury Plan",
+            name: 'Luxury Plan',
             amount: 5500,
-            reason: "Premium experience with top-tier options."
-          }
+            reason: 'Premium experience with top-tier options.',
+          },
         ];
 
         res.json({
           success: true,
           suggestions: fallbackSuggestions,
           description: description,
-          fallback: true
+          fallback: true,
         });
       }
-
     } catch (error) {
       console.error('Error getting budget suggestions:', error);
       res.status(500).json({ error: 'Failed to get budget suggestions' });
     }
-  }
+  };
 
   // Set group budget
-  setGroupBudget = async (req: Request, res: Response): Promise<void> => {
+  setGroupBudget = async (
+    req: AuthenticatedRequest,
+    res: Response
+  ): Promise<void> => {
     try {
       const { groupId } = req.params;
       const { amount, currency = 'USD', description } = req.body;
-      const userId = req.user?.id || req.user?._id;
+      const userId = req.user.id;
 
       if (!amount || amount <= 0) {
         res.status(400).json({ error: 'Valid budget amount is required' });
@@ -144,8 +148,8 @@ class BudgetController {
       }
 
       // Check if user is admin or member
-      const memberInfo = group.members.find((member: any) => 
-        member.userId.toString() === userId.toString()
+      const memberInfo = group.members.find(
+        (member: any) => member.userId.toString() === userId.toString()
       );
 
       if (!memberInfo) {
@@ -158,14 +162,19 @@ class BudgetController {
         totalAmount: amount,
         currency: currency,
         description: description,
-        setBy: userId,
-        setAt: new Date()
+        setBy:
+          typeof userId === 'string'
+            ? require('mongoose').Types.ObjectId(userId)
+            : userId,
+        setAt: new Date(),
       };
 
       await group.save();
 
       // Send notification to all group members
-      const memberIds = group.members.map((member: any) => member.userId.toString());
+      const memberIds = group.members.map((member: any) =>
+        member.userId.toString()
+      );
       await notificationService.sendGroupNotification(
         memberIds,
         `💰 Budget Set for ${group.name}`,
@@ -174,7 +183,7 @@ class BudgetController {
           type: 'budget_set',
           groupId: groupId,
           amount: amount,
-          currency: currency
+          currency: currency,
         }
       );
 
@@ -184,21 +193,23 @@ class BudgetController {
         budget: {
           amount: amount,
           currency: currency,
-          description: description
-        }
+          description: description,
+        },
       });
-
     } catch (error) {
       console.error('Error setting group budget:', error);
       res.status(500).json({ error: 'Failed to set group budget' });
     }
-  }
+  };
 
   // Get group budget and spending summary
-  getGroupBudgetStatus = async (req: Request, res: Response): Promise<void> => {
+  getGroupBudgetStatus = async (
+    req: AuthenticatedRequest,
+    res: Response
+  ): Promise<void> => {
     try {
       const { groupId } = req.params;
-      const userId = req.user?.id || req.user?._id;
+      const userId = req.user.id;
 
       // Find group
       const group = await Group.findById(groupId);
@@ -208,8 +219,8 @@ class BudgetController {
       }
 
       // Check membership
-      const isMember = group.members.some((member: any) => 
-        member.userId.toString() === userId.toString()
+      const isMember = group.members.some(
+        (member: any) => member.userId.toString() === userId.toString()
       );
 
       if (!isMember) {
@@ -219,12 +230,15 @@ class BudgetController {
 
       // Calculate total spending
       const expenses = await Expense.find({ groupId: groupId });
-      const totalSpent = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+      const totalSpent = expenses.reduce(
+        (sum, expense) => sum + expense.amount,
+        0
+      );
 
       let budgetStatus = null;
       if (group.budget) {
         const percentage = (totalSpent / group.budget.totalAmount) * 100;
-        
+
         budgetStatus = {
           totalBudget: group.budget.totalAmount,
           currency: group.budget.currency,
@@ -232,7 +246,14 @@ class BudgetController {
           totalSpent: totalSpent,
           remaining: group.budget.totalAmount - totalSpent,
           percentage: Math.round(percentage * 100) / 100,
-          status: percentage >= 100 ? 'exceeded' : percentage >= 90 ? 'warning' : percentage >= 50 ? 'halfway' : 'good'
+          status:
+            percentage >= 100
+              ? 'exceeded'
+              : percentage >= 90
+              ? 'warning'
+              : percentage >= 50
+              ? 'halfway'
+              : 'good',
         };
 
         // Check if we should send budget alerts
@@ -243,26 +264,30 @@ class BudgetController {
         success: true,
         groupName: group.name,
         budgetStatus: budgetStatus,
-        recentExpenses: expenses.slice(-5).map(expense => ({
+        recentExpenses: expenses.slice(-5).map((expense) => ({
           title: expense.title,
           amount: expense.amount,
-          date: expense.date
-        }))
+          date: expense.date,
+        })),
       });
-
     } catch (error) {
       console.error('Error getting budget status:', error);
       res.status(500).json({ error: 'Failed to get budget status' });
     }
-  }
+  };
 
   // Check and send budget alerts if needed
-  private checkAndSendBudgetAlerts = async (group: any, totalSpent: number, percentage: number): Promise<void> => {
+  private checkAndSendBudgetAlerts = async (
+    group: any,
+    totalSpent: number,
+    percentage: number
+  ): Promise<void> => {
     try {
       if (!group.budget) return;
 
       const lastAlert = group.budget.lastAlertSent;
-      const shouldSendAlert = !lastAlert || 
+      const shouldSendAlert =
+        !lastAlert ||
         (percentage >= 100 && (!lastAlert || lastAlert.percentage < 100)) ||
         (percentage >= 90 && (!lastAlert || lastAlert.percentage < 90)) ||
         (percentage >= 50 && (!lastAlert || lastAlert.percentage < 50));
@@ -270,7 +295,7 @@ class BudgetController {
       if (shouldSendAlert) {
         const groupMembers = group.members.map((member: any) => ({
           userId: member.userId.toString(),
-          userName: member.userId.fullName || 'Member'
+          userName: member.userId.fullName || 'Member',
         }));
 
         await notificationService.sendBudgetAlert(
@@ -284,22 +309,24 @@ class BudgetController {
         // Update last alert sent
         group.budget.lastAlertSent = {
           percentage: Math.floor(percentage / 10) * 10, // Round to nearest 10%
-          sentAt: new Date()
+          sentAt: new Date(),
         };
 
         await group.save();
       }
-
     } catch (error) {
       console.error('Error checking budget alerts:', error);
     }
-  }
+  };
 
   // Remove group budget
-  removeGroupBudget = async (req: Request, res: Response): Promise<void> => {
+  removeGroupBudget = async (
+    req: AuthenticatedRequest,
+    res: Response
+  ): Promise<void> => {
     try {
       const { groupId } = req.params;
-      const userId = req.user?.id || req.user?._id;
+      const userId = req.user.id;
 
       const group = await Group.findById(groupId);
       if (!group) {
@@ -308,8 +335,8 @@ class BudgetController {
       }
 
       // Check if user is admin
-      const memberInfo = group.members.find((member: any) => 
-        member.userId.toString() === userId.toString()
+      const memberInfo = group.members.find(
+        (member: any) => member.userId.toString() === userId.toString()
       );
 
       if (!memberInfo || memberInfo.role !== 'admin') {
@@ -322,14 +349,13 @@ class BudgetController {
 
       res.json({
         success: true,
-        message: 'Group budget removed successfully'
+        message: 'Group budget removed successfully',
       });
-
     } catch (error) {
       console.error('Error removing group budget:', error);
       res.status(500).json({ error: 'Failed to remove group budget' });
     }
-  }
+  };
 }
 
 export default new BudgetController();

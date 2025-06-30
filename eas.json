@@ -13,10 +13,28 @@
     "preview": {
       "distribution": "internal",
       "android": {
-         "buildType": "apk"
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://backend-divido.onrender.com/api"
       }
     },
-    "production": {}
+    "production": {
+      "android": {
+        "buildType": "aab"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://backend-divido.onrender.com/api"
+      }
+    },
+    "apk": {
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://backend-divido.onrender.com/api"
+      }
+    }
   },
   "submit": {
     "production": {}

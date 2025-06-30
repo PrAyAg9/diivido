@@ -6,7 +6,7 @@ const group_model_1 = require("../models/group.model");
 const createPayment = async (req, res) => {
     try {
         const { toUser, groupId, amount, currency, paymentMethod, notes } = req.body;
-        const fromUser = req.user._id;
+        const fromUser = req.user.id;
         // If groupId is provided, verify both users are members of the group
         if (groupId) {
             const group = await group_model_1.Group.findOne({
@@ -39,7 +39,7 @@ const createPayment = async (req, res) => {
 exports.createPayment = createPayment;
 const getPayments = async (req, res) => {
     try {
-        const userId = req.user._id;
+        const userId = req.user.id;
         const { groupId } = req.query;
         const query = {
             $or: [{ fromUser: userId }, { toUser: userId }],
@@ -62,7 +62,7 @@ const updatePaymentStatus = async (req, res) => {
     try {
         const { id } = req.params;
         const { status } = req.body;
-        const userId = req.user._id;
+        const userId = req.user.id;
         const payment = await payment_model_1.Payment.findOne({
             _id: id,
             $or: [{ fromUser: userId }, { toUser: userId }],
@@ -97,7 +97,7 @@ const updatePaymentStatus = async (req, res) => {
 exports.updatePaymentStatus = updatePaymentStatus;
 const getUserPayments = async (req, res) => {
     try {
-        const userId = req.user.id || req.user.userId || req.user._id;
+        const userId = req.user.id;
         console.log('Getting payments for user:', userId);
         const payments = await payment_model_1.Payment.find({
             $or: [{ fromUser: userId }, { toUser: userId }],
@@ -118,7 +118,7 @@ exports.getUserPayments = getUserPayments;
 const getGroupPayments = async (req, res) => {
     try {
         const { groupId } = req.params;
-        const userId = req.user.id || req.user.userId || req.user._id;
+        const userId = req.user.id;
         // Verify user is a member of the group
         const group = await group_model_1.Group.findOne({
             _id: groupId,
@@ -142,7 +142,7 @@ exports.getGroupPayments = getGroupPayments;
 const confirmPayment = async (req, res) => {
     try {
         const { id } = req.params;
-        const userId = req.user.id || req.user.userId || req.user._id;
+        const userId = req.user.id;
         const payment = await payment_model_1.Payment.findOne({
             _id: id,
             toUser: userId, // Only recipient can confirm

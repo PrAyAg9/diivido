@@ -12,7 +12,13 @@ export interface AIResponse {
   text: string;
   audioUrl?: string;
   action?: {
-    type: 'remind' | 'split' | 'pay' | 'balance' | 'create_group' | 'add_expense';
+    type:
+      | 'remind'
+      | 'split'
+      | 'pay'
+      | 'balance'
+      | 'create_group'
+      | 'add_expense';
     data?: any;
   };
   suggestions?: string[];
@@ -34,12 +40,12 @@ export const aiAssistantApi = {
       const response = await fetch(`${API_URL}/ai/process-voice`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           text: voiceText,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         }),
       });
 
@@ -55,13 +61,15 @@ export const aiAssistantApi = {
   },
 
   // Send humorous reminder notification
-  sendHumorousReminder: async (reminderData: ReminderRequest): Promise<{ success: boolean; message: string }> => {
+  sendHumorousReminder: async (
+    reminderData: ReminderRequest
+  ): Promise<{ success: boolean; message: string }> => {
     try {
       const token = await AsyncStorage.getItem('authToken');
       const response = await fetch(`${API_URL}/ai/send-reminder`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(reminderData),
@@ -83,13 +91,15 @@ export const aiAssistantApi = {
     amount: number;
     participants: string[];
     description?: string;
-  }): Promise<{ suggestions: Array<{ type: string; description: string; data: any }> }> => {
+  }): Promise<{
+    suggestions: Array<{ type: string; description: string; data: any }>;
+  }> => {
     try {
       const token = await AsyncStorage.getItem('authToken');
       const response = await fetch(`${API_URL}/ai/split-suggestions`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(context),
@@ -117,7 +127,7 @@ export const aiAssistantApi = {
       const response = await fetch(`${API_URL}/ai/generate-description`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(context),
@@ -135,18 +145,21 @@ export const aiAssistantApi = {
   },
 
   // Get audio for text-to-speech
-  getTextToSpeech: async (text: string, voiceId?: string): Promise<{ audioUrl: string }> => {
+  getTextToSpeech: async (
+    text: string,
+    voiceId?: string
+  ): Promise<{ audioUrl: string }> => {
     try {
       const token = await AsyncStorage.getItem('authToken');
       const response = await fetch(`${API_URL}/ai/text-to-speech`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           text,
-          voiceId: voiceId || 'default' // Will use a default friendly voice
+          voiceId: voiceId || 'default', // Will use a default friendly voice
         }),
       });
 
@@ -171,7 +184,7 @@ export const aiAssistantApi = {
       const token = await AsyncStorage.getItem('authToken');
       const response = await fetch(`${API_URL}/ai/context`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });

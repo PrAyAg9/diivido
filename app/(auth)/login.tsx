@@ -82,7 +82,7 @@ export default function LoginScreen() {
   //   if (provider === 'google') {
   //     setIsLoading(true);
   //     setError(null);
-      
+
   //     try {
   //       const result = await signInWithGoogle();
   //       if (result.error) {

@@ -1,22 +1,18 @@
 import { Request, Response } from 'express';
 import { Group } from '../models/group.model';
+import { AuthenticatedRequest } from '../types/express';
 
-// Assuming req.user is properly typed via middleware.
-// If not, you might define it like:
-// interface AuthRequest extends Request {
-//   user: {
-//     _id: string; // or mongoose.Types.ObjectId
-//     // ... other user properties
-//   }
-// }
-
-export const createGroup = async (req: Request, res: Response) => {
+export const createGroup = async (req: AuthenticatedRequest, res: Response) => {
   try {
     console.log('Create group request body:', req.body);
     const { name, description, avatarUrl, members = [] } = req.body;
 
-    // Use userId from token (could be either id or userId depending on token structure)
-    const userId = req.user.id || req.user.userId || req.user._id;
+    // Use userId from token
+    if (!req.user) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const userId = req.user.id;
 
     console.log('Creating group for user:', userId, req.user);
 
@@ -58,9 +54,13 @@ export const createGroup = async (req: Request, res: Response) => {
   }
 };
 
-export const getGroups = async (req: Request, res: Response) => {
+export const getGroups = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = req.user.id || req.user.userId || req.user._id;
+    if (!req.user) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const userId = req.user.id;
     console.log('Getting groups for user:', userId);
 
     const groups = await Group.find({
@@ -100,7 +100,10 @@ export const getGroups = async (req: Request, res: Response) => {
   }
 };
 
-export const getGroupById = async (req: Request, res: Response) => {
+export const getGroupById = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
   try {
     const { id: groupId } = req.params;
 
@@ -113,7 +116,11 @@ export const getGroupById = async (req: Request, res: Response) => {
     }
 
     // Get userId using the flexible approach
-    const userId = req.user.id || req.user.userId || req.user._id;
+    if (!req.user) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const userId = req.user.id;
     console.log('Getting group details for user:', userId);
 
     // Find group and populate required fields
@@ -163,11 +170,16 @@ export const getGroupById = async (req: Request, res: Response) => {
   }
 };
 
-export const addMember = async (req: Request, res: Response) => {
+export const addMember = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id: groupId } = req.params;
     const { userId: newMemberId } = req.body; // Renamed to avoid confusion
-    const requestingUserId = req.user._id;
+
+    if (!req.user) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const requestingUserId = req.user.id;
 
     const group = await Group.findById(groupId);
     if (!group) {

@@ -23,10 +23,10 @@ import {
   AlertCircle,
 } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
-import { 
-  sendMultipleInvitations, 
-  checkEmailExists, 
-  type InvitationData 
+import {
+  sendMultipleInvitations,
+  checkEmailExists,
+  type InvitationData,
 } from '@/services/invitation-api';
 
 interface InviteFriendsModalProps {
@@ -42,7 +42,9 @@ const InviteFriendsModal: React.FC<InviteFriendsModalProps> = ({
   const [emails, setEmails] = useState<string[]>(['']);
   const [loading, setLoading] = useState(false);
   const [customMessage, setCustomMessage] = useState('');
-  const [emailStatuses, setEmailStatuses] = useState<{[key: string]: 'checking' | 'exists' | 'available' | 'error'}>({});
+  const [emailStatuses, setEmailStatuses] = useState<{
+    [key: string]: 'checking' | 'exists' | 'available' | 'error';
+  }>({});
 
   useEffect(() => {
     if (visible) {
@@ -61,17 +63,17 @@ const InviteFriendsModal: React.FC<InviteFriendsModalProps> = ({
     const newEmails = [...emails];
     newEmails[index] = email;
     setEmails(newEmails);
-    
+
     // Check email availability after a delay
     if (email && isValidEmail(email)) {
-      setEmailStatuses(prev => ({ ...prev, [email]: 'checking' }));
-      
+      setEmailStatuses((prev) => ({ ...prev, [email]: 'checking' }));
+
       // Debounce email checking
       setTimeout(() => {
         checkEmailAvailability(email);
       }, 500);
     } else {
-      setEmailStatuses(prev => {
+      setEmailStatuses((prev) => {
         const newStatuses = { ...prev };
         delete newStatuses[email];
         return newStatuses;
@@ -82,14 +84,14 @@ const InviteFriendsModal: React.FC<InviteFriendsModalProps> = ({
   const checkEmailAvailability = async (email: string) => {
     try {
       const result = await checkEmailExists(email);
-      setEmailStatuses(prev => ({
+      setEmailStatuses((prev) => ({
         ...prev,
-        [email]: result.exists ? 'exists' : 'available'
+        [email]: result.exists ? 'exists' : 'available',
       }));
     } catch (error) {
-      setEmailStatuses(prev => ({
+      setEmailStatuses((prev) => ({
         ...prev,
-        [email]: 'error'
+        [email]: 'error',
       }));
     }
   };
@@ -107,25 +109,37 @@ const InviteFriendsModal: React.FC<InviteFriendsModalProps> = ({
   };
 
   const handleSendInvites = async () => {
-    const validEmails = emails.filter(email => email.trim() && isValidEmail(email.trim()));
-    
+    const validEmails = emails.filter(
+      (email) => email.trim() && isValidEmail(email.trim())
+    );
+
     if (validEmails.length === 0) {
-      Alert.alert('Invalid Emails', 'Please enter at least one valid email address.');
+      Alert.alert(
+        'Invalid Emails',
+        'Please enter at least one valid email address.'
+      );
       return;
     }
 
     // Check if any emails already exist
-    const existingEmails = validEmails.filter(email => emailStatuses[email] === 'exists');
+    const existingEmails = validEmails.filter(
+      (email) => emailStatuses[email] === 'exists'
+    );
     if (existingEmails.length > 0) {
       Alert.alert(
         'Users Already Exist',
-        `The following emails are already registered: ${existingEmails.join(', ')}. Do you want to continue with the remaining emails?`,
+        `The following emails are already registered: ${existingEmails.join(
+          ', '
+        )}. Do you want to continue with the remaining emails?`,
         [
           { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Continue', 
-            onPress: () => sendInvitationsToAvailableEmails(validEmails.filter(email => emailStatuses[email] !== 'exists'))
-          }
+          {
+            text: 'Continue',
+            onPress: () =>
+              sendInvitationsToAvailableEmails(
+                validEmails.filter((email) => emailStatuses[email] !== 'exists')
+              ),
+          },
         ]
       );
       return;
@@ -144,28 +158,37 @@ const InviteFriendsModal: React.FC<InviteFriendsModalProps> = ({
 
     try {
       const result = await sendMultipleInvitations(emailsToInvite);
-      
-      const successfulInvites = result.results.filter(r => r.success);
-      const failedInvites = result.results.filter(r => !r.success);
-      
+
+      const successfulInvites = result.results.filter((r) => r.success);
+      const failedInvites = result.results.filter((r) => !r.success);
+
       let message = '';
       if (successfulInvites.length > 0) {
-        message += `Successfully sent ${successfulInvites.length} invitation${successfulInvites.length > 1 ? 's' : ''}.`;
+        message += `Successfully sent ${successfulInvites.length} invitation${
+          successfulInvites.length > 1 ? 's' : ''
+        }.`;
       }
-      
+
       if (failedInvites.length > 0) {
-        message += `\n\nFailed to send ${failedInvites.length} invitation${failedInvites.length > 1 ? 's' : ''}:`;
-        failedInvites.forEach(invite => {
+        message += `\n\nFailed to send ${failedInvites.length} invitation${
+          failedInvites.length > 1 ? 's' : ''
+        }:`;
+        failedInvites.forEach((invite) => {
           message += `\n• ${invite.email}: ${invite.error}`;
         });
       }
-      
+
       Alert.alert(
         successfulInvites.length > 0 ? 'Invitations Sent!' : 'Send Failed',
         message,
-        [{ text: 'OK', onPress: successfulInvites.length > 0 ? onClose : undefined }]
+        [
+          {
+            text: 'OK',
+            onPress: successfulInvites.length > 0 ? onClose : undefined,
+          },
+        ]
       );
-      
+
       if (successfulInvites.length === emailsToInvite.length) {
         onClose();
       }
@@ -187,7 +210,7 @@ const InviteFriendsModal: React.FC<InviteFriendsModalProps> = ({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
@@ -197,7 +220,8 @@ const InviteFriendsModal: React.FC<InviteFriendsModalProps> = ({
           </TouchableOpacity>
           <Text style={styles.title}>Invite Friends</Text>
           <Text style={styles.subtitle}>
-            Invite your friends to join Divido and make expense splitting easier!
+            Invite your friends to join Divido and make expense splitting
+            easier!
           </Text>
         </View>
 
@@ -206,7 +230,7 @@ const InviteFriendsModal: React.FC<InviteFriendsModalProps> = ({
             <Text style={styles.sectionTitle}>Email Addresses</Text>
             {emails.map((email, index) => {
               const emailStatus = email ? emailStatuses[email] : undefined;
-              
+
               return (
                 <View key={index} style={styles.emailInputContainer}>
                   <View style={styles.emailInputWrapper}>
@@ -220,13 +244,25 @@ const InviteFriendsModal: React.FC<InviteFriendsModalProps> = ({
                       autoCapitalize="none"
                     />
                     {emailStatus === 'checking' && (
-                      <ActivityIndicator size="small" color="#6B7280" style={styles.statusIcon} />
+                      <ActivityIndicator
+                        size="small"
+                        color="#6B7280"
+                        style={styles.statusIcon}
+                      />
                     )}
                     {emailStatus === 'exists' && (
-                      <AlertCircle size={20} color="#EF4444" style={styles.statusIcon} />
+                      <AlertCircle
+                        size={20}
+                        color="#EF4444"
+                        style={styles.statusIcon}
+                      />
                     )}
                     {emailStatus === 'available' && (
-                      <Check size={20} color="#10B981" style={styles.statusIcon} />
+                      <Check
+                        size={20}
+                        color="#10B981"
+                        style={styles.statusIcon}
+                      />
                     )}
                     {emails.length > 1 && (
                       <TouchableOpacity
@@ -238,19 +274,28 @@ const InviteFriendsModal: React.FC<InviteFriendsModalProps> = ({
                     )}
                   </View>
                   {email && !isValidEmail(email) && (
-                    <Text style={styles.errorText}>Please enter a valid email address</Text>
+                    <Text style={styles.errorText}>
+                      Please enter a valid email address
+                    </Text>
                   )}
                   {emailStatus === 'exists' && (
-                    <Text style={styles.warningText}>This user is already registered</Text>
+                    <Text style={styles.warningText}>
+                      This user is already registered
+                    </Text>
                   )}
                   {emailStatus === 'error' && (
-                    <Text style={styles.errorText}>Error checking email availability</Text>
+                    <Text style={styles.errorText}>
+                      Error checking email availability
+                    </Text>
                   )}
                 </View>
               );
             })}
-            
-            <TouchableOpacity onPress={addEmailField} style={styles.addEmailButton}>
+
+            <TouchableOpacity
+              onPress={addEmailField}
+              style={styles.addEmailButton}
+            >
               <Plus size={20} color="#10B981" />
               <Text style={styles.addEmailText}>Add another email</Text>
             </TouchableOpacity>
@@ -275,9 +320,7 @@ const InviteFriendsModal: React.FC<InviteFriendsModalProps> = ({
                 <UserPlus size={20} color="#10B981" />
                 <Text style={styles.previewTitle}>Invitation to Divido</Text>
               </View>
-              <Text style={styles.previewMessage}>
-                {customMessage}
-              </Text>
+              <Text style={styles.previewMessage}>{customMessage}</Text>
               <Text style={styles.previewFooter}>
                 - {user?.fullName || 'Your friend'}
               </Text>
@@ -297,7 +340,12 @@ const InviteFriendsModal: React.FC<InviteFriendsModalProps> = ({
               <>
                 <Send size={20} color="white" />
                 <Text style={styles.sendButtonText}>
-                  Send Invitations ({emails.filter(e => e.trim() && isValidEmail(e.trim())).length})
+                  Send Invitations (
+                  {
+                    emails.filter((e) => e.trim() && isValidEmail(e.trim()))
+                      .length
+                  }
+                  )
                 </Text>
               </>
             )}

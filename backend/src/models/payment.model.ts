@@ -1,6 +1,8 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IPayment extends Document {
+  transactionId: any;
+  completedAt: Date;
   fromUser: mongoose.Types.ObjectId;
   toUser: mongoose.Types.ObjectId;
   groupId?: mongoose.Types.ObjectId;

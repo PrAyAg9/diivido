@@ -10,13 +10,13 @@ const demoAuth = async (req: any, res: any, next: any) => {
   try {
     const { User } = await import('../models/user.model');
     const firstUser = await User.findOne().limit(1);
-    
+
     if (firstUser) {
-      req.user = { 
-        id: firstUser._id.toString(), 
+      req.user = {
+        id: firstUser._id.toString(),
         _id: firstUser._id,
         fullName: firstUser.fullName,
-        email: firstUser.email
+        email: firstUser.email,
       };
     } else {
       req.user = { id: null, fullName: 'Anonymous User' };

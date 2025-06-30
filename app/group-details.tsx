@@ -34,7 +34,11 @@ import {
   FileText,
 } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
-import { formatCurrency, getUserCurrency, type Currency } from '@/utils/currency';
+import {
+  formatCurrency,
+  getUserCurrency,
+  type Currency,
+} from '@/utils/currency';
 import {
   getGroupDetails,
   getGroupExpenses,
@@ -139,7 +143,9 @@ export default function GroupDetailsScreen() {
   const [simplifying, setSimplifying] = useState(false);
   const [userCurrency, setUserCurrency] = useState<Currency>('INR');
   const [budgetStatus, setBudgetStatus] = useState<BudgetStatus | null>(null);
-  const [categorySpending, setCategorySpending] = useState<CategorySpending[]>([]);
+  const [categorySpending, setCategorySpending] = useState<CategorySpending[]>(
+    []
+  );
 
   const loadUserCurrency = async () => {
     try {
@@ -161,11 +167,12 @@ export default function GroupDetailsScreen() {
         return;
       }
 
-      const [groupResponse, balancesResponse, expensesResponse] = await Promise.all([
-        getGroupDetails(groupId),
-        getGroupBalances(groupId),
-        getGroupExpenses(groupId)
-      ]);
+      const [groupResponse, balancesResponse, expensesResponse] =
+        await Promise.all([
+          getGroupDetails(groupId),
+          getGroupBalances(groupId),
+          getGroupExpenses(groupId),
+        ]);
 
       const groupData = groupResponse.data;
       const members = balancesResponse.data.members.map((member: any) => ({
@@ -190,18 +197,20 @@ export default function GroupDetailsScreen() {
         yourBalance,
       });
 
-      const formattedExpenses: Expense[] = expensesResponse.data.map((expense: any) => ({
-        id: expense.id,
-        title: expense.title,
-        amount: expense.amount,
-        category: expense.category,
-        created_at: expense.created_at,
-        paid_by: expense.paid_by,
-        payer_name: expense.payer_name || 'Unknown',
-        payer_avatar: expense.payer_avatar,
-        participants: expense.participants?.length || 0,
-        yourShare: expense.your_share || 0,
-      }));
+      const formattedExpenses: Expense[] = expensesResponse.data.map(
+        (expense: any) => ({
+          id: expense.id,
+          title: expense.title,
+          amount: expense.amount,
+          category: expense.category,
+          created_at: expense.created_at,
+          paid_by: expense.paid_by,
+          payer_name: expense.payer_name || 'Unknown',
+          payer_avatar: expense.payer_avatar,
+          participants: expense.participants?.length || 0,
+          yourShare: expense.your_share || 0,
+        })
+      );
 
       setExpenses(formattedExpenses);
     } catch (err) {
@@ -214,7 +223,7 @@ export default function GroupDetailsScreen() {
 
   const loadBudgetStatus = async () => {
     if (!group?.id) return;
-    
+
     try {
       const response = await budgetAPI.getGroupBudgetStatus(group.id);
       setBudgetStatus(response.budgetStatus);
@@ -231,27 +240,29 @@ export default function GroupDetailsScreen() {
     }
 
     const categoryMap = new Map<string, { amount: number; count: number }>();
-    
-    expenses.forEach(expense => {
+
+    expenses.forEach((expense) => {
       const category = expense.category || 'other';
       const existing = categoryMap.get(category) || { amount: 0, count: 0 };
       categoryMap.set(category, {
         amount: existing.amount + expense.amount,
-        count: existing.count + 1
+        count: existing.count + 1,
       });
     });
 
-    const categorySpendingData = categories.map(cat => {
-      const data = categoryMap.get(cat.id) || { amount: 0, count: 0 };
-      return {
-        category: cat.id,
-        name: cat.name,
-        icon: cat.icon,
-        color: cat.color,
-        amount: data.amount,
-        count: data.count
-      };
-    }).filter(item => item.amount > 0)
+    const categorySpendingData = categories
+      .map((cat) => {
+        const data = categoryMap.get(cat.id) || { amount: 0, count: 0 };
+        return {
+          category: cat.id,
+          name: cat.name,
+          icon: cat.icon,
+          color: cat.color,
+          amount: data.amount,
+          count: data.count,
+        };
+      })
+      .filter((item) => item.amount > 0)
       .sort((a, b) => b.amount - a.amount);
 
     setCategorySpending(categorySpendingData);
@@ -288,22 +299,28 @@ export default function GroupDetailsScreen() {
               <TrendingUp size={20} color="#6B7280" />
               <Text style={styles.sectionTitle}>Category Breakdown</Text>
             </View>
-            
+
             <View style={styles.categoryList}>
               {categorySpending.slice(0, 6).map((category, index) => {
-                const totalAmount = categorySpending.reduce((sum, cat) => sum + cat.amount, 0);
-                const percentage = totalAmount > 0 ? (category.amount / totalAmount) * 100 : 0;
-                
+                const totalAmount = categorySpending.reduce(
+                  (sum, cat) => sum + cat.amount,
+                  0
+                );
+                const percentage =
+                  totalAmount > 0 ? (category.amount / totalAmount) * 100 : 0;
+
                 return (
                   <View key={category.category} style={styles.categoryItem}>
                     <View style={styles.categoryInfo}>
                       <Text style={styles.categoryIcon}>{category.icon}</Text>
                       <View style={styles.categoryDetails}>
                         <Text style={styles.categoryName}>{category.name}</Text>
-                        <Text style={styles.categoryCount}>{category.count} expenses</Text>
+                        <Text style={styles.categoryCount}>
+                          {category.count} expenses
+                        </Text>
                       </View>
                     </View>
-                    
+
                     <View style={styles.categoryAmountContainer}>
                       <Text style={styles.categoryAmount}>
                         {formatCurrency(category.amount, userCurrency)}
@@ -312,16 +329,16 @@ export default function GroupDetailsScreen() {
                         {percentage.toFixed(1)}%
                       </Text>
                     </View>
-                    
+
                     <View style={styles.categoryProgressBar}>
-                      <View 
+                      <View
                         style={[
-                          styles.categoryProgress, 
-                          { 
+                          styles.categoryProgress,
+                          {
                             width: `${percentage}%`,
-                            backgroundColor: category.color
-                          }
-                        ]} 
+                            backgroundColor: category.color,
+                          },
+                        ]}
                       />
                     </View>
                   </View>
@@ -338,11 +355,13 @@ export default function GroupDetailsScreen() {
               <Calendar size={20} color="#6B7280" />
               <Text style={styles.sectionTitle}>Recent Expenses</Text>
             </View>
-            
+
             <View style={styles.recentExpenses}>
               {expenses.slice(0, 5).map((expense) => {
-                const category = categories.find(cat => cat.id === expense.category) || categories[7];
-                
+                const category =
+                  categories.find((cat) => cat.id === expense.category) ||
+                  categories[7];
+
                 return (
                   <View key={expense.id} style={styles.expenseItem}>
                     <View style={styles.expenseLeft}>
@@ -354,13 +373,14 @@ export default function GroupDetailsScreen() {
                         </Text>
                       </View>
                     </View>
-                    
+
                     <View style={styles.expenseRight}>
                       <Text style={styles.expenseAmount}>
                         {formatCurrency(expense.amount, userCurrency)}
                       </Text>
                       <Text style={styles.expenseShare}>
-                        Your share: {formatCurrency(expense.yourShare, userCurrency)}
+                        Your share:{' '}
+                        {formatCurrency(expense.yourShare, userCurrency)}
                       </Text>
                     </View>
                   </View>
@@ -382,7 +402,7 @@ export default function GroupDetailsScreen() {
           <DollarSign size={20} color="#6B7280" />
           <Text style={styles.sectionTitle}>Member Balances</Text>
         </View>
-        
+
         <View style={styles.membersList}>
           {group.members.map((member) => (
             <View key={member.id} style={styles.memberBalance}>
@@ -399,16 +419,24 @@ export default function GroupDetailsScreen() {
                   </Text>
                 </View>
               </View>
-              
-              <View style={[
-                styles.balanceAmount,
-                { backgroundColor: member.balance >= 0 ? '#D1FAE5' : '#FEE2E2' }
-              ]}>
-                <Text style={[
-                  styles.balanceAmountText,
-                  { color: member.balance >= 0 ? '#10B981' : '#EF4444' }
-                ]}>
-                  {member.balance >= 0 ? '+' : ''}{formatCurrency(member.balance, userCurrency)}
+
+              <View
+                style={[
+                  styles.balanceAmount,
+                  {
+                    backgroundColor:
+                      member.balance >= 0 ? '#D1FAE5' : '#FEE2E2',
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.balanceAmountText,
+                    { color: member.balance >= 0 ? '#10B981' : '#EF4444' },
+                  ]}
+                >
+                  {member.balance >= 0 ? '+' : ''}
+                  {formatCurrency(member.balance, userCurrency)}
                 </Text>
               </View>
             </View>
@@ -427,11 +455,13 @@ export default function GroupDetailsScreen() {
           <FileText size={20} color="#6B7280" />
           <Text style={styles.sectionTitle}>All Expenses</Text>
         </View>
-        
+
         <View style={styles.expensesList}>
           {expenses.map((expense) => {
-            const category = categories.find(cat => cat.id === expense.category) || categories[7];
-            
+            const category =
+              categories.find((cat) => cat.id === expense.category) ||
+              categories[7];
+
             return (
               <View key={expense.id} style={styles.fullExpenseItem}>
                 <View style={styles.expenseHeader}>
@@ -439,10 +469,12 @@ export default function GroupDetailsScreen() {
                     <Text style={styles.expenseIcon}>{category.icon}</Text>
                     <View style={styles.expenseDetails}>
                       <Text style={styles.expenseTitle}>{expense.title}</Text>
-                      <Text style={styles.expenseCategory}>{category.name}</Text>
+                      <Text style={styles.expenseCategory}>
+                        {category.name}
+                      </Text>
                     </View>
                   </View>
-                  
+
                   <View style={styles.expenseRight}>
                     <Text style={styles.expenseAmount}>
                       {formatCurrency(expense.amount, userCurrency)}
@@ -452,13 +484,14 @@ export default function GroupDetailsScreen() {
                     </Text>
                   </View>
                 </View>
-                
+
                 <View style={styles.expenseFooter}>
                   <Text style={styles.expensePayer}>
                     Paid by {expense.payer_name}
                   </Text>
                   <Text style={styles.expenseShare}>
-                    Your share: {formatCurrency(expense.yourShare, userCurrency)}
+                    Your share:{' '}
+                    {formatCurrency(expense.yourShare, userCurrency)}
                   </Text>
                 </View>
               </View>
@@ -504,7 +537,10 @@ export default function GroupDetailsScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>Group not found</Text>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
             <Text style={styles.backButtonText}>Go Back</Text>
           </TouchableOpacity>
         </View>
@@ -513,7 +549,7 @@ export default function GroupDetailsScreen() {
   }
 
   // --- START OF FIX ---
-  // The original error occurred here. 
+  // The original error occurred here.
   // We add checks to ensure `budgetStatus` and its properties are not null before rendering.
   const renderBudgetSummary = () => {
     if (!budgetStatus) {
@@ -522,10 +558,12 @@ export default function GroupDetailsScreen() {
           <Target size={20} color="#9CA3AF" />
           <Text style={styles.noBudgetText}>No budget set</Text>
           <TouchableOpacity
-            onPress={() => router.push({
-              pathname: '/group-budget',
-              params: { groupId: group.id, groupName: group.name }
-            })}
+            onPress={() =>
+              router.push({
+                pathname: '/group-budget',
+                params: { groupId: group.id, groupName: group.name },
+              })
+            }
             style={styles.setBudgetButton}
           >
             <Text style={styles.setBudgetButtonText}>Set Budget</Text>
@@ -533,13 +571,18 @@ export default function GroupDetailsScreen() {
         </View>
       );
     }
-    
+
     // Safely get values with fallbacks
     const totalSpent = budgetStatus.totalSpent || 0;
     const totalBudget = budgetStatus.totalBudget || 0;
     const percentage = budgetStatus.percentage || 0;
     const status = budgetStatus.status || 'good';
-    const statusColor = status === 'exceeded' ? '#EF4444' : status === 'warning' ? '#F59E0B' : '#10B981';
+    const statusColor =
+      status === 'exceeded'
+        ? '#EF4444'
+        : status === 'warning'
+        ? '#F59E0B'
+        : '#10B981';
 
     return (
       <View style={styles.budgetSummary}>
@@ -549,16 +592,18 @@ export default function GroupDetailsScreen() {
             <Text style={styles.budgetTitle}>Group Budget</Text>
           </View>
           <TouchableOpacity
-            onPress={() => router.push({
-              pathname: '/group-budget',
-              params: { groupId: group.id, groupName: group.name }
-            })}
+            onPress={() =>
+              router.push({
+                pathname: '/group-budget',
+                params: { groupId: group.id, groupName: group.name },
+              })
+            }
             style={styles.budgetSettingsButton}
           >
             <Settings size={16} color="#8B5CF6" />
           </TouchableOpacity>
         </View>
-        
+
         <View style={styles.budgetProgressContainer}>
           <View style={styles.budgetAmounts}>
             <Text style={styles.budgetSpent}>
@@ -568,19 +613,19 @@ export default function GroupDetailsScreen() {
               of {formatCurrency(totalBudget, userCurrency)}
             </Text>
           </View>
-          
+
           <View style={styles.budgetProgressBar}>
-            <View 
+            <View
               style={[
-                styles.budgetProgress, 
-                { 
+                styles.budgetProgress,
+                {
                   width: `${Math.min(percentage, 100)}%`,
-                  backgroundColor: statusColor
-                }
-              ]} 
+                  backgroundColor: statusColor,
+                },
+              ]}
             />
           </View>
-          
+
           <Text style={[styles.budgetStatus, { color: statusColor }]}>
             {/* The line that caused the error is now safe */}
             {percentage.toFixed(1)}% used
@@ -600,55 +645,64 @@ export default function GroupDetailsScreen() {
           <ArrowLeft size={24} color="#374151" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{group.name}</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.settingsIcon}
           onPress={() => {
-            Alert.alert(
-              'Group Settings',
-              'Choose an action for this group',
-              [
-                {
-                  text: 'Edit Group',
-                  onPress: () => {
-                    // Navigate to edit group screen
-                    Alert.alert('Edit Group', 'This feature will allow you to edit group details like name, description, and avatar.');
-                  }
+            Alert.alert('Group Settings', 'Choose an action for this group', [
+              {
+                text: 'Edit Group',
+                onPress: () => {
+                  // Navigate to edit group screen
+                  Alert.alert(
+                    'Edit Group',
+                    'This feature will allow you to edit group details like name, description, and avatar.'
+                  );
                 },
-                {
-                  text: 'Manage Budget',
-                  onPress: () => {
-                    router.push({
-                      pathname: '/group-budget',
-                      params: { groupId: group.id, groupName: group.name }
-                    });
-                  }
+              },
+              {
+                text: 'Manage Budget',
+                onPress: () => {
+                  router.push({
+                    pathname: '/group-budget',
+                    params: { groupId: group.id, groupName: group.name },
+                  });
                 },
-                {
-                  text: 'Group Analytics',
-                  onPress: () => {
-                    Alert.alert('Analytics', 'View detailed spending analytics and trends for this group.');
-                  }
+              },
+              {
+                text: 'Group Analytics',
+                onPress: () => {
+                  Alert.alert(
+                    'Analytics',
+                    'View detailed spending analytics and trends for this group.'
+                  );
                 },
-                {
-                  text: 'Leave Group',
-                  style: 'destructive',
-                  onPress: () => {
-                    Alert.alert(
-                      'Leave Group',
-                      'Are you sure you want to leave this group? You will no longer have access to its expenses and balances.',
-                      [
-                        { text: 'Cancel', style: 'cancel' },
-                        { text: 'Leave', style: 'destructive', onPress: () => {
+              },
+              {
+                text: 'Leave Group',
+                style: 'destructive',
+                onPress: () => {
+                  Alert.alert(
+                    'Leave Group',
+                    'Are you sure you want to leave this group? You will no longer have access to its expenses and balances.',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      {
+                        text: 'Leave',
+                        style: 'destructive',
+                        onPress: () => {
                           // Handle leave group
-                          Alert.alert('Left Group', 'You have successfully left the group.');
-                        }}
-                      ]
-                    );
-                  }
+                          Alert.alert(
+                            'Left Group',
+                            'You have successfully left the group.'
+                          );
+                        },
+                      },
+                    ]
+                  );
                 },
-                { text: 'Cancel', style: 'cancel' }
-              ]
-            );
+              },
+              { text: 'Cancel', style: 'cancel' },
+            ]);
           }}
         >
           <Settings size={20} color="#374151" />
@@ -656,90 +710,119 @@ export default function GroupDetailsScreen() {
       </View>
 
       <ScrollView style={styles.contentContainer}>
-          <View style={styles.groupSummary}>
-            <View style={styles.summaryItem}>
-              <Users size={16} color="#6B7280" />
-              <Text style={styles.summaryText}>{group.members.length} members</Text>
-            </View>
-            <View style={styles.summaryItem}>
-              <DollarSign size={16} color="#6B7280" />
-              <Text style={styles.summaryText}>
-                {formatCurrency(group.totalExpenses, userCurrency)} total
-              </Text>
-            </View>
-            <View style={[
-                styles.balanceBadge,
-                { backgroundColor: group.yourBalance >= 0 ? '#D1FAE5' : '#FEE2E2' },
-              ]}>
-              <Text style={[
-                  styles.balanceText,
-                  { color: group.yourBalance >= 0 ? '#10B981' : '#EF4444' },
-                ]}>
-                {group.yourBalance >= 0 ? 'You get back' : 'You owe'} {formatCurrency(Math.abs(group.yourBalance), userCurrency)}
-              </Text>
-            </View>
+        <View style={styles.groupSummary}>
+          <View style={styles.summaryItem}>
+            <Users size={16} color="#6B7280" />
+            <Text style={styles.summaryText}>
+              {group.members.length} members
+            </Text>
           </View>
-
-          {/* Use the new safe rendering function */}
-          {renderBudgetSummary()}
-
-          <View style={styles.actionButtons}>
-            <TouchableOpacity
-              onPress={() => router.push({ pathname: '/add-expense', params: { groupId: group.id } })}
-              style={styles.actionButton}
-            >
-              <Plus size={20} color="#FFFFFF" />
-              <Text style={styles.actionButtonText}>Add Expense</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={handleSimplifyDebts}
-              style={[styles.actionButton, { backgroundColor: '#3B82F6' }]}
-              disabled={simplifying}
-            >
-              {simplifying ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <>
-                  <Shuffle size={20} color="#FFFFFF" />
-                  <Text style={styles.actionButtonText}>Simplify Debts</Text>
-                </>
-              )}
-            </TouchableOpacity>
+          <View style={styles.summaryItem}>
+            <DollarSign size={16} color="#6B7280" />
+            <Text style={styles.summaryText}>
+              {formatCurrency(group.totalExpenses, userCurrency)} total
+            </Text>
           </View>
-
-          <View style={styles.tabsContainer}>
-            <TouchableOpacity
-              style={[styles.tab, activeTab === 'overview' && styles.activeTab]}
-              onPress={() => setActiveTab('overview')}
+          <View
+            style={[
+              styles.balanceBadge,
+              {
+                backgroundColor: group.yourBalance >= 0 ? '#D1FAE5' : '#FEE2E2',
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.balanceText,
+                { color: group.yourBalance >= 0 ? '#10B981' : '#EF4444' },
+              ]}
             >
-              <Text style={[styles.tabText, activeTab === 'overview' && styles.activeTabText]}>
-                Overview
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.tab, activeTab === 'expenses' && styles.activeTab]}
-              onPress={() => setActiveTab('expenses')}
-            >
-              <Text style={[styles.tabText, activeTab === 'expenses' && styles.activeTabText]}>
-                Expenses
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.tab, activeTab === 'balances' && styles.activeTab]}
-              onPress={() => setActiveTab('balances')}
-            >
-              <Text style={[styles.tabText, activeTab === 'balances' && styles.activeTabText]}>
-                Balances
-              </Text>
-            </TouchableOpacity>
+              {group.yourBalance >= 0 ? 'You get back' : 'You owe'}{' '}
+              {formatCurrency(Math.abs(group.yourBalance), userCurrency)}
+            </Text>
           </View>
+        </View>
 
-          {activeTab === 'expenses'
-            ? renderExpenses()
-            : activeTab === 'balances'
-            ? renderBalances()
-            : renderOverview()}
+        {/* Use the new safe rendering function */}
+        {renderBudgetSummary()}
+
+        <View style={styles.actionButtons}>
+          <TouchableOpacity
+            onPress={() =>
+              router.push({
+                pathname: '/add-expense',
+                params: { groupId: group.id },
+              })
+            }
+            style={styles.actionButton}
+          >
+            <Plus size={20} color="#FFFFFF" />
+            <Text style={styles.actionButtonText}>Add Expense</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={handleSimplifyDebts}
+            style={[styles.actionButton, { backgroundColor: '#3B82F6' }]}
+            disabled={simplifying}
+          >
+            {simplifying ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <>
+                <Shuffle size={20} color="#FFFFFF" />
+                <Text style={styles.actionButtonText}>Simplify Debts</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.tabsContainer}>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'overview' && styles.activeTab]}
+            onPress={() => setActiveTab('overview')}
+          >
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === 'overview' && styles.activeTabText,
+              ]}
+            >
+              Overview
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'expenses' && styles.activeTab]}
+            onPress={() => setActiveTab('expenses')}
+          >
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === 'expenses' && styles.activeTabText,
+              ]}
+            >
+              Expenses
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'balances' && styles.activeTab]}
+            onPress={() => setActiveTab('balances')}
+          >
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === 'balances' && styles.activeTabText,
+              ]}
+            >
+              Balances
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {activeTab === 'expenses'
+          ? renderExpenses()
+          : activeTab === 'balances'
+          ? renderBalances()
+          : renderOverview()}
       </ScrollView>
 
       {/* Modal rendering logic */}
@@ -888,7 +971,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#E5E7EB',
     borderRadius: 4,
     marginBottom: 8,
-    overflow: 'hidden'
+    overflow: 'hidden',
   },
   budgetProgress: {
     height: 8,
@@ -946,7 +1029,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     flex: 1,
     justifyContent: 'center',
-    marginHorizontal: 4
+    marginHorizontal: 4,
   },
   actionButtonText: {
     color: '#FFFFFF',
@@ -979,7 +1062,7 @@ const styles = StyleSheet.create({
   balancesContainer: {},
   expensesContainer: {},
   debtsContainer: {},
-  
+
   // New styles for enhanced UI
   overviewContainer: {
     paddingBottom: 20,

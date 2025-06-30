@@ -10,7 +10,13 @@ import {
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Plus, Edit3, Trash2, CheckCircle } from 'lucide-react-native';
+import {
+  ArrowLeft,
+  Plus,
+  Edit3,
+  Trash2,
+  CheckCircle,
+} from 'lucide-react-native';
 import CustomHeader from '@/components/CustomHeader';
 
 interface PaymentMethod {
@@ -81,8 +87,8 @@ export default function PaymentMethodsScreen() {
   };
 
   const handleSetDefault = (id: string) => {
-    setPaymentMethods(methods =>
-      methods.map(method => ({
+    setPaymentMethods((methods) =>
+      methods.map((method) => ({
         ...method,
         isDefault: method.id === id,
       }))
@@ -100,7 +106,9 @@ export default function PaymentMethodsScreen() {
           text: 'Delete',
           style: 'destructive',
           onPress: () => {
-            setPaymentMethods(methods => methods.filter(method => method.id !== id));
+            setPaymentMethods((methods) =>
+              methods.filter((method) => method.id !== id)
+            );
           },
         },
       ]
@@ -143,10 +151,13 @@ export default function PaymentMethodsScreen() {
 
   return (
     <View style={styles.container}>
-      <CustomHeader 
+      <CustomHeader
         title="Payment Methods"
         leftComponent={
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
             <ArrowLeft size={24} color="#111827" />
           </TouchableOpacity>
         }
@@ -198,10 +209,10 @@ export default function PaymentMethodsScreen() {
         <View style={styles.infoCard}>
           <Text style={styles.infoTitle}>How it works</Text>
           <Text style={styles.infoText}>
-            • Your UPI IDs are used for quick payments and settlements{'\n'}
-            • Set a default payment method for faster transactions{'\n'}
-            • Your payment information is stored securely{'\n'}
-            • You can add multiple UPI IDs from different providers
+            • Your UPI IDs are used for quick payments and settlements{'\n'}•
+            Set a default payment method for faster transactions{'\n'}• Your
+            payment information is stored securely{'\n'}• You can add multiple
+            UPI IDs from different providers
           </Text>
         </View>
       </ScrollView>

@@ -11,7 +11,7 @@ export default function Index() {
   useEffect(() => {
     // Log network info for debugging
     logNetworkInfo();
-    
+
     if (!loading) {
       if (session) {
         router.replace('/(tabs)');

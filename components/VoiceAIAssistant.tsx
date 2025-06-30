@@ -48,7 +48,10 @@ interface VoiceAIAssistantProps {
   onDismissWelcome?: () => void;
 }
 
-export default function VoiceAIAssistant({ showWelcome = false, onDismissWelcome }: VoiceAIAssistantProps) {
+export default function VoiceAIAssistant({
+  showWelcome = false,
+  onDismissWelcome,
+}: VoiceAIAssistantProps) {
   const { user } = useAuth();
   const [isListening, setIsListening] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -73,8 +76,10 @@ export default function VoiceAIAssistant({ showWelcome = false, onDismissWelcome
         else if (hour < 17) timeGreeting = 'Good afternoon';
         else if (hour < 21) timeGreeting = 'Good evening';
         else timeGreeting = 'Good evening';
-        
-        const welcomeText = `${timeGreeting} ${user?.fullName || 'there'}! I'm Divi, your smart expense assistant. I'm here to help you manage your finances, remind friends about payments, and make expense tracking effortless. What would you like to do today?`;
+
+        const welcomeText = `${timeGreeting} ${
+          user?.fullName || 'there'
+        }! I'm Divi, your smart expense assistant. I'm here to help you manage your finances, remind friends about payments, and make expense tracking effortless. What would you like to do today?`;
         playAudio(undefined, welcomeText);
       }, 1500);
     }
@@ -86,7 +91,7 @@ export default function VoiceAIAssistant({ showWelcome = false, onDismissWelcome
       onDismissWelcome();
     }
   };
-  
+
   // Animations
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -165,18 +170,23 @@ export default function VoiceAIAssistant({ showWelcome = false, onDismissWelcome
     } catch (error) {
       console.error('Error starting speech recognition:', error);
       setIsListening(false);
-      setVoiceFailCount(prev => prev + 1);
-      
+      setVoiceFailCount((prev) => prev + 1);
+
       // Fallback to demo functionality
       simulateVoiceCommand();
     }
   };
 
   const startWebSpeechRecognition = () => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    
+    const SpeechRecognition =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
+
     if (!SpeechRecognition) {
-      Alert.alert('Not Supported', 'Speech recognition is not supported in your browser.');
+      Alert.alert(
+        'Not Supported',
+        'Speech recognition is not supported in your browser.'
+      );
       simulateVoiceCommand();
       return;
     }
@@ -202,7 +212,7 @@ export default function VoiceAIAssistant({ showWelcome = false, onDismissWelcome
     recognition.onerror = (event: any) => {
       console.error('Speech recognition error:', event.error);
       setIsListening(false);
-      setVoiceFailCount(prev => prev + 1);
+      setVoiceFailCount((prev) => prev + 1);
     };
 
     recognition.onend = () => {
@@ -217,7 +227,7 @@ export default function VoiceAIAssistant({ showWelcome = false, onDismissWelcome
     setIsListening(true);
     setVoiceFailCount(0);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    
+
     // Simulate listening for 3 seconds, then use demo
     setTimeout(() => {
       setIsListening(false);
@@ -239,9 +249,9 @@ export default function VoiceAIAssistant({ showWelcome = false, onDismissWelcome
     try {
       setIsListening(false);
       setIsProcessing(true);
-      
+
       console.log('🎤 Voice input:', transcript);
-      
+
       // Add the user's voice message to chat
       const userMessage: ChatMessage = {
         id: Date.now().toString(),
@@ -249,41 +259,45 @@ export default function VoiceAIAssistant({ showWelcome = false, onDismissWelcome
         isUser: true,
         timestamp: new Date(),
       };
-      setChatMessages(prev => [...prev, userMessage]);
-      
+      setChatMessages((prev) => [...prev, userMessage]);
+
       // Send to Gemini AI via our API
       const response = await aiAssistantApi.processVoiceCommand(transcript);
-      
+
       setLastResponse(response.text);
       setIsProcessing(false);
       setIsResponding(true);
-      
+
       // Add AI response to chat (remove emojis as requested)
-      const cleanResponse = response.text.replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '').trim();
-      
+      const cleanResponse = response.text
+        .replace(
+          /[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu,
+          ''
+        )
+        .trim();
+
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         text: cleanResponse,
         isUser: false,
         timestamp: new Date(),
       };
-      setChatMessages(prev => [...prev, aiMessage]);
-      
+      setChatMessages((prev) => [...prev, aiMessage]);
+
       // Use Eleven Labs TTS for response (better female voice, faster)
       await playAudio(response.audioUrl, cleanResponse);
-      
+
       // Execute any actions
       if (response.action) {
         executeAction(response.action);
       }
-      
+
       setIsResponding(false);
-      
     } catch (error) {
       console.error('Error processing voice input:', error);
       setIsProcessing(false);
       setIsResponding(false);
-      
+
       // Fallback response
       const fallbackMessage: ChatMessage = {
         id: (Date.now() + 2).toString(),
@@ -291,8 +305,8 @@ export default function VoiceAIAssistant({ showWelcome = false, onDismissWelcome
         isUser: false,
         timestamp: new Date(),
       };
-      setChatMessages(prev => [...prev, fallbackMessage]);
-      
+      setChatMessages((prev) => [...prev, fallbackMessage]);
+
       await playAudio(undefined, fallbackMessage.text);
     }
   };
@@ -300,21 +314,22 @@ export default function VoiceAIAssistant({ showWelcome = false, onDismissWelcome
   const simulateVoiceCommand = async () => {
     try {
       setIsProcessing(true);
-      
+
       // Common voice commands for expense tracking
       const mockQueries = [
-        "How much do I owe John?",
+        'How much do I owe John?',
         "What's my balance with Sarah?",
-        "Add a dinner expense for $50",
-        "Send a reminder to Alex about the pizza money",
-        "How much did I spend this month?",
-        "Who owes me money?",
-        "Create a new group for vacation",
-        "Split the grocery bill equally"
+        'Add a dinner expense for $50',
+        'Send a reminder to Alex about the pizza money',
+        'How much did I spend this month?',
+        'Who owes me money?',
+        'Create a new group for vacation',
+        'Split the grocery bill equally',
       ];
-      
-      const randomQuery = mockQueries[Math.floor(Math.random() * mockQueries.length)];
-      
+
+      const randomQuery =
+        mockQueries[Math.floor(Math.random() * mockQueries.length)];
+
       // Add the user's "voice" message to chat
       const userMessage: ChatMessage = {
         id: Date.now().toString(),
@@ -322,41 +337,59 @@ export default function VoiceAIAssistant({ showWelcome = false, onDismissWelcome
         isUser: true,
         timestamp: new Date(),
       };
-      setChatMessages(prev => [...prev, userMessage]);
-      
+      setChatMessages((prev) => [...prev, userMessage]);
+
       // Generate a demo response
       let demoResponse = '';
       if (randomQuery.includes('balance') || randomQuery.includes('owe')) {
-        demoResponse = "I can see you currently have a net balance of +$45.50. John owes you $20 from last week's dinner!";
-      } else if (randomQuery.includes('group') || randomQuery.includes('create')) {
-        demoResponse = "I'd be happy to help you create a new group! Just go to the Groups tab and tap the + button.";
-      } else if (randomQuery.includes('expense') || randomQuery.includes('add')) {
-        demoResponse = "To add an expense, tap the + button on your dashboard. I can help you split it fairly among your friends!";
-      } else if (randomQuery.includes('reminder') || randomQuery.includes('send')) {
-        demoResponse = "I can send a friendly reminder! Just let me know who you want to remind and I'll craft a nice message.";
+        demoResponse =
+          "I can see you currently have a net balance of +$45.50. John owes you $20 from last week's dinner!";
+      } else if (
+        randomQuery.includes('group') ||
+        randomQuery.includes('create')
+      ) {
+        demoResponse =
+          "I'd be happy to help you create a new group! Just go to the Groups tab and tap the + button.";
+      } else if (
+        randomQuery.includes('expense') ||
+        randomQuery.includes('add')
+      ) {
+        demoResponse =
+          'To add an expense, tap the + button on your dashboard. I can help you split it fairly among your friends!';
+      } else if (
+        randomQuery.includes('reminder') ||
+        randomQuery.includes('send')
+      ) {
+        demoResponse =
+          "I can send a friendly reminder! Just let me know who you want to remind and I'll craft a nice message.";
       } else {
-        demoResponse = "I'm here to help you manage your expenses and groups. What would you like to do today?";
+        demoResponse =
+          "I'm here to help you manage your expenses and groups. What would you like to do today?";
       }
-      
+
       setIsProcessing(false);
       setIsResponding(true);
-      
+
       // Add AI response to chat (clean, no emojis)
-      const cleanResponse = demoResponse.replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '').trim();
-      
+      const cleanResponse = demoResponse
+        .replace(
+          /[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu,
+          ''
+        )
+        .trim();
+
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         text: cleanResponse,
         isUser: false,
         timestamp: new Date(),
       };
-      setChatMessages(prev => [...prev, aiMessage]);
-      
+      setChatMessages((prev) => [...prev, aiMessage]);
+
       // Speak the response
       await playAudio(undefined, cleanResponse);
-      
+
       setIsResponding(false);
-      
     } catch (error) {
       console.error('Error simulating voice command:', error);
       setIsProcessing(false);
@@ -367,7 +400,7 @@ export default function VoiceAIAssistant({ showWelcome = false, onDismissWelcome
   const executeAction = (action: any) => {
     try {
       console.log('Executing AI action:', action);
-      
+
       switch (action.type) {
         case 'navigate':
           // Handle navigation actions
@@ -401,13 +434,13 @@ export default function VoiceAIAssistant({ showWelcome = false, onDismissWelcome
     try {
       if (text) {
         console.log('🔊 Divi is speaking:', text);
-        
+
         // Use the enhanced WebSpeech utility for all platforms
         const success = await WebSpeech.speak(text, {
           rate: 1.0, // Slightly faster
           pitch: 1.1,
         });
-        
+
         if (success) {
           // Haptic feedback on successful speech
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -420,7 +453,6 @@ export default function VoiceAIAssistant({ showWelcome = false, onDismissWelcome
         console.log('🔊 Divi response (haptic feedback)');
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
-      
     } catch (error) {
       console.error('Error with speech synthesis:', error);
       // Fallback to haptic feedback if speech fails
@@ -446,36 +478,46 @@ export default function VoiceAIAssistant({ showWelcome = false, onDismissWelcome
       timestamp: new Date(),
     };
 
-    setChatMessages(prev => [...prev, userMessage]);
+    setChatMessages((prev) => [...prev, userMessage]);
     setInputText('');
     setSendingMessage(true);
 
     try {
-      const response = await aiAssistantApi.processVoiceCommand(userMessage.text);
-      
+      const response = await aiAssistantApi.processVoiceCommand(
+        userMessage.text
+      );
+
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        text: response.text || "I'm here to help! Ask me anything about your expenses or groups.",
+        text:
+          response.text ||
+          "I'm here to help! Ask me anything about your expenses or groups.",
         isUser: false,
         timestamp: new Date(),
       };
 
-      setChatMessages(prev => [...prev, aiMessage]);
+      setChatMessages((prev) => [...prev, aiMessage]);
 
       // Make Divi speak the response
       await playAudio(undefined, aiMessage.text);
 
       // Handle special actions like nudging friends
-      if (response.action?.type === 'notification' && response.action.payload?.friendName) {
+      if (
+        response.action?.type === 'notification' &&
+        response.action.payload?.friendName
+      ) {
         try {
-          await aiAssistantApi.sendWittyNudge(response.action.payload.friendName, userMessage.text);
+          await aiAssistantApi.sendWittyNudge(
+            response.action.payload.friendName,
+            userMessage.text
+          );
           const nudgeMessage: ChatMessage = {
             id: (Date.now() + 2).toString(),
             text: `✅ Sent a witty nudge to ${response.action.payload.friendName} about your money!`,
             isUser: false,
             timestamp: new Date(),
           };
-          setChatMessages(prev => [...prev, nudgeMessage]);
+          setChatMessages((prev) => [...prev, nudgeMessage]);
         } catch (error) {
           console.error('Error sending nudge:', error);
         }
@@ -488,7 +530,7 @@ export default function VoiceAIAssistant({ showWelcome = false, onDismissWelcome
         isUser: false,
         timestamp: new Date(),
       };
-      setChatMessages(prev => [...prev, errorMessage]);
+      setChatMessages((prev) => [...prev, errorMessage]);
     } finally {
       setSendingMessage(false);
     }
@@ -502,7 +544,7 @@ export default function VoiceAIAssistant({ showWelcome = false, onDismissWelcome
       if (hour < 12) timeGreeting = 'Good morning';
       else if (hour < 17) timeGreeting = 'Good afternoon';
       else timeGreeting = 'Good evening';
-      
+
       const welcomeMessage: ChatMessage = {
         id: Date.now().toString(),
         text: `${timeGreeting}! I'm Divi, your personal expense assistant. I can help you track expenses, remind friends about money, check balances, or answer questions about your groups. What can I help you with today?`,
@@ -510,7 +552,7 @@ export default function VoiceAIAssistant({ showWelcome = false, onDismissWelcome
         timestamp: new Date(),
       };
       setChatMessages([welcomeMessage]);
-      
+
       // Speak the welcome message
       setTimeout(() => {
         playAudio(undefined, welcomeMessage.text);
@@ -518,21 +560,23 @@ export default function VoiceAIAssistant({ showWelcome = false, onDismissWelcome
     }
   };
 
-  const buttonColor = isListening 
-    ? '#EF4444' 
-    : isProcessing 
-    ? '#F59E0B' 
-    : isResponding 
-    ? '#8B5CF6' 
+  const buttonColor = isListening
+    ? '#EF4444'
+    : isProcessing
+    ? '#F59E0B'
+    : isResponding
+    ? '#8B5CF6'
     : '#10B981';
 
-  const buttonIcon = isListening 
-    ? <MicOff size={28} color="#FFFFFF" />
-    : isProcessing 
-    ? <ActivityIndicator size={28} color="#FFFFFF" />
-    : isResponding 
-    ? <Volume2 size={28} color="#FFFFFF" />
-    : <Bot size={28} color="#FFFFFF" />;
+  const buttonIcon = isListening ? (
+    <MicOff size={28} color="#FFFFFF" />
+  ) : isProcessing ? (
+    <ActivityIndicator size={28} color="#FFFFFF" />
+  ) : isResponding ? (
+    <Volume2 size={28} color="#FFFFFF" />
+  ) : (
+    <Bot size={28} color="#FFFFFF" />
+  );
 
   return (
     <>
@@ -554,20 +598,24 @@ export default function VoiceAIAssistant({ showWelcome = false, onDismissWelcome
                 <Text style={styles.welcomeTitle}>Meet Divi</Text>
                 <Text style={styles.welcomeSubtitle}>Your AI Assistant</Text>
               </View>
-              
+
               <View style={styles.welcomeContent}>
                 <Text style={styles.welcomeText}>
                   Hi {user?.fullName || 'there'}! 👋 I'm here to help you with:
                 </Text>
-                
+
                 <View style={styles.featureList}>
                   <View style={styles.featureItem}>
                     <Text style={styles.featureIcon}>💰</Text>
-                    <Text style={styles.featureText}>Track expenses and balances</Text>
+                    <Text style={styles.featureText}>
+                      Track expenses and balances
+                    </Text>
                   </View>
                   <View style={styles.featureItem}>
                     <Text style={styles.featureIcon}>📱</Text>
-                    <Text style={styles.featureText}>Send reminders to friends</Text>
+                    <Text style={styles.featureText}>
+                      Send reminders to friends
+                    </Text>
                   </View>
                   <View style={styles.featureItem}>
                     <Text style={styles.featureIcon}>👥</Text>
@@ -575,17 +623,19 @@ export default function VoiceAIAssistant({ showWelcome = false, onDismissWelcome
                   </View>
                   <View style={styles.featureItem}>
                     <Text style={styles.featureIcon}>💬</Text>
-                    <Text style={styles.featureText}>Answer your questions</Text>
+                    <Text style={styles.featureText}>
+                      Answer your questions
+                    </Text>
                   </View>
                 </View>
-                
+
                 <Text style={styles.welcomeFooter}>
                   Tap the voice button to talk to me or use the chat!
                 </Text>
               </View>
-              
-              <TouchableOpacity 
-                style={styles.welcomeButton} 
+
+              <TouchableOpacity
+                style={styles.welcomeButton}
                 onPress={handleDismissWelcome}
               >
                 <Text style={styles.welcomeButtonText}>Let's Get Started</Text>
@@ -646,8 +696,8 @@ export default function VoiceAIAssistant({ showWelcome = false, onDismissWelcome
               {
                 transform: [
                   { scale: scaleAnim },
-                  { 
-                    scale: pulseAnim 
+                  {
+                    scale: pulseAnim,
                   },
                 ],
               },
@@ -660,7 +710,11 @@ export default function VoiceAIAssistant({ showWelcome = false, onDismissWelcome
         {/* Status Text - Make it clickable */}
         <TouchableOpacity onPress={openChat} activeOpacity={0.7}>
           <Animated.View style={styles.statusContainer}>
-            <MessageCircle size={14} color="#FFFFFF" style={{ marginRight: 6 }} />
+            <MessageCircle
+              size={14}
+              color="#FFFFFF"
+              style={{ marginRight: 6 }}
+            />
             <Text style={styles.statusText}>
               {isListening
                 ? 'Listening...'
@@ -690,8 +744,8 @@ export default function VoiceAIAssistant({ showWelcome = false, onDismissWelcome
         animationType="slide"
         statusBarTranslucent
       >
-        <KeyboardAvoidingView 
-          style={{ flex: 1 }} 
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
           <BlurView intensity={30} style={styles.modalOverlay}>
@@ -705,24 +759,34 @@ export default function VoiceAIAssistant({ showWelcome = false, onDismissWelcome
                   <X size={24} color="#6B7280" />
                 </TouchableOpacity>
               </View>
-              
-              <ScrollView style={styles.messagesContainer} showsVerticalScrollIndicator={false}>
+
+              <ScrollView
+                style={styles.messagesContainer}
+                showsVerticalScrollIndicator={false}
+              >
                 {chatMessages.map((message) => (
-                  <View 
-                    key={message.id} 
+                  <View
+                    key={message.id}
                     style={[
                       styles.messageItem,
-                      message.isUser ? styles.userMessage : styles.aiMessage
+                      message.isUser ? styles.userMessage : styles.aiMessage,
                     ]}
                   >
-                    <Text style={[
-                      styles.messageText,
-                      message.isUser ? styles.userMessageText : styles.aiMessageText
-                    ]}>
+                    <Text
+                      style={[
+                        styles.messageText,
+                        message.isUser
+                          ? styles.userMessageText
+                          : styles.aiMessageText,
+                      ]}
+                    >
                       {message.text}
                     </Text>
                     <Text style={styles.messageTime}>
-                      {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {message.timestamp.toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
                     </Text>
                   </View>
                 ))}
@@ -733,7 +797,7 @@ export default function VoiceAIAssistant({ showWelcome = false, onDismissWelcome
                   </View>
                 )}
               </ScrollView>
-              
+
               <View style={styles.inputContainer}>
                 <TextInput
                   style={styles.textInput}
@@ -744,8 +808,12 @@ export default function VoiceAIAssistant({ showWelcome = false, onDismissWelcome
                   multiline
                   maxLength={500}
                 />
-                <TouchableOpacity 
-                  style={[styles.sendButton, (!inputText.trim() || sendingMessage) && styles.sendButtonDisabled]}
+                <TouchableOpacity
+                  style={[
+                    styles.sendButton,
+                    (!inputText.trim() || sendingMessage) &&
+                      styles.sendButtonDisabled,
+                  ]}
                   onPress={sendChatMessage}
                   disabled={!inputText.trim() || sendingMessage}
                 >
@@ -756,7 +824,7 @@ export default function VoiceAIAssistant({ showWelcome = false, onDismissWelcome
                   )}
                 </TouchableOpacity>
               </View>
-              
+
               <TouchableOpacity
                 style={styles.voiceRetryButton}
                 onPress={() => {
@@ -807,8 +875,8 @@ const styles = StyleSheet.create({
     elevation: 6, // Reduced glow
   },
   voiceButton: {
-    width: 50,  // Made even smaller
-    height: 50, // Made even smaller 
+    width: 50, // Made even smaller
+    height: 50, // Made even smaller
     borderRadius: 25, // Made even smaller
     justifyContent: 'center',
     alignItems: 'center',

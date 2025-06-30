@@ -106,9 +106,14 @@ const StatCard = ({ label, value, color }: StatItemProps) => (
 );
 
 // A component for gamification progress
-const GamificationCard = ({ gamificationData }: { gamificationData: GamificationData }) => {
-  const progressPercentage = (gamificationData.xp / gamificationData.xpToNextLevel) * 100;
-  
+const GamificationCard = ({
+  gamificationData,
+}: {
+  gamificationData: GamificationData;
+}) => {
+  const progressPercentage =
+    (gamificationData.xp / gamificationData.xpToNextLevel) * 100;
+
   return (
     <View style={styles.gamificationCard}>
       <View style={styles.gamificationHeader}>
@@ -118,39 +123,57 @@ const GamificationCard = ({ gamificationData }: { gamificationData: Gamification
         </View>
         <View style={styles.streakBadge}>
           <Zap size={14} color="#EF4444" />
-          <Text style={styles.streakText}>{gamificationData.streakDays} day streak</Text>
+          <Text style={styles.streakText}>
+            {gamificationData.streakDays} day streak
+          </Text>
         </View>
       </View>
-      
+
       <View style={styles.progressContainer}>
-        <Text style={styles.progressLabel}>Progress to Level {gamificationData.level + 1}</Text>
+        <Text style={styles.progressLabel}>
+          Progress to Level {gamificationData.level + 1}
+        </Text>
         <View style={styles.progressBar}>
-          <View style={[styles.progressFill, { width: `${progressPercentage}%` }]} />
+          <View
+            style={[styles.progressFill, { width: `${progressPercentage}%` }]}
+          />
         </View>
         <Text style={styles.progressText}>
           {gamificationData.xp} / {gamificationData.xpToNextLevel} XP
         </Text>
       </View>
-      
+
       <View style={styles.achievementsPreview}>
         <Text style={styles.achievementsTitle}>Recent Achievements</Text>
         <View style={styles.achievementsList}>
-          {gamificationData.achievements.slice(0, 3).map((achievement, index) => (
-            <View key={achievement.id} style={styles.achievementItem}>
-              <View style={[
-                styles.achievementIcon,
-                { backgroundColor: achievement.unlocked ? '#ECFDF5' : '#F3F4F6' }
-              ]}>
-                <Text style={styles.achievementEmoji}>{achievement.icon}</Text>
+          {gamificationData.achievements
+            .slice(0, 3)
+            .map((achievement, index) => (
+              <View key={achievement.id} style={styles.achievementItem}>
+                <View
+                  style={[
+                    styles.achievementIcon,
+                    {
+                      backgroundColor: achievement.unlocked
+                        ? '#ECFDF5'
+                        : '#F3F4F6',
+                    },
+                  ]}
+                >
+                  <Text style={styles.achievementEmoji}>
+                    {achievement.icon}
+                  </Text>
+                </View>
+                <Text
+                  style={[
+                    styles.achievementTitle,
+                    { color: achievement.unlocked ? '#111827' : '#9CA3AF' },
+                  ]}
+                >
+                  {achievement.title}
+                </Text>
               </View>
-              <Text style={[
-                styles.achievementTitle,
-                { color: achievement.unlocked ? '#111827' : '#9CA3AF' }
-              ]}>
-                {achievement.title}
-              </Text>
-            </View>
-          ))}
+            ))}
         </View>
       </View>
     </View>
@@ -262,11 +285,10 @@ export default function ProfileScreen() {
     ],
   });
 
-
-
   // Cloudinary configuration
   const CLOUDINARY_CLOUD_NAME = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME;
-  const CLOUDINARY_UPLOAD_PRESET = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+  const CLOUDINARY_UPLOAD_PRESET =
+    process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
   // --- Data Fetching --- //
   useEffect(() => {
@@ -400,63 +422,71 @@ export default function ProfileScreen() {
   const generateInitialAvatar = (name: string): string => {
     const initials = name
       .split(' ')
-      .map(word => word.charAt(0).toUpperCase())
+      .map((word) => word.charAt(0).toUpperCase())
       .join('')
       .substring(0, 2);
-    
+
     // Use a service like UI Avatars to generate an avatar
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=10B981&color=fff&size=200&format=png`;
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(
+      name
+    )}&background=10B981&color=fff&size=200&format=png`;
   };
 
   const handleImagePicker = async () => {
     if (!profile) return;
 
-    Alert.alert(
-      'Update Profile Photo',
-      'Choose an option',
-      [
-        {
-          text: 'Camera',
-          onPress: async () => {
-            const { status } = await ImagePicker.requestCameraPermissionsAsync();
-            if (status !== 'granted') {
-              Alert.alert('Permission needed', 'Camera permission is required to take photos');
-              return;
-            }
-            selectImage('camera');
-          },
+    Alert.alert('Update Profile Photo', 'Choose an option', [
+      {
+        text: 'Camera',
+        onPress: async () => {
+          const { status } = await ImagePicker.requestCameraPermissionsAsync();
+          if (status !== 'granted') {
+            Alert.alert(
+              'Permission needed',
+              'Camera permission is required to take photos'
+            );
+            return;
+          }
+          selectImage('camera');
         },
-        {
-          text: 'Photo Library',
-          onPress: async () => {
-            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-            if (status !== 'granted') {
-              Alert.alert('Permission needed', 'Photo library permission is required');
-              return;
-            }
-            selectImage('library');
-          },
+      },
+      {
+        text: 'Photo Library',
+        onPress: async () => {
+          const { status } =
+            await ImagePicker.requestMediaLibraryPermissionsAsync();
+          if (status !== 'granted') {
+            Alert.alert(
+              'Permission needed',
+              'Photo library permission is required'
+            );
+            return;
+          }
+          selectImage('library');
         },
-        {
-          text: 'Generate Avatar',
-          onPress: () => {
-            if (profile.fullName) {
-              const avatarUrl = generateInitialAvatar(profile.fullName);
-              updateProfileImage(avatarUrl);
-            } else {
-              Alert.alert('Error', 'Please set your name first to generate an avatar');
-            }
-          },
+      },
+      {
+        text: 'Generate Avatar',
+        onPress: () => {
+          if (profile.fullName) {
+            const avatarUrl = generateInitialAvatar(profile.fullName);
+            updateProfileImage(avatarUrl);
+          } else {
+            Alert.alert(
+              'Error',
+              'Please set your name first to generate an avatar'
+            );
+          }
         },
-        { text: 'Cancel', style: 'cancel' },
-      ]
-    );
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   };
 
   const selectImage = async (source: 'camera' | 'library') => {
     try {
       setIsUploadingImage(true);
-      
+
       const options: ImagePicker.ImagePickerOptions = {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
@@ -464,9 +494,10 @@ export default function ProfileScreen() {
         quality: 0.8,
       };
 
-      const result = source === 'camera' 
-        ? await ImagePicker.launchCameraAsync(options)
-        : await ImagePicker.launchImageLibraryAsync(options);
+      const result =
+        source === 'camera'
+          ? await ImagePicker.launchCameraAsync(options)
+          : await ImagePicker.launchImageLibraryAsync(options);
 
       if (!result.canceled && result.assets[0]) {
         const imageUri = result.assets[0].uri;
@@ -483,7 +514,7 @@ export default function ProfileScreen() {
 
   const updateProfileImage = async (avatarUrl: string) => {
     if (!profile) return;
-    
+
     try {
       await updateUserProfile({ avatarUrl });
       setProfile({ ...profile, avatarUrl });
@@ -497,9 +528,9 @@ export default function ProfileScreen() {
   const handleLogout = async () => {
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
-      { 
-        text: 'Sign Out', 
-        style: 'destructive', 
+      {
+        text: 'Sign Out',
+        style: 'destructive',
         onPress: async () => {
           try {
             const result = await signOut();
@@ -511,7 +542,7 @@ export default function ProfileScreen() {
             console.error('Sign out error:', error);
             Alert.alert('Error', 'Failed to sign out. Please try again.');
           }
-        }
+        },
       },
     ]);
   };
@@ -675,19 +706,19 @@ export default function ProfileScreen() {
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: Platform.OS === 'android' ? 20 : 0 }}
+        contentContainerStyle={{
+          paddingBottom: Platform.OS === 'android' ? 20 : 0,
+        }}
       >
-
         <View style={styles.profileCard}>
           <View style={styles.avatarContainer}>
             <Image
               source={{
                 uri:
                   profile.avatarUrl ||
-                  (profile.fullName 
+                  (profile.fullName
                     ? generateInitialAvatar(profile.fullName)
-                    : 'https://ui-avatars.com/api/?name=User&background=10B981&color=fff&size=200&format=png'
-                  ),
+                    : 'https://ui-avatars.com/api/?name=User&background=10B981&color=fff&size=200&format=png'),
               }}
               style={styles.profileImage}
             />
@@ -764,9 +795,15 @@ export default function ProfileScreen() {
                     } else if (item.id === 'friends') {
                       router.push('/manage-friends');
                     } else if (item.id === 'help') {
-                      Alert.alert('Help & Support', 'Coming soon! Contact support at prayag.thakur@example.com');
+                      Alert.alert(
+                        'Help & Support',
+                        'Coming soon! Contact support at prayag.thakur@example.com'
+                      );
                     } else if (item.id === 'settings') {
-                      Alert.alert('App Settings', 'Additional settings coming soon!');
+                      Alert.alert(
+                        'App Settings',
+                        'Additional settings coming soon!'
+                      );
                     }
                   }}
                 />
@@ -782,7 +819,7 @@ export default function ProfileScreen() {
 
         <Text style={styles.versionText}>Divido v1.0.0</Text>
       </ScrollView>
-      
+
       <Footer />
     </View>
   );

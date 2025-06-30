@@ -9,14 +9,28 @@ import {
   SafeAreaView,
   Dimensions,
 } from 'react-native';
-import { X, Shield, Settings, Bell, HelpCircle, Users, UserPlus } from 'lucide-react-native';
+import {
+  X,
+  Shield,
+  Settings,
+  Bell,
+  HelpCircle,
+  Users,
+  UserPlus,
+} from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
 interface InfoPopupProps {
   visible: boolean;
   onClose: () => void;
-  type: 'privacy' | 'settings' | 'notifications' | 'help' | 'friends' | 'invite';
+  type:
+    | 'privacy'
+    | 'settings'
+    | 'notifications'
+    | 'help'
+    | 'friends'
+    | 'invite';
 }
 
 const InfoPopup: React.FC<InfoPopupProps> = ({ visible, onClose, type }) => {
@@ -31,12 +45,13 @@ const InfoPopup: React.FC<InfoPopupProps> = ({ visible, onClose, type }) => {
               <Text style={styles.description}>
                 Your privacy is important to us. Here are your privacy controls:
               </Text>
-              
+
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Data Protection</Text>
                 <Text style={styles.sectionText}>
                   • All financial data is encrypted and securely stored
-                  {'\n'}• We never share your personal information with third parties
+                  {'\n'}• We never share your personal information with third
+                  parties
                   {'\n'}• You can delete your account and data at any time
                 </Text>
               </View>
@@ -46,7 +61,8 @@ const InfoPopup: React.FC<InfoPopupProps> = ({ visible, onClose, type }) => {
                 <Text style={styles.sectionText}>
                   • Group expenses are only visible to group members
                   {'\n'}• You control who can add you to groups
-                  {'\n'}• Your profile information is only shared with connected friends
+                  {'\n'}• Your profile information is only shared with connected
+                  friends
                 </Text>
               </View>
 
@@ -68,7 +84,7 @@ const InfoPopup: React.FC<InfoPopupProps> = ({ visible, onClose, type }) => {
               <Text style={styles.description}>
                 Manage your app preferences and configurations:
               </Text>
-              
+
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Account Settings</Text>
                 <Text style={styles.sectionText}>
@@ -105,7 +121,7 @@ const InfoPopup: React.FC<InfoPopupProps> = ({ visible, onClose, type }) => {
               <Text style={styles.description}>
                 Control how you receive notifications:
               </Text>
-              
+
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Push Notifications</Text>
                 <Text style={styles.sectionText}>
@@ -151,7 +167,7 @@ const InfoPopup: React.FC<InfoPopupProps> = ({ visible, onClose, type }) => {
               <Text style={styles.description}>
                 Need help? We're here to assist you:
               </Text>
-              
+
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Getting Started</Text>
                 <Text style={styles.sectionText}>
@@ -197,7 +213,7 @@ const InfoPopup: React.FC<InfoPopupProps> = ({ visible, onClose, type }) => {
               <Text style={styles.description}>
                 Manage your friends and connections:
               </Text>
-              
+
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Friend Requests</Text>
                 <Text style={styles.sectionText}>
@@ -241,9 +257,10 @@ const InfoPopup: React.FC<InfoPopupProps> = ({ visible, onClose, type }) => {
           content: (
             <View style={styles.content}>
               <Text style={styles.description}>
-                Invite your friends to join Divido and make expense splitting easier:
+                Invite your friends to join Divido and make expense splitting
+                easier:
               </Text>
-              
+
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Share the App</Text>
                 <Text style={styles.sectionText}>
@@ -320,7 +337,10 @@ const InfoPopup: React.FC<InfoPopupProps> = ({ visible, onClose, type }) => {
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+        >
           {content}
         </ScrollView>
       </SafeAreaView>

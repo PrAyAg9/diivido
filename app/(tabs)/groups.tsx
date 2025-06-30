@@ -85,7 +85,10 @@ export default function GroupsScreen() {
   const loadUserCurrency = async () => {
     try {
       const currency = await AsyncStorage.getItem('userCurrency');
-      if (currency && (currency === 'INR' || currency === 'USD' || currency === 'EUR')) {
+      if (
+        currency &&
+        (currency === 'INR' || currency === 'USD' || currency === 'EUR')
+      ) {
         setUserCurrency(currency as Currency);
       }
     } catch (error) {
@@ -154,7 +157,9 @@ export default function GroupsScreen() {
       {/* Summary Cards */}
       <View style={styles.summaryContainer}>
         <View style={styles.summaryCard}>
-          <Text style={styles.summaryAmount}>-{formatCurrency(totalOwed, userCurrency)}</Text>
+          <Text style={styles.summaryAmount}>
+            -{formatCurrency(totalOwed, userCurrency)}
+          </Text>
           <Text style={styles.summaryLabel}>You owe in total</Text>
         </View>
         <View style={styles.summaryCard}>
@@ -239,7 +244,8 @@ export default function GroupsScreen() {
                   { color: (group.balance ?? 0) >= 0 ? '#10B981' : '#EF4444' },
                 ]}
               >
-                {(group.balance ?? 0) >= 0 ? '+' : ''}{formatCurrency(Math.abs(group.balance ?? 0), userCurrency)}
+                {(group.balance ?? 0) >= 0 ? '+' : ''}
+                {formatCurrency(Math.abs(group.balance ?? 0), userCurrency)}
               </Text>
               <Text style={styles.balanceLabel}>
                 {(group.balance ?? 0) >= 0 ? 'You get back' : 'You owe'}
@@ -270,7 +276,7 @@ export default function GroupsScreen() {
           </View>
         )}
       </ScrollView>
-      
+
       <Footer />
     </View>
   );

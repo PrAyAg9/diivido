@@ -15,13 +15,18 @@ export default function PrivacySettingsScreen() {
   const router = useRouter();
 
   const handleContactDeveloper = () => {
-    Linking.openURL('mailto:prayag.thakur@example.com?subject=Divido App Inquiry');
+    Linking.openURL(
+      'mailto:prayag.thakur@example.com?subject=Divido App Inquiry'
+    );
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
           <ArrowLeft size={24} color="#111827" />
         </TouchableOpacity>
         <Text style={styles.title}>Privacy Settings</Text>
@@ -35,7 +40,8 @@ export default function PrivacySettingsScreen() {
           </View>
           <Text style={styles.privacyTitle}>Your Privacy Matters</Text>
           <Text style={styles.privacyDescription}>
-            We are committed to protecting your personal information and ensuring your data remains secure.
+            We are committed to protecting your personal information and
+            ensuring your data remains secure.
           </Text>
         </View>
 
@@ -43,10 +49,10 @@ export default function PrivacySettingsScreen() {
           <Text style={styles.sectionTitle}>Data Protection</Text>
           <View style={styles.sectionCard}>
             <Text style={styles.sectionText}>
-              • All financial data is encrypted and stored securely{'\n'}
-              • We never share your personal information with third parties{'\n'}
-              • Your payment details are processed through secure channels{'\n'}
-              • Group expenses are only visible to group members
+              • All financial data is encrypted and stored securely{'\n'}• We
+              never share your personal information with third parties{'\n'}•
+              Your payment details are processed through secure channels{'\n'}•
+              Group expenses are only visible to group members
             </Text>
           </View>
         </View>
@@ -55,10 +61,9 @@ export default function PrivacySettingsScreen() {
           <Text style={styles.sectionTitle}>Information We Collect</Text>
           <View style={styles.sectionCard}>
             <Text style={styles.sectionText}>
-              • Basic profile information (name, email, phone){'\n'}
-              • Expense and group data you create{'\n'}
-              • Payment preferences and UPI IDs{'\n'}
-              • Usage analytics to improve the app experience
+              • Basic profile information (name, email, phone){'\n'}• Expense
+              and group data you create{'\n'}• Payment preferences and UPI IDs
+              {'\n'}• Usage analytics to improve the app experience
             </Text>
           </View>
         </View>
@@ -67,25 +72,27 @@ export default function PrivacySettingsScreen() {
           <Text style={styles.sectionTitle}>Your Rights</Text>
           <View style={styles.sectionCard}>
             <Text style={styles.sectionText}>
-              • Request a copy of your data{'\n'}
-              • Delete your account and associated data{'\n'}
-              • Opt-out of non-essential communications{'\n'}
-              • Control your visibility in group searches
+              • Request a copy of your data{'\n'}• Delete your account and
+              associated data{'\n'}• Opt-out of non-essential communications
+              {'\n'}• Control your visibility in group searches
             </Text>
           </View>
         </View>
 
-        <TouchableOpacity style={styles.contactButton} onPress={handleContactDeveloper}>
+        <TouchableOpacity
+          style={styles.contactButton}
+          onPress={handleContactDeveloper}
+        >
           <Mail size={20} color="#10B981" />
           <Text style={styles.contactButtonText}>Contact Developer</Text>
           <ExternalLink size={16} color="#10B981" />
         </TouchableOpacity>
 
         <View style={styles.footerCard}>
-          <Text style={styles.footerTitle}>Divido - Expense Sharing Made Simple</Text>
-          <Text style={styles.footerText}>
-            Made with ❤️ by Prayag Thakur
+          <Text style={styles.footerTitle}>
+            Divido - Expense Sharing Made Simple
           </Text>
+          <Text style={styles.footerText}>Made with ❤️ by Prayag Thakur</Text>
           <Text style={styles.copyrightText}>
             © 2025 Prayag Thakur. All rights reserved.
           </Text>

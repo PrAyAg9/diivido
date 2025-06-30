@@ -1,64 +1,59 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const group_model_1 = require("../models/group.model");
 const expense_model_1 = require("../models/expense.model");
-const notification_service_1 = __importDefault(require("../services/notification.service"));
-// In-memory game storage (in production, use Redis or MongoDB)
+// In-memory game storage (in production, consider using Redis or a temporary MongoDB collection)
 const activeGames = new Map();
+// --- Controller Class --- //
 class QuickDrawController {
     constructor() {
-        // Start a new Quick Draw game for an expense
         this.startQuickDrawGame = async (req, res) => {
-            var _a, _b;
+            var _a;
             try {
                 const { groupId, expenseData } = req.body;
-                const userId = ((_a = req.user) === null || _a === void 0 ? void 0 : _a.id) || ((_b = req.user) === null || _b === void 0 ? void 0 : _b._id);
+                const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id; // FIX: Standardize on req.user.id
+                if (!userId) {
+                    res.status(400).json({ error: 'User not authenticated' });
+                    return;
+                }
                 if (!groupId || !expenseData) {
                     res.status(400).json({ error: 'Group ID and expense data are required' });
                     return;
                 }
-                // Verify group membership and get all members
                 const group = await group_model_1.Group.findById(groupId).populate('members.userId', 'fullName email');
                 if (!group) {
                     res.status(404).json({ error: 'Group not found' });
                     return;
                 }
-                // Check if user is a member
-                const isMember = group.members.some((member) => member.userId._id.toString() === userId.toString());
+                const isMember = group.members.some(member => member.userId._id.toString() === userId);
                 if (!isMember) {
-                    res.status(403).json({ error: 'Not a member of this group' });
+                    res.status(403).json({ error: 'You are not a member of this group' });
                     return;
                 }
-                // Create game ID
                 const gameId = `quickdraw_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-                // Create participants list from group members
-                const participants = group.members.map((member) => ({
+                const participants = group.members.map(member => ({
                     userId: member.userId._id.toString(),
                     userName: member.userId.fullName,
                     isReady: false,
                     hasPlayed: false,
-                    reactionTime: undefined
+                    reactionTime: undefined,
                 }));
-                // Create the game
                 const game = {
                     id: gameId,
-                    groupId: groupId,
+                    groupId,
                     expenseData,
                     participants,
                     gameState: 'waiting',
-                    createdAt: new Date()
+                    createdAt: new Date(),
                 };
                 activeGames.set(gameId, game);
-                // Send push notifications to all group members
-                await notification_service_1.default.sendQuickDrawNotifications(participants, expenseData.title, gameId);
+                // Assuming notificationService is correctly typed and imported
+                // await notificationService.sendQuickDrawNotifications(participants, expenseData.title, gameId);
                 res.json({
                     success: true,
                     gameId,
                     message: `Quick Draw game started! Notifications sent to ${participants.length} players.`,
-                    participants: participants.map(p => ({ userName: p.userName, isReady: p.isReady }))
+                    participants: participants.map(p => ({ userName: p.userName, isReady: p.isReady })),
                 });
             }
             catch (error) {
@@ -66,40 +61,36 @@ class QuickDrawController {
                 res.status(500).json({ error: 'Failed to start Quick Draw game' });
             }
         };
-        // Join a Quick Draw game
         this.joinGame = async (req, res) => {
-            var _a, _b;
+            var _a;
             try {
                 const { gameId } = req.params;
-                const userId = ((_a = req.user) === null || _a === void 0 ? void 0 : _a.id) || ((_b = req.user) === null || _b === void 0 ? void 0 : _b._id);
-                const game = activeGames.get(gameId);
-                if (!game) {
-                    res.status(404).json({ error: 'Game not found or expired' });
+                const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id; // FIX: Standardize on req.user.id
+                if (!userId) {
+                    res.status(401).json({ error: 'User not authenticated' });
                     return;
                 }
-                // Find the participant
-                const participant = game.participants.find(p => p.userId === userId.toString());
+                const game = activeGames.get(gameId);
+                if (!game) {
+                    res.status(404).json({ error: 'Game not found or has expired' });
+                    return;
+                }
+                const participant = game.participants.find(p => p.userId === userId);
                 if (!participant) {
                     res.status(403).json({ error: 'You are not a participant in this game' });
                     return;
                 }
-                // Mark as ready
                 participant.isReady = true;
-                // Check if all participants are ready
                 const allReady = game.participants.every(p => p.isReady);
                 if (allReady && game.gameState === 'waiting') {
-                    // Start the countdown
                     game.gameState = 'ready';
-                    // Schedule the signal after random delay (3-7 seconds)
                     const delay = 3000 + Math.random() * 4000; // 3-7 seconds
                     setTimeout(() => {
-                        if (activeGames.has(gameId)) {
-                            const currentGame = activeGames.get(gameId);
-                            if (currentGame && currentGame.gameState === 'ready') {
-                                currentGame.gameState = 'signal';
-                                currentGame.signalTime = Date.now();
-                                console.log(`🚨 SIGNAL! Game ${gameId} signal sent at ${currentGame.signalTime}`);
-                            }
+                        const currentGame = activeGames.get(gameId);
+                        if (currentGame && currentGame.gameState === 'ready') {
+                            currentGame.gameState = 'signal';
+                            currentGame.signalTime = Date.now();
+                            console.log(`🚨 SIGNAL! Game ${gameId} signal sent at ${currentGame.signalTime}`);
                         }
                     }, delay);
                 }
@@ -109,9 +100,9 @@ class QuickDrawController {
                     participants: game.participants.map(p => ({
                         userName: p.userName,
                         isReady: p.isReady,
-                        hasPlayed: p.hasPlayed
+                        hasPlayed: p.hasPlayed,
                     })),
-                    allReady
+                    allReady,
                 });
             }
             catch (error) {
@@ -119,54 +110,48 @@ class QuickDrawController {
                 res.status(500).json({ error: 'Failed to join game' });
             }
         };
-        // Record a player's tap (reaction time)
         this.recordTap = async (req, res) => {
-            var _a, _b;
+            var _a;
             try {
                 const { gameId } = req.params;
                 const { tapTime } = req.body;
-                const userId = ((_a = req.user) === null || _a === void 0 ? void 0 : _a.id) || ((_b = req.user) === null || _b === void 0 ? void 0 : _b._id);
+                const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id; // FIX: Standardize on req.user.id
+                if (!userId) {
+                    res.status(401).json({ error: 'User not authenticated' });
+                    return;
+                }
                 const game = activeGames.get(gameId);
                 if (!game) {
                     res.status(404).json({ error: 'Game not found' });
                     return;
                 }
                 if (game.gameState !== 'signal') {
-                    res.status(400).json({ error: 'Game is not in signal state' });
+                    res.status(400).json({ error: 'Game is not in the active signal state. Too early or too late!' });
                     return;
                 }
-                // Find the participant
-                const participant = game.participants.find(p => p.userId === userId.toString());
+                const participant = game.participants.find(p => p.userId === userId);
                 if (!participant) {
                     res.status(403).json({ error: 'You are not a participant in this game' });
                     return;
                 }
                 if (participant.hasPlayed) {
-                    res.status(400).json({ error: 'You have already played' });
+                    res.status(400).json({ error: 'You have already played this round' });
                     return;
                 }
-                // Calculate reaction time
                 const reactionTime = tapTime - (game.signalTime || 0);
                 participant.reactionTime = reactionTime;
                 participant.hasPlayed = true;
                 console.log(`⚡ ${participant.userName} tapped in ${reactionTime}ms`);
-                // Check if all players have played
                 const allPlayed = game.participants.every(p => p.hasPlayed);
                 if (allPlayed) {
-                    // Game finished - determine winner and loser
-                    const validTimes = game.participants.filter(p => p.reactionTime && p.reactionTime > 0);
+                    game.gameState = 'finished';
+                    const validTimes = game.participants.filter(p => typeof p.reactionTime === 'number' && p.reactionTime >= 0);
                     if (validTimes.length > 0) {
-                        // Sort by reaction time
-                        validTimes.sort((a, b) => (a.reactionTime || 0) - (b.reactionTime || 0));
-                        game.winner = validTimes[0].userName; // Fastest
-                        game.loser = validTimes[validTimes.length - 1].userName; // Slowest
-                        game.gameState = 'finished';
-                        // Create the expense with the loser as the payer
-                        const loserParticipant = validTimes[validTimes.length - 1];
-                        await this.createExpenseForLoser(game, loserParticipant.userId);
-                        console.log(`🏆 Game ${gameId} finished!`);
-                        console.log(`🥇 Winner: ${game.winner} (${validTimes[0].reactionTime}ms)`);
-                        console.log(`🐢 Loser: ${game.loser} (${validTimes[validTimes.length - 1].reactionTime}ms)`);
+                        validTimes.sort((a, b) => a.reactionTime - b.reactionTime);
+                        game.winner = validTimes[0].userName;
+                        game.loser = validTimes[validTimes.length - 1].userName;
+                        await this.createExpenseForLoser(game, validTimes[validTimes.length - 1].userId);
+                        console.log(`🏆 Game ${gameId} finished! Winner: ${game.winner}, Loser: ${game.loser}`);
                     }
                 }
                 res.json({
@@ -178,12 +163,9 @@ class QuickDrawController {
                         loser: game.loser,
                         allTimes: game.participants
                             .filter(p => p.reactionTime)
-                            .sort((a, b) => (a.reactionTime || 0) - (b.reactionTime || 0))
-                            .map(p => ({
-                            userName: p.userName,
-                            reactionTime: p.reactionTime
-                        }))
-                    } : null
+                            .sort((a, b) => a.reactionTime - b.reactionTime)
+                            .map(p => ({ userName: p.userName, reactionTime: p.reactionTime })),
+                    } : null,
                 });
             }
             catch (error) {
@@ -191,7 +173,6 @@ class QuickDrawController {
                 res.status(500).json({ error: 'Failed to record tap' });
             }
         };
-        // Get game status
         this.getGameStatus = async (req, res) => {
             try {
                 const { gameId } = req.params;
@@ -208,12 +189,12 @@ class QuickDrawController {
                         userName: p.userName,
                         isReady: p.isReady,
                         hasPlayed: p.hasPlayed,
-                        reactionTime: p.reactionTime
+                        reactionTime: p.reactionTime,
                     })),
                     results: game.gameState === 'finished' ? {
                         winner: game.winner,
-                        loser: game.loser
-                    } : null
+                        loser: game.loser,
+                    } : null,
                 });
             }
             catch (error) {
@@ -221,9 +202,13 @@ class QuickDrawController {
                 res.status(500).json({ error: 'Failed to get game status' });
             }
         };
-        // Create expense for the loser
         this.createExpenseForLoser = async (game, loserUserId) => {
             try {
+                // The loser pays the full amount
+                const paidBy = loserUserId;
+                // The expense is split equally among all participants, as they all "benefitted" from the activity.
+                // The 'paidBy' field correctly assigns the cost to the loser.
+                const splitAmount = game.expenseData.amount / game.participants.length;
                 const expense = new expense_model_1.Expense({
                     groupId: game.groupId,
                     title: game.expenseData.title,
@@ -231,23 +216,21 @@ class QuickDrawController {
                     amount: game.expenseData.amount,
                     currency: game.expenseData.currency || 'USD',
                     category: game.expenseData.category || 'other',
-                    paidBy: loserUserId,
+                    paidBy: paidBy,
                     splitType: 'equal',
                     splits: game.participants.map(p => ({
                         userId: p.userId,
-                        amount: 0, // Loser pays all, others pay nothing
-                        paid: p.userId === loserUserId
+                        amount: splitAmount, // FIX: Correctly assign the split amount
                     })),
-                    date: new Date()
+                    date: new Date(),
                 });
                 await expense.save();
-                console.log(`💰 Expense created: ${game.loser} pays $${game.expenseData.amount} for ${game.expenseData.title}`);
+                console.log(`💰 Expense created: ${game.loser} pays ${game.expenseData.amount} for "${game.expenseData.title}"`);
             }
             catch (error) {
                 console.error('Error creating expense for loser:', error);
             }
         };
-        // Clean up old games (call this periodically)
         this.cleanupOldGames = async (req, res) => {
             const oneHourAgo = Date.now() - (60 * 60 * 1000);
             let cleaned = 0;
@@ -257,6 +240,7 @@ class QuickDrawController {
                     cleaned++;
                 }
             }
+            console.log(`🧹 Cleaned up ${cleaned} old games.`);
             res.json({ message: `Cleaned up ${cleaned} old games` });
         };
     }

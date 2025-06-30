@@ -11,7 +11,7 @@ const cors_1 = __importDefault(require("cors"));
 const morgan_1 = __importDefault(require("morgan"));
 // Validate required environment variables
 const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET'];
-const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+const missingEnvVars = requiredEnvVars.filter((varName) => !process.env[varName]);
 if (missingEnvVars.length > 0) {
     console.error('Missing required environment variables:', missingEnvVars);
     console.error('Please check your .env file');
@@ -44,7 +44,7 @@ app.get('/health', (req, res) => {
         status: 'OK',
         message: 'Divido Backend is running',
         timestamp: new Date().toISOString(),
-        version: '1.0.0'
+        version: '1.0.0',
     });
 });
 // Root endpoint
@@ -64,8 +64,8 @@ app.get('/', (req, res) => {
             ai: '/api/ai',
             quickdraw: '/api/quickdraw',
             budget: '/api/budget',
-            notifications: '/api/notifications'
-        }
+            notifications: '/api/notifications',
+        },
     });
 });
 // Routes

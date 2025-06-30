@@ -2,20 +2,15 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.addMember = exports.getGroupById = exports.getGroups = exports.createGroup = void 0;
 const group_model_1 = require("../models/group.model");
-// Assuming req.user is properly typed via middleware.
-// If not, you might define it like:
-// interface AuthRequest extends Request {
-//   user: {
-//     _id: string; // or mongoose.Types.ObjectId
-//     // ... other user properties
-//   }
-// }
 const createGroup = async (req, res) => {
     try {
         console.log('Create group request body:', req.body);
         const { name, description, avatarUrl, members = [] } = req.body;
-        // Use userId from token (could be either id or userId depending on token structure)
-        const userId = req.user.id || req.user.userId || req.user._id;
+        // Use userId from token
+        if (!req.user) {
+            return res.status(401).json({ message: 'Authentication required' });
+        }
+        const userId = req.user.id;
         console.log('Creating group for user:', userId, req.user);
         // Create group with the current user as admin
         const group = new group_model_1.Group({
@@ -54,7 +49,10 @@ const createGroup = async (req, res) => {
 exports.createGroup = createGroup;
 const getGroups = async (req, res) => {
     try {
-        const userId = req.user.id || req.user.userId || req.user._id;
+        if (!req.user) {
+            return res.status(401).json({ message: 'Authentication required' });
+        }
+        const userId = req.user.id;
         console.log('Getting groups for user:', userId);
         const groups = await group_model_1.Group.find({
             'members.userId': userId,
@@ -102,7 +100,10 @@ const getGroupById = async (req, res) => {
             return res.status(400).json({ message: 'Invalid group ID provided.' });
         }
         // Get userId using the flexible approach
-        const userId = req.user.id || req.user.userId || req.user._id;
+        if (!req.user) {
+            return res.status(401).json({ message: 'Authentication required' });
+        }
+        const userId = req.user.id;
         console.log('Getting group details for user:', userId);
         // Find group and populate required fields
         const group = await group_model_1.Group.findOne({
@@ -152,7 +153,10 @@ const addMember = async (req, res) => {
     try {
         const { id: groupId } = req.params;
         const { userId: newMemberId } = req.body; // Renamed to avoid confusion
-        const requestingUserId = req.user._id;
+        if (!req.user) {
+            return res.status(401).json({ message: 'Authentication required' });
+        }
+        const requestingUserId = req.user.id;
         const group = await group_model_1.Group.findById(groupId);
         if (!group) {
             return res.status(404).json({ message: 'Group not found.' });

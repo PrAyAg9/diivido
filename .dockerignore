@@ -1,0 +1,35 @@
+# Frontend app files (we only want backend)
+
+app/
+assets/
+components/
+contexts/
+hooks/
+types/
+utils/
+supabase/
+expo-env.d.ts
+app.json
+tsconfig.json
+package.json
+package-lock.json
+
+# Backend node_modules (will be installed in container)
+
+backend/node_modules/
+backend/dist/
+backend/.env
+
+# Git and other files
+
+.git/
+.gitignore
+\*.md
+.vscode/
+.expo/
+
+# Temporary files
+
+_.log
+_.tmp
+\*.temp

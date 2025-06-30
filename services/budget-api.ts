@@ -45,12 +45,15 @@ export interface AIBudgetRequest {
 
 export const budgetAPI = {
   // Get AI budget suggestions with category breakdown
-  getBudgetSuggestions: async (request: AIBudgetRequest, groupId: string): Promise<{ suggestions: BudgetSuggestion[] }> => {
+  getBudgetSuggestions: async (
+    request: AIBudgetRequest,
+    groupId: string
+  ): Promise<{ suggestions: BudgetSuggestion[] }> => {
     const token = await AsyncStorage.getItem('authToken');
     const response = await fetch(`${API_URL}/budget/ai-suggestions`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ ...request, groupId }),
@@ -64,12 +67,15 @@ export const budgetAPI = {
   },
 
   // Get smart budget suggestions based on simple input
-  getSmartBudgetSuggestions: async (description: string, groupId: string): Promise<{ suggestions: BudgetSuggestion[] }> => {
+  getSmartBudgetSuggestions: async (
+    description: string,
+    groupId: string
+  ): Promise<{ suggestions: BudgetSuggestion[] }> => {
     const token = await AsyncStorage.getItem('authToken');
     const response = await fetch(`${API_URL}/budget/smart-suggestions`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ description, groupId }),
@@ -84,9 +90,9 @@ export const budgetAPI = {
 
   // Set group budget with category breakdown
   setGroupBudget: async (
-    groupId: string, 
-    amount: number, 
-    currency: string = 'INR', 
+    groupId: string,
+    amount: number,
+    currency: string = 'INR',
     description?: string,
     categories?: CategoryBudget[],
     location?: string,
@@ -96,16 +102,16 @@ export const budgetAPI = {
     const response = await fetch(`${API_URL}/budget/groups/${groupId}/budget`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ 
-        amount, 
-        currency, 
-        description, 
+      body: JSON.stringify({
+        amount,
+        currency,
+        description,
         categories,
         location,
-        duration 
+        duration,
       }),
     });
 
@@ -117,15 +123,20 @@ export const budgetAPI = {
   },
 
   // Get group budget status
-  getGroupBudgetStatus: async (groupId: string): Promise<{ budgetStatus: BudgetStatus | null; groupName: string }> => {
+  getGroupBudgetStatus: async (
+    groupId: string
+  ): Promise<{ budgetStatus: BudgetStatus | null; groupName: string }> => {
     const token = await AsyncStorage.getItem('authToken');
-    const response = await fetch(`${API_URL}/budget/groups/${groupId}/budget-status`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await fetch(
+      `${API_URL}/budget/groups/${groupId}/budget-status`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
 
     if (!response.ok) {
       throw new Error('Failed to get budget status');
@@ -140,7 +151,7 @@ export const budgetAPI = {
     const response = await fetch(`${API_URL}/budget/groups/${groupId}/budget`, {
       method: 'DELETE',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
     });

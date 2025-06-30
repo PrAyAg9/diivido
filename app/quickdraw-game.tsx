@@ -34,38 +34,42 @@ interface GameResults {
 
 export default function QuickDrawGame() {
   const { gameId } = useLocalSearchParams<{ gameId: string }>();
-  
-  const [gameState, setGameState] = useState<'waiting' | 'ready' | 'signal' | 'finished'>('waiting');
+
+  const [gameState, setGameState] = useState<
+    'waiting' | 'ready' | 'signal' | 'finished'
+  >('waiting');
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [isReady, setIsReady] = useState(false);
   const [reactionTime, setReactionTime] = useState<number | null>(null);
   const [results, setResults] = useState<GameResults | null>(null);
   const [expenseTitle, setExpenseTitle] = useState('');
   const [signalShown, setSignalShown] = useState(false);
-  
+
   // Animations
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const flashAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
-  
+
   // Polling for game status
   useEffect(() => {
     if (!gameId) return;
-    
+
     const pollGameStatus = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/quickdraw/status/${gameId}`);
+        const response = await fetch(
+          `https://backend-divido.onrender.com/api/quickdraw/status/${gameId}`
+        );
         const data = await response.json();
-        
+
         if (response.ok) {
           setGameState(data.gameState);
           setParticipants(data.participants);
           setExpenseTitle(data.expenseTitle);
-          
+
           if (data.results) {
             setResults(data.results);
           }
-          
+
           // If signal state and we haven't shown signal yet
           if (data.gameState === 'signal' && !signalShown) {
             showSignal();
@@ -75,28 +79,31 @@ export default function QuickDrawGame() {
         console.error('Error polling game status:', error);
       }
     };
-    
+
     // Poll every 500ms for real-time updates
     const interval = setInterval(pollGameStatus, 500);
-    
+
     // Initial poll
     pollGameStatus();
-    
+
     return () => clearInterval(interval);
   }, [gameId, signalShown]);
 
   // Join the game
   const joinGame = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/quickdraw/join/${gameId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      
+      const response = await fetch(
+        `https://backend-divido.onrender.com/api/quickdraw/join/${gameId}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+
       if (response.ok) {
         setIsReady(true);
         Vibration.vibrate(100);
-        
+
         // Start ready animation
         Animated.loop(
           Animated.sequence([
@@ -122,7 +129,7 @@ export default function QuickDrawGame() {
   const showSignal = () => {
     setSignalShown(true);
     Vibration.vibrate([100, 100, 100]);
-    
+
     // Flash animation
     Animated.sequence([
       Animated.timing(flashAnim, {
@@ -141,27 +148,30 @@ export default function QuickDrawGame() {
   // Handle tap
   const handleTap = async () => {
     if (gameState !== 'signal' || reactionTime !== null) return;
-    
+
     const tapTime = Date.now();
     setReactionTime(tapTime);
-    
+
     try {
-      const response = await fetch(`http://localhost:5000/api/quickdraw/tap/${gameId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tapTime }),
-      });
-      
+      const response = await fetch(
+        `https://backend-divido.onrender.com/api/quickdraw/tap/${gameId}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tapTime }),
+        }
+      );
+
       const data = await response.json();
-      
+
       if (response.ok) {
         setReactionTime(data.reactionTime);
-        
+
         if (data.results) {
           setResults(data.results);
           setGameState('finished');
         }
-        
+
         Vibration.vibrate(50);
       }
     } catch (error) {
@@ -172,9 +182,12 @@ export default function QuickDrawGame() {
   const renderWaitingScreen = () => (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#1F2937" />
-      
+
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.closeButton}
+        >
           <X size={24} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.title}>Quick Draw Challenge! ⚡</Text>
@@ -188,13 +201,21 @@ export default function QuickDrawGame() {
         </View>
 
         <View style={styles.participantsContainer}>
-          <Text style={styles.participantsTitle}>Players ({participants.length})</Text>
+          <Text style={styles.participantsTitle}>
+            Players ({participants.length})
+          </Text>
           {participants.map((participant, index) => (
             <View key={index} style={styles.participantRow}>
-              <View style={[
-                styles.participantStatus, 
-                { backgroundColor: participant.isReady ? '#10B981' : '#6B7280' }
-              ]} />
+              <View
+                style={[
+                  styles.participantStatus,
+                  {
+                    backgroundColor: participant.isReady
+                      ? '#10B981'
+                      : '#6B7280',
+                  },
+                ]}
+              />
               <Text style={styles.participantName}>{participant.userName}</Text>
               <Text style={styles.participantState}>
                 {participant.isReady ? '✓ Ready' : 'Waiting...'}
@@ -209,7 +230,9 @@ export default function QuickDrawGame() {
           </TouchableOpacity>
         ) : (
           <View style={styles.waitingForOthers}>
-            <Animated.View style={[styles.pulseIcon, { transform: [{ scale: pulseAnim }] }]}>
+            <Animated.View
+              style={[styles.pulseIcon, { transform: [{ scale: pulseAnim }] }]}
+            >
               <Clock size={32} color="#F59E0B" />
             </Animated.View>
             <Text style={styles.waitingText}>Waiting for other players...</Text>
@@ -222,38 +245,44 @@ export default function QuickDrawGame() {
   const renderReadyScreen = () => (
     <View style={[styles.container, styles.readyContainer]}>
       <StatusBar barStyle="light-content" backgroundColor="#1F2937" />
-      
-      <Animated.View style={[styles.readyContent, { transform: [{ scale: pulseAnim }] }]}>
+
+      <Animated.View
+        style={[styles.readyContent, { transform: [{ scale: pulseAnim }] }]}
+      >
         <Text style={styles.readyTitle}>Get Ready...</Text>
         <Text style={styles.readySubtitle}>Wait for the signal!</Text>
-        
+
         <View style={styles.playersReady}>
           <Users size={48} color="#FFFFFF" />
-          <Text style={styles.allReadyText}>All {participants.length} players ready!</Text>
+          <Text style={styles.allReadyText}>
+            All {participants.length} players ready!
+          </Text>
         </View>
       </Animated.View>
     </View>
   );
 
   const renderSignalScreen = () => (
-    <TouchableOpacity 
-      style={[styles.container, styles.signalContainer]} 
+    <TouchableOpacity
+      style={[styles.container, styles.signalContainer]}
       onPress={handleTap}
       activeOpacity={1}
     >
       <StatusBar barStyle="light-content" backgroundColor="#EF4444" />
-      
-      <Animated.View style={[
-        styles.signalContent,
-        {
-          opacity: flashAnim,
-          transform: [{ scale: scaleAnim }]
-        }
-      ]}>
+
+      <Animated.View
+        style={[
+          styles.signalContent,
+          {
+            opacity: flashAnim,
+            transform: [{ scale: scaleAnim }],
+          },
+        ]}
+      >
         <Text style={styles.signalText}>TAP!</Text>
         <Text style={styles.signalSubtext}>Tap anywhere NOW!</Text>
       </Animated.View>
-      
+
       {reactionTime && (
         <View style={styles.yourTimeContainer}>
           <Text style={styles.yourTimeText}>Your time: {reactionTime}ms</Text>
@@ -265,7 +294,7 @@ export default function QuickDrawGame() {
   const renderResultsScreen = () => (
     <View style={[styles.container, styles.resultsContainer]}>
       <StatusBar barStyle="light-content" backgroundColor="#1F2937" />
-      
+
       <View style={styles.resultsContent}>
         <View style={styles.resultHeader}>
           <Trophy size={64} color="#F59E0B" />
@@ -295,7 +324,7 @@ export default function QuickDrawGame() {
           ))}
         </View>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.doneButton}
           onPress={() => router.back()}
         >

@@ -13,7 +13,9 @@ class NotificationService {
             const messages = [];
             for (const participant of participants) {
                 const user = await user_model_1.User.findById(participant.userId);
-                if (user && user.expoPushToken && expo_server_sdk_1.Expo.isExpoPushToken(user.expoPushToken)) {
+                if (user &&
+                    user.expoPushToken &&
+                    expo_server_sdk_1.Expo.isExpoPushToken(user.expoPushToken)) {
                     messages.push({
                         to: user.expoPushToken,
                         sound: 'default',
@@ -22,10 +24,10 @@ class NotificationService {
                         data: {
                             type: 'quickdraw',
                             gameId: gameId,
-                            expenseTitle: expenseTitle
+                            expenseTitle: expenseTitle,
                         },
                         priority: 'high',
-                        channelId: 'quickdraw'
+                        channelId: 'quickdraw',
                     });
                 }
             }
@@ -66,7 +68,9 @@ class NotificationService {
             }
             for (const member of groupMembers) {
                 const user = await user_model_1.User.findById(member.userId);
-                if (user && user.expoPushToken && expo_server_sdk_1.Expo.isExpoPushToken(user.expoPushToken)) {
+                if (user &&
+                    user.expoPushToken &&
+                    expo_server_sdk_1.Expo.isExpoPushToken(user.expoPushToken)) {
                     messages.push({
                         to: user.expoPushToken,
                         sound: 'default',
@@ -77,10 +81,10 @@ class NotificationService {
                             groupName: groupName,
                             currentSpent: currentSpent,
                             totalBudget: totalBudget,
-                            percentage: percentage
+                            percentage: percentage,
                         },
                         priority: 'normal',
-                        channelId: 'budget'
+                        channelId: 'budget',
                     });
                 }
             }
@@ -107,14 +111,16 @@ class NotificationService {
             const messages = [];
             for (const userId of userIds) {
                 const user = await user_model_1.User.findById(userId);
-                if (user && user.expoPushToken && expo_server_sdk_1.Expo.isExpoPushToken(user.expoPushToken)) {
+                if (user &&
+                    user.expoPushToken &&
+                    expo_server_sdk_1.Expo.isExpoPushToken(user.expoPushToken)) {
                     messages.push({
                         to: user.expoPushToken,
                         sound: 'default',
                         title: title,
                         body: body,
                         data: data || {},
-                        priority: 'normal'
+                        priority: 'normal',
                     });
                 }
             }

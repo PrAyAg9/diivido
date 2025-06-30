@@ -16,7 +16,9 @@ invitationApi.interceptors.request.use(
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
-      console.log(`📤 API Request: ${config.method?.toUpperCase()} ${config.url}`);
+      console.log(
+        `📤 API Request: ${config.method?.toUpperCase()} ${config.url}`
+      );
       return config;
     } catch (error) {
       console.error('Error in request interceptor:', error);
@@ -37,12 +39,12 @@ invitationApi.interceptors.response.use(
   },
   (error: AxiosError) => {
     console.error(`❌ API Error: ${error.config?.url}`, error.message);
-    
+
     // Handle network errors gracefully
     if (error.code === 'NETWORK_ERROR' || error.message === 'Network Error') {
       console.log('🔗 Network issue detected - API server may not be running');
     }
-    
+
     return Promise.reject(error);
   }
 );
@@ -55,17 +57,23 @@ invitationApi.interceptors.response.use(
   },
   (error: AxiosError) => {
     console.error(`❌ API Error: ${error.message}`);
-    
+
     if (error.code === 'NETWORK_ERROR' || error.message === 'Network Error') {
-      console.error('🌐 Network connectivity issue. Check your internet connection and API server.');
-      return Promise.reject(new Error('Network connection failed. Please check your internet connection.'));
+      console.error(
+        '🌐 Network connectivity issue. Check your internet connection and API server.'
+      );
+      return Promise.reject(
+        new Error(
+          'Network connection failed. Please check your internet connection.'
+        )
+      );
     }
-    
+
     if (error.code === 'ECONNABORTED') {
       console.error('⏱️ Request timeout');
       return Promise.reject(new Error('Request timed out. Please try again.'));
     }
-    
+
     return Promise.reject(error);
   }
 );
@@ -121,18 +129,20 @@ export const sendInvitation = async (
   try {
     console.log('📧 Sending invitation with data:', invitationData);
     console.log('🌐 API URL:', API_URL);
-    
+
     if (!API_URL) {
-      throw new Error('API URL is not configured. Please check your network settings.');
+      throw new Error(
+        'API URL is not configured. Please check your network settings.'
+      );
     }
-    
+
     const response = await invitationApi.post(
       '/invitations/invite',
       invitationData
     );
 
     console.log('✅ Invitation sent successfully:', response.data);
-    
+
     return {
       success: true,
       message: response.data.message || 'Invitation sent successfully!',
@@ -140,16 +150,17 @@ export const sendInvitation = async (
     };
   } catch (error: any) {
     console.error('❌ Error sending invitation:', error);
-    
+
     // Network or connection errors
     if (error.message?.includes('Network')) {
       return {
         success: false,
-        message: 'Network error. Please check your internet connection and try again.',
+        message:
+          'Network error. Please check your internet connection and try again.',
         error: 'NETWORK_ERROR',
       };
     }
-    
+
     // API server errors
     if (error.response?.status >= 500) {
       return {
@@ -158,7 +169,7 @@ export const sendInvitation = async (
         error: 'SERVER_ERROR',
       };
     }
-    
+
     // Validation errors
     if (error.response?.status === 400) {
       return {
@@ -167,7 +178,7 @@ export const sendInvitation = async (
         error: 'VALIDATION_ERROR',
       };
     }
-    
+
     // Authentication errors
     if (error.response?.status === 401) {
       return {
@@ -176,10 +187,12 @@ export const sendInvitation = async (
         error: 'AUTH_ERROR',
       };
     }
-    
+
     return {
       success: false,
-      message: error.response?.data?.message || 'Failed to send invitation. Please try again.',
+      message:
+        error.response?.data?.message ||
+        'Failed to send invitation. Please try again.',
       error: error.message || 'UNKNOWN_ERROR',
     };
   }

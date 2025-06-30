@@ -6,7 +6,7 @@ const group_model_1 = require("../models/group.model");
 const createExpense = async (req, res) => {
     try {
         const { groupId, title, description, amount, currency, category, splitType, splits, receiptUrl, date, } = req.body;
-        const userId = req.user.id || req.user.userId || req.user._id;
+        const userId = req.user.id;
         console.log('Creating expense:', { userId, groupId, title, amount });
         // Verify group membership
         const group = await group_model_1.Group.findOne({
@@ -40,7 +40,7 @@ exports.createExpense = createExpense;
 const getGroupExpenses = async (req, res) => {
     try {
         const { groupId } = req.params;
-        const userId = req.user.id || req.user.userId || req.user._id;
+        const userId = req.user.id;
         console.log('Getting expenses for group:', groupId, 'User:', userId);
         // Check for invalid groupId
         if (!groupId || groupId === 'undefined' || groupId === 'null') {
@@ -93,7 +93,7 @@ exports.getGroupExpenses = getGroupExpenses;
 const updateExpense = async (req, res) => {
     try {
         const { id } = req.params;
-        const userId = req.user._id;
+        const userId = req.user.id;
         const updates = req.body;
         const expense = await expense_model_1.Expense.findOne({ _id: id, paidBy: userId });
         if (!expense) {
@@ -113,7 +113,7 @@ exports.updateExpense = updateExpense;
 const markSplitAsPaid = async (req, res) => {
     try {
         const { expenseId } = req.params;
-        const userId = req.user._id;
+        const userId = req.user.id;
         const expense = await expense_model_1.Expense.findById(expenseId);
         if (!expense) {
             return res.status(404).json({ error: 'Expense not found' });
@@ -133,7 +133,7 @@ const markSplitAsPaid = async (req, res) => {
 exports.markSplitAsPaid = markSplitAsPaid;
 const getUserExpenses = async (req, res) => {
     try {
-        const userId = req.user.id || req.user.userId || req.user._id;
+        const userId = req.user.id;
         console.log('Getting expenses for user:', userId);
         // Find all expenses where the user is either the payer or in the splits
         const expenses = await expense_model_1.Expense.find({

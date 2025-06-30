@@ -41,13 +41,15 @@ export default function Avatar({
   // Generate initials from name
   const getInitials = (fullName: string): string => {
     if (!fullName || fullName.trim() === '') return 'U';
-    
+
     const words = fullName.trim().split(' ');
     if (words.length === 1) {
       return words[0].charAt(0).toUpperCase();
     }
-    
-    return (words[0].charAt(0) + words[words.length - 1].charAt(0)).toUpperCase();
+
+    return (
+      words[0].charAt(0) + words[words.length - 1].charAt(0)
+    ).toUpperCase();
   };
 
   // Pick image from gallery or camera
@@ -55,9 +57,13 @@ export default function Avatar({
     if (!editable || !cloudinaryConfig) return;
 
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Sorry, we need camera roll permissions to change your avatar.');
+        Alert.alert(
+          'Permission Required',
+          'Sorry, we need camera roll permissions to change your avatar.'
+        );
         return;
       }
 
@@ -79,7 +85,10 @@ export default function Avatar({
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Sorry, we need camera permissions to take a photo.');
+        Alert.alert(
+          'Permission Required',
+          'Sorry, we need camera permissions to take a photo.'
+        );
         return;
       }
 
@@ -123,12 +132,12 @@ export default function Avatar({
     try {
       setLoading(true);
       const result = await cloudinaryAPI.uploadImage(
-        imageUri, 
+        imageUri,
         cloudinaryConfig,
         `avatar_${Date.now()}.jpg`,
         'avatars'
       );
-      
+
       setCurrentImageUrl(result.secure_url);
       onImageChange?.(result.secure_url);
     } catch (error) {
@@ -152,8 +161,8 @@ export default function Avatar({
 
   if (currentImageUrl) {
     return (
-      <TouchableOpacity 
-        style={[styles.container, avatarSize]} 
+      <TouchableOpacity
+        style={[styles.container, avatarSize]}
         onPress={editable ? pickImage : undefined}
         disabled={!editable}
       >
@@ -168,22 +177,20 @@ export default function Avatar({
   }
 
   return (
-    <TouchableOpacity 
-      style={[
-        styles.container, 
-        avatarSize, 
-        { backgroundColor }
-      ]} 
+    <TouchableOpacity
+      style={[styles.container, avatarSize, { backgroundColor }]}
       onPress={editable ? pickImage : undefined}
       disabled={!editable}
     >
-      <Text style={[
-        styles.initials, 
-        { 
-          fontSize: size * 0.4, 
-          color: textColor 
-        }
-      ]}>
+      <Text
+        style={[
+          styles.initials,
+          {
+            fontSize: size * 0.4,
+            color: textColor,
+          },
+        ]}
+      >
         {initials}
       </Text>
       {editable && (

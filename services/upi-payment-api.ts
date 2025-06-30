@@ -88,7 +88,7 @@ export function generateUPIUrl(app: UPIApp, payment: PaymentRequest): string {
   }
 
   const params = new URLSearchParams(baseParams).toString();
-  
+
   // Different apps have different URL schemes
   switch (app.id) {
     case 'gpay':
@@ -136,7 +136,7 @@ export async function isUPIAppInstalled(app: UPIApp): Promise<boolean> {
  */
 export async function getInstalledUPIApps(): Promise<UPIApp[]> {
   const installedApps: UPIApp[] = [];
-  
+
   for (const app of UPI_APPS) {
     try {
       const isInstalled = await isUPIAppInstalled(app);
@@ -147,18 +147,21 @@ export async function getInstalledUPIApps(): Promise<UPIApp[]> {
       console.log(`Error checking ${app.name}:`, error);
     }
   }
-  
+
   return installedApps;
 }
 
 /**
  * Open UPI app for payment
  */
-export async function openUPIApp(app: UPIApp, payment: PaymentRequest): Promise<boolean> {
+export async function openUPIApp(
+  app: UPIApp,
+  payment: PaymentRequest
+): Promise<boolean> {
   try {
     const upiUrl = generateUPIUrl(app, payment);
     const canOpen = await Linking.canOpenURL(upiUrl);
-    
+
     if (canOpen) {
       await Linking.openURL(upiUrl);
       return true;
@@ -182,11 +185,13 @@ export async function openUPIApp(app: UPIApp, payment: PaymentRequest): Promise<
 /**
  * Open device's default UPI app with payment details
  */
-export async function openDefaultUPIApp(payment: PaymentRequest): Promise<boolean> {
+export async function openDefaultUPIApp(
+  payment: PaymentRequest
+): Promise<boolean> {
   try {
     const defaultUrl = generateUPIUrl(UPI_APPS[0], payment); // Use GPay as default
     const canOpen = await Linking.canOpenURL(defaultUrl);
-    
+
     if (canOpen) {
       await Linking.openURL(defaultUrl);
       return true;
@@ -199,10 +204,7 @@ export async function openDefaultUPIApp(payment: PaymentRequest): Promise<boolea
     }
   } catch (error) {
     console.error('Error opening default UPI app:', error);
-    Alert.alert(
-      'Error',
-      'Failed to open UPI app. Please try again.'
-    );
+    Alert.alert('Error', 'Failed to open UPI app. Please try again.');
     return false;
   }
 }

@@ -110,8 +110,6 @@ export default function RegisterScreen() {
     }
   };
 
- 
-
   if (showSuccess) {
     return (
       <SafeAreaView style={styles.container}>

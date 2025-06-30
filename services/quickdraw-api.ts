@@ -29,17 +29,19 @@ export interface QuickDrawResults {
 
 export const quickDrawApi = {
   // Start a new Quick Draw game
-  startGame: async (gameData: QuickDrawGameData): Promise<{ 
-    success: boolean; 
-    gameId: string; 
-    message: string; 
-    participants: QuickDrawParticipant[] 
+  startGame: async (
+    gameData: QuickDrawGameData
+  ): Promise<{
+    success: boolean;
+    gameId: string;
+    message: string;
+    participants: QuickDrawParticipant[];
   }> => {
     const token = await AsyncStorage.getItem('authToken');
     const response = await fetch(`${API_URL}/quickdraw/start`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(gameData),
@@ -53,7 +55,9 @@ export const quickDrawApi = {
   },
 
   // Join a Quick Draw game
-  joinGame: async (gameId: string): Promise<{
+  joinGame: async (
+    gameId: string
+  ): Promise<{
     success: boolean;
     gameState: string;
     participants: QuickDrawParticipant[];
@@ -63,7 +67,7 @@ export const quickDrawApi = {
     const response = await fetch(`${API_URL}/quickdraw/join/${gameId}`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
     });
@@ -76,7 +80,10 @@ export const quickDrawApi = {
   },
 
   // Record a tap (reaction time)
-  recordTap: async (gameId: string, tapTime: number): Promise<{
+  recordTap: async (
+    gameId: string,
+    tapTime: number
+  ): Promise<{
     success: boolean;
     reactionTime: number;
     gameState: string;
@@ -86,7 +93,7 @@ export const quickDrawApi = {
     const response = await fetch(`${API_URL}/quickdraw/tap/${gameId}`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ tapTime }),
@@ -100,7 +107,9 @@ export const quickDrawApi = {
   },
 
   // Get game status
-  getGameStatus: async (gameId: string): Promise<{
+  getGameStatus: async (
+    gameId: string
+  ): Promise<{
     gameId: string;
     gameState: string;
     expenseTitle: string;
@@ -111,7 +120,7 @@ export const quickDrawApi = {
     const response = await fetch(`${API_URL}/quickdraw/status/${gameId}`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
     });
@@ -129,7 +138,7 @@ export const quickDrawApi = {
     const response = await fetch(`${API_URL}/quickdraw/cleanup`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
     });

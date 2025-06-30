@@ -9,27 +9,27 @@ const demoAuth = async (req: any, res: any, next: any) => {
   try {
     const { User } = require('../models/user.model');
     const firstUser = await User.findOne().limit(1);
-    
+
     if (firstUser) {
-      req.user = { 
-        id: firstUser._id.toString(), 
+      req.user = {
+        id: firstUser._id.toString(),
         _id: firstUser._id,
         fullName: firstUser.fullName,
-        email: firstUser.email
+        email: firstUser.email,
       };
     } else {
       const demoUser = new User({
         fullName: 'Demo Player',
         email: 'demoplayer@example.com',
-        password: 'demo123'
+        password: 'demo123',
       });
       await demoUser.save();
-      
-      req.user = { 
-        id: demoUser._id.toString(), 
+
+      req.user = {
+        id: demoUser._id.toString(),
         _id: demoUser._id,
         fullName: demoUser.fullName,
-        email: demoUser.email
+        email: demoUser.email,
       };
     }
     next();
@@ -44,10 +44,10 @@ const demoAuth = async (req: any, res: any, next: any) => {
 router.use(demoAuth);
 
 // Quick Draw game routes
-router.post('/start', quickDrawController.startQuickDrawGame);
-router.post('/join/:gameId', quickDrawController.joinGame);
-router.post('/tap/:gameId', quickDrawController.recordTap);
-router.get('/status/:gameId', quickDrawController.getGameStatus);
-router.post('/cleanup', quickDrawController.cleanupOldGames);
+router.post('/start', quickDrawController.startQuickDrawGame as any);
+router.post('/join/:gameId', quickDrawController.joinGame as any);
+router.post('/tap/:gameId', quickDrawController.recordTap as any);
+router.get('/status/:gameId', quickDrawController.getGameStatus as any);
+router.post('/cleanup', quickDrawController.cleanupOldGames as any);
 
 export default router;

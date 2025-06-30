@@ -1,13 +1,17 @@
 import { Request, Response } from 'express';
+import { AuthenticatedRequest } from '../types/express';
 import { Payment } from '../models/payment.model';
 import { Group } from '../models/group.model';
 
-export const createPayment = async (req: Request, res: Response) => {
+export const createPayment = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
   try {
     const { toUser, groupId, amount, currency, paymentMethod, notes } =
       req.body;
 
-    const fromUser = req.user._id;
+    const fromUser = req.user.id;
 
     // If groupId is provided, verify both users are members of the group
     if (groupId) {
@@ -41,9 +45,9 @@ export const createPayment = async (req: Request, res: Response) => {
   }
 };
 
-export const getPayments = async (req: Request, res: Response) => {
+export const getPayments = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.id;
     const { groupId } = req.query;
 
     const query: any = {
@@ -65,11 +69,14 @@ export const getPayments = async (req: Request, res: Response) => {
   }
 };
 
-export const updatePaymentStatus = async (req: Request, res: Response) => {
+export const updatePaymentStatus = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
-    const userId = req.user._id;
+    const userId = req.user.id;
 
     const payment = await Payment.findOne({
       _id: id,
@@ -111,9 +118,12 @@ export const updatePaymentStatus = async (req: Request, res: Response) => {
   }
 };
 
-export const getUserPayments = async (req: Request, res: Response) => {
+export const getUserPayments = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
   try {
-    const userId = req.user.id || req.user.userId || req.user._id;
+    const userId = req.user.id;
     console.log('Getting payments for user:', userId);
 
     const payments = await Payment.find({
@@ -132,10 +142,13 @@ export const getUserPayments = async (req: Request, res: Response) => {
   }
 };
 
-export const getGroupPayments = async (req: Request, res: Response) => {
+export const getGroupPayments = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
   try {
     const { groupId } = req.params;
-    const userId = req.user.id || req.user.userId || req.user._id;
+    const userId = req.user.id;
 
     // Verify user is a member of the group
     const group = await Group.findOne({
@@ -159,10 +172,13 @@ export const getGroupPayments = async (req: Request, res: Response) => {
   }
 };
 
-export const confirmPayment = async (req: Request, res: Response) => {
+export const confirmPayment = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
   try {
     const { id } = req.params;
-    const userId = req.user.id || req.user.userId || req.user._id;
+    const userId = req.user.id;
 
     const payment = await Payment.findOne({
       _id: id,

@@ -26,7 +26,11 @@ import {
   Sparkles,
 } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
-import { formatCurrency, getUserCurrency, type Currency } from '@/utils/currency';
+import {
+  formatCurrency,
+  getUserCurrency,
+  type Currency,
+} from '@/utils/currency';
 import { aiAssistantApi } from '@/services/ai-assistant-api';
 import { createExpense } from '@/services/expenses-api';
 import { getUserGroups } from '@/services/groups-api';
@@ -180,7 +184,7 @@ export default function AddExpenseScreen() {
         console.error('Error loading user currency:', error);
       }
     };
-    
+
     loadUserCurrency();
     fetchGroups();
   }, [user]);
@@ -196,7 +200,7 @@ export default function AddExpenseScreen() {
 
   const handleRandomSelection = async () => {
     const totalAmount = parseFloat(amount);
-    
+
     // Select a random person from selected members to pay the full amount
     const randomIndex = Math.floor(Math.random() * selectedMembers.length);
     const unluckyPerson = selectedMembers[randomIndex];
@@ -228,18 +232,22 @@ export default function AddExpenseScreen() {
       const memberName = unluckyMember?.isYou
         ? 'You'
         : unluckyMember?.fullName || 'Unknown';
-      
+
       Alert.alert(
         'Random Selection',
         `${memberName} was randomly selected to pay the full amount!`,
-        [{
-          text: 'OK',
-          onPress: () => router.replace('/(tabs)'),
-        }]
+        [
+          {
+            text: 'OK',
+            onPress: () => router.replace('/(tabs)'),
+          },
+        ]
       );
     } catch (err: any) {
       console.error('Error saving expense:', err);
-      setError(err.response?.data?.error || err.message || 'Failed to save expense');
+      setError(
+        err.response?.data?.error || err.message || 'Failed to save expense'
+      );
     } finally {
       setSaving(false);
     }
@@ -280,7 +288,7 @@ export default function AddExpenseScreen() {
           };
 
           const gameResult = await quickDrawApi.startGame(gameData);
-          
+
           Alert.alert(
             'Quick Draw Started! ⚡',
             `${gameResult.message} All group members will receive a notification to join the game!`,
@@ -298,7 +306,7 @@ export default function AddExpenseScreen() {
               },
             ]
           );
-          
+
           setSaving(false);
           return; // Don't create the expense yet - game will handle it
         } catch (gameError) {
@@ -707,7 +715,8 @@ export default function AddExpenseScreen() {
               {splitType === 'loser-pays-all' ? (
                 <View style={styles.loserPaysAllPreview}>
                   <Text style={styles.loserPaysAllText}>
-                    🎲 One random person will pay the full amount: {formatCurrency(parseFloat(amount || '0'), userCurrency)}
+                    🎲 One random person will pay the full amount:{' '}
+                    {formatCurrency(parseFloat(amount || '0'), userCurrency)}
                   </Text>
                   <Text style={styles.loserPaysAllSubtext}>
                     Selected from {selectedMembers.length} participant

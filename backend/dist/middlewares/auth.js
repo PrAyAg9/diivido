@@ -5,23 +5,30 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.authMiddleware = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const authMiddleware = (req, res, next) => {
+const user_model_1 = require("../models/user.model");
+const authMiddleware = async (req, res, next) => {
     var _a;
-    // Get token from header
-    const token = (_a = req.header('Authorization')) === null || _a === void 0 ? void 0 : _a.replace('Bearer ', '');
-    // Check if no token
-    if (!token) {
-        return res.status(401).json({ error: 'No token, authorization denied' });
-    }
     try {
+        // Get token from header
+        const token = (_a = req.header('Authorization')) === null || _a === void 0 ? void 0 : _a.replace('Bearer ', '');
+        // Check if no token
+        if (!token) {
+            return res.status(401).json({ error: 'No token, authorization denied' });
+        }
         // Verify token
         const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
-        // Add both userId and id to req.user for compatibility
+        // Get user from database
+        const user = await user_model_1.User.findById(decoded.userId);
+        if (!user) {
+            return res.status(401).json({ error: 'Token is not valid' });
+        }
+        // Set user info in request
         req.user = {
-            ...decoded,
-            id: decoded.userId, // Add id for backward compatibility
+            id: user._id.toString(),
+            email: user.email,
+            fullName: user.fullName,
         };
-        console.log('Decoded token:', req.user);
+        console.log('Authenticated user:', req.user);
         next();
     }
     catch (err) {

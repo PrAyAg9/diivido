@@ -63,7 +63,7 @@ export const formatCurrency = (
   showSymbol: boolean = true
 ): string => {
   const symbol = CURRENCY_SYMBOLS[currency];
-  
+
   if (!showSymbol) {
     return amount.toFixed(2);
   }

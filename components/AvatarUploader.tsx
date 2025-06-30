@@ -10,7 +10,9 @@ import {
 } from 'react-native';
 import { Camera, Upload, User } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
-import cloudinaryAPI, { type CloudinaryConfig } from '@/services/cloudinary-api';
+import cloudinaryAPI, {
+  type CloudinaryConfig,
+} from '@/services/cloudinary-api';
 
 interface AvatarUploaderProps {
   currentImage?: string | null;
@@ -47,7 +49,10 @@ export default function AvatarUploader({
       if (source === 'camera') {
         const permission = await ImagePicker.requestCameraPermissionsAsync();
         if (!permission.granted) {
-          Alert.alert('Permission required', 'Camera permission is needed to take photos.');
+          Alert.alert(
+            'Permission required',
+            'Camera permission is needed to take photos.'
+          );
           return;
         }
         result = await ImagePicker.launchCameraAsync({
@@ -57,9 +62,13 @@ export default function AvatarUploader({
           quality: 0.8,
         });
       } else {
-        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        const permission =
+          await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!permission.granted) {
-          Alert.alert('Permission required', 'Photo library permission is needed to select photos.');
+          Alert.alert(
+            'Permission required',
+            'Photo library permission is needed to select photos.'
+          );
           return;
         }
         result = await ImagePicker.launchImageLibraryAsync({
@@ -88,7 +97,7 @@ export default function AvatarUploader({
         `avatar_${userName}_${Date.now()}`,
         'divido/avatars'
       );
-      
+
       onImageUploaded(uploadResult.secure_url);
       Alert.alert('Success', 'Profile picture updated successfully!');
     } catch (error) {
@@ -124,19 +133,30 @@ export default function AvatarUploader({
       <View style={[styles.avatarContainer, { width: size, height: size }]}>
         <Image
           source={getDisplayImage()}
-          style={[styles.avatar, { width: size, height: size, borderRadius: size / 2 }]}
+          style={[
+            styles.avatar,
+            { width: size, height: size, borderRadius: size / 2 },
+          ]}
           resizeMode="cover"
         />
-        
+
         {uploading && (
-          <View style={[styles.uploadingOverlay, { width: size, height: size, borderRadius: size / 2 }]}>
+          <View
+            style={[
+              styles.uploadingOverlay,
+              { width: size, height: size, borderRadius: size / 2 },
+            ]}
+          >
             <ActivityIndicator size="small" color="#FFFFFF" />
           </View>
         )}
-        
+
         {showUploadButton && (
           <TouchableOpacity
-            style={[styles.uploadButton, { bottom: -size * 0.05, right: -size * 0.05 }]}
+            style={[
+              styles.uploadButton,
+              { bottom: -size * 0.05, right: -size * 0.05 },
+            ]}
             onPress={showImagePicker}
             disabled={uploading}
           >
@@ -154,20 +174,23 @@ export default function AvatarUploader({
 
 export function generateUserInitials(name: string): string {
   if (!name) return 'U';
-  
+
   const words = name.trim().split(' ');
   if (words.length === 1) {
     return words[0].charAt(0).toUpperCase();
   }
-  
-  return words.slice(0, 2).map(word => word.charAt(0).toUpperCase()).join('');
+
+  return words
+    .slice(0, 2)
+    .map((word) => word.charAt(0).toUpperCase())
+    .join('');
 }
 
-export function UserAvatar({ 
-  user, 
-  size = 40, 
-  showUpload = false, 
-  onImageUploaded 
+export function UserAvatar({
+  user,
+  size = 40,
+  showUpload = false,
+  onImageUploaded,
 }: {
   user: { id: string; full_name?: string | null; avatar_url?: string | null };
   size?: number;
@@ -187,24 +210,33 @@ export function UserAvatar({
   }
 
   const initials = generateUserInitials(user.full_name || 'User');
-  
+
   if (user.avatar_url) {
     return (
       <Image
         source={{ uri: user.avatar_url }}
-        style={[styles.avatar, { width: size, height: size, borderRadius: size / 2 }]}
+        style={[
+          styles.avatar,
+          { width: size, height: size, borderRadius: size / 2 },
+        ]}
         resizeMode="cover"
       />
     );
   }
 
   // Generate initials avatar
-  const avatarUrl = cloudinaryAPI.generateInitialsAvatar(user.full_name || 'User', CLOUDINARY_CONFIG);
-  
+  const avatarUrl = cloudinaryAPI.generateInitialsAvatar(
+    user.full_name || 'User',
+    CLOUDINARY_CONFIG
+  );
+
   return (
     <Image
       source={{ uri: avatarUrl }}
-      style={[styles.avatar, { width: size, height: size, borderRadius: size / 2 }]}
+      style={[
+        styles.avatar,
+        { width: size, height: size, borderRadius: size / 2 },
+      ]}
       resizeMode="cover"
     />
   );

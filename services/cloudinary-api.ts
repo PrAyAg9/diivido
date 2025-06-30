@@ -19,13 +19,13 @@ export interface CloudinaryConfig {
 export const cloudinaryAPI = {
   // Upload image to Cloudinary
   uploadImage: async (
-    imageUri: string, 
+    imageUri: string,
     config: CloudinaryConfig,
     fileName?: string,
     folder?: string
   ): Promise<CloudinaryUploadResult> => {
     const formData = new FormData();
-    
+
     // Create file object from URI
     const imageFile = {
       uri: imageUri,
@@ -35,7 +35,7 @@ export const cloudinaryAPI = {
 
     formData.append('file', imageFile);
     formData.append('upload_preset', config.uploadPreset);
-    
+
     if (folder) {
       formData.append('folder', folder);
     }
@@ -61,7 +61,7 @@ export const cloudinaryAPI = {
 
   // Generate avatar URL from initials
   generateAvatarUrl: (
-    initials: string, 
+    initials: string,
     config: CloudinaryConfig,
     options?: {
       width?: number;
@@ -74,7 +74,7 @@ export const cloudinaryAPI = {
       width = 100,
       height = 100,
       background = 'auto',
-      color = 'white'
+      color = 'white',
     } = options || {};
 
     // Use Cloudinary's text overlay feature to generate avatar
@@ -85,7 +85,7 @@ export const cloudinaryAPI = {
       `b_${background}`,
       `co_${color}`,
       `l_text:Arial_${Math.floor(width * 0.4)}:${initials.toUpperCase()}`,
-      `g_center`
+      `g_center`,
     ].join(',');
 
     return `https://res.cloudinary.com/${config.cloudName}/image/upload/${transformations}/sample.jpg`;
@@ -98,21 +98,27 @@ export const cloudinaryAPI = {
       width: 100,
       height: 100,
       background: getColorFromName(name),
-      color: 'white'
+      color: 'white',
     });
   },
 
   // Delete image from Cloudinary
-  deleteImage: async (publicId: string, config: CloudinaryConfig): Promise<void> => {
+  deleteImage: async (
+    publicId: string,
+    config: CloudinaryConfig
+  ): Promise<void> => {
     if (!config.apiKey || !config.apiSecret) {
       throw new Error('API key and secret required for deletion');
     }
 
-    const timestamp = Math.round((new Date()).getTime() / 1000);
-    const signature = await generateSignature({
-      public_id: publicId,
-      timestamp,
-    }, config.apiSecret);
+    const timestamp = Math.round(new Date().getTime() / 1000);
+    const signature = await generateSignature(
+      {
+        public_id: publicId,
+        timestamp,
+      },
+      config.apiSecret
+    );
 
     const formData = new FormData();
     formData.append('public_id', publicId);
@@ -137,13 +143,16 @@ export const cloudinaryAPI = {
 // Helper functions
 function getInitials(name: string): string {
   if (!name) return 'U';
-  
+
   const words = name.trim().split(' ');
   if (words.length === 1) {
     return words[0].charAt(0).toUpperCase();
   }
-  
-  return words.slice(0, 2).map(word => word.charAt(0).toUpperCase()).join('');
+
+  return words
+    .slice(0, 2)
+    .map((word) => word.charAt(0).toUpperCase())
+    .join('');
 }
 
 function getColorFromName(name: string): string {
@@ -159,18 +168,21 @@ function getColorFromName(name: string): string {
     '2563EB', // Blue
     '7C2D12', // Brown
   ];
-  
+
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
     const char = name.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash; // Convert to 32bit integer
   }
-  
+
   return colors[Math.abs(hash) % colors.length];
 }
 
-async function generateSignature(params: Record<string, any>, apiSecret: string): Promise<string> {
+async function generateSignature(
+  params: Record<string, any>,
+  apiSecret: string
+): Promise<string> {
   // This is a simplified version - in production, generate signature on server
   // For now, we'll use a placeholder
   return 'placeholder_signature';

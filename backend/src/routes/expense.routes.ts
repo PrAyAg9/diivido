@@ -12,10 +12,10 @@ const router = Router();
 
 router.use(authMiddleware);
 
-router.post('/', createExpense);
-router.get('/user', getUserExpenses);
-router.get('/group/:groupId', getGroupExpenses);
-router.put('/:id', updateExpense);
-router.post('/:expenseId/mark-paid', markSplitAsPaid);
+router.post('/', createExpense as any);
+router.get('/user', getUserExpenses as any);
+router.get('/group/:groupId', getGroupExpenses as any);
+router.put('/:id', updateExpense as any);
+router.post('/:expenseId/mark-paid', markSplitAsPaid as any);
 
 export default router;

@@ -60,9 +60,9 @@ export default function FindFriendsScreen() {
     try {
       // Use the actual friends API to search for users
       const response = await friendsApi.searchUsers(searchQuery.trim());
-      
+
       // Transform API response to match our interface
-      const results: UserSearchResult[] = response.data.map(user => ({
+      const results: UserSearchResult[] = response.data.map((user) => ({
         id: user.id,
         fullName: user.fullName,
         email: user.email,
@@ -73,10 +73,12 @@ export default function FindFriendsScreen() {
       }));
 
       setSearchResults(results);
-
     } catch (error) {
       console.error('Error searching users:', error);
-      Alert.alert('Search Error', 'Failed to search for users. Please try again.');
+      Alert.alert(
+        'Search Error',
+        'Failed to search for users. Please try again.'
+      );
       setSearchResults([]);
     } finally {
       setSearching(false);
@@ -87,13 +89,11 @@ export default function FindFriendsScreen() {
     try {
       // Use the actual friends API to send a friend request
       await friendsApi.sendFriendRequest(userId);
-      
+
       // Update the search results to reflect the sent request
-      setSearchResults(prev => 
-        prev.map(user => 
-          user.id === userId 
-            ? { ...user, friendRequestSent: true }
-            : user
+      setSearchResults((prev) =>
+        prev.map((user) =>
+          user.id === userId ? { ...user, friendRequestSent: true } : user
         )
       );
 
@@ -121,7 +121,7 @@ export default function FindFriendsScreen() {
           <Text style={styles.userEmail}>{user.email}</Text>
         </View>
       </View>
-      
+
       <View style={styles.actionContainer}>
         {user.isFriend ? (
           <View style={styles.friendBadge}>
@@ -137,7 +137,7 @@ export default function FindFriendsScreen() {
             <Text style={styles.acceptButtonText}>Accept</Text>
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.addButton}
             onPress={() => sendFriendRequest(user.id)}
           >
@@ -151,23 +151,27 @@ export default function FindFriendsScreen() {
 
   return (
     <View style={styles.container}>
-      <CustomHeader 
+      <CustomHeader
         title="Find Friends"
         leftComponent={
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
             <ArrowLeft size={24} color="#111827" />
           </TouchableOpacity>
         }
       />
 
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         style={styles.content}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <View style={styles.searchSection}>
           <Text style={styles.title}>Find Friends by Email</Text>
           <Text style={styles.subtitle}>
-            Search for friends using their email address to connect and split expenses together.
+            Search for friends using their email address to connect and split
+            expenses together.
           </Text>
 
           <View style={styles.searchContainer}>
@@ -183,8 +187,11 @@ export default function FindFriendsScreen() {
                 autoCorrect={false}
               />
             </View>
-            <TouchableOpacity 
-              style={[styles.searchButton, searching && styles.searchButtonDisabled]}
+            <TouchableOpacity
+              style={[
+                styles.searchButton,
+                searching && styles.searchButtonDisabled,
+              ]}
               onPress={searchUsers}
               disabled={searching}
             >
@@ -197,7 +204,10 @@ export default function FindFriendsScreen() {
           </View>
         </View>
 
-        <ScrollView style={styles.resultsSection} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={styles.resultsSection}
+          showsVerticalScrollIndicator={false}
+        >
           {searching && (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#10B981" />

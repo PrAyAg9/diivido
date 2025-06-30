@@ -21,8 +21,12 @@ class NotificationService {
 
       for (const participant of participants) {
         const user = await User.findById(participant.userId);
-        
-        if (user && user.expoPushToken && Expo.isExpoPushToken(user.expoPushToken)) {
+
+        if (
+          user &&
+          user.expoPushToken &&
+          Expo.isExpoPushToken(user.expoPushToken)
+        ) {
           messages.push({
             to: user.expoPushToken,
             sound: 'default',
@@ -31,27 +35,28 @@ class NotificationService {
             data: {
               type: 'quickdraw',
               gameId: gameId,
-              expenseTitle: expenseTitle
+              expenseTitle: expenseTitle,
             },
             priority: 'high',
-            channelId: 'quickdraw'
+            channelId: 'quickdraw',
           });
         }
       }
 
       if (messages.length > 0) {
         const chunks = this.expo.chunkPushNotifications(messages);
-        
+
         for (const chunk of chunks) {
           try {
-            const ticketChunk = await this.expo.sendPushNotificationsAsync(chunk);
+            const ticketChunk = await this.expo.sendPushNotificationsAsync(
+              chunk
+            );
             console.log('📱 Quick Draw notifications sent:', ticketChunk);
           } catch (error) {
             console.error('Error sending notification chunk:', error);
           }
         }
       }
-
     } catch (error) {
       console.error('Error sending Quick Draw notifications:', error);
     }
@@ -83,8 +88,12 @@ class NotificationService {
 
       for (const member of groupMembers) {
         const user = await User.findById(member.userId);
-        
-        if (user && user.expoPushToken && Expo.isExpoPushToken(user.expoPushToken)) {
+
+        if (
+          user &&
+          user.expoPushToken &&
+          Expo.isExpoPushToken(user.expoPushToken)
+        ) {
           messages.push({
             to: user.expoPushToken,
             sound: 'default',
@@ -95,27 +104,28 @@ class NotificationService {
               groupName: groupName,
               currentSpent: currentSpent,
               totalBudget: totalBudget,
-              percentage: percentage
+              percentage: percentage,
             },
             priority: 'normal',
-            channelId: 'budget'
+            channelId: 'budget',
           });
         }
       }
 
       if (messages.length > 0) {
         const chunks = this.expo.chunkPushNotifications(messages);
-        
+
         for (const chunk of chunks) {
           try {
-            const ticketChunk = await this.expo.sendPushNotificationsAsync(chunk);
+            const ticketChunk = await this.expo.sendPushNotificationsAsync(
+              chunk
+            );
             console.log('📊 Budget alert notifications sent:', ticketChunk);
           } catch (error) {
             console.error('Error sending budget alert chunk:', error);
           }
         }
       }
-
     } catch (error) {
       console.error('Error sending budget alert notifications:', error);
     }
@@ -133,32 +143,37 @@ class NotificationService {
 
       for (const userId of userIds) {
         const user = await User.findById(userId);
-        
-        if (user && user.expoPushToken && Expo.isExpoPushToken(user.expoPushToken)) {
+
+        if (
+          user &&
+          user.expoPushToken &&
+          Expo.isExpoPushToken(user.expoPushToken)
+        ) {
           messages.push({
             to: user.expoPushToken,
             sound: 'default',
             title: title,
             body: body,
             data: data || {},
-            priority: 'normal'
+            priority: 'normal',
           });
         }
       }
 
       if (messages.length > 0) {
         const chunks = this.expo.chunkPushNotifications(messages);
-        
+
         for (const chunk of chunks) {
           try {
-            const ticketChunk = await this.expo.sendPushNotificationsAsync(chunk);
+            const ticketChunk = await this.expo.sendPushNotificationsAsync(
+              chunk
+            );
             console.log('📱 Group notifications sent:', ticketChunk);
           } catch (error) {
             console.error('Error sending notification chunk:', error);
           }
         }
       }
-
     } catch (error) {
       console.error('Error sending group notifications:', error);
     }
@@ -174,7 +189,6 @@ class NotificationService {
 
       await User.findByIdAndUpdate(userId, { expoPushToken: pushToken });
       console.log(`✅ Registered push token for user ${userId}`);
-
     } catch (error) {
       console.error('Error registering push token:', error);
     }

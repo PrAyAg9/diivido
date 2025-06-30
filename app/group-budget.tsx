@@ -13,13 +13,13 @@ import {
   Modal,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { 
-  ArrowLeft, 
-  Sparkles, 
-  DollarSign, 
-  Target, 
-  TrendingUp, 
-  MapPin, 
+import {
+  ArrowLeft,
+  Sparkles,
+  DollarSign,
+  Target,
+  TrendingUp,
+  MapPin,
   Calendar,
   Users,
   Coffee,
@@ -29,16 +29,20 @@ import {
   Home,
   Plane,
   FileText,
-  X
+  X,
 } from 'lucide-react-native';
-import { 
-  budgetAPI, 
-  type BudgetStatus, 
-  type BudgetSuggestion, 
+import {
+  budgetAPI,
+  type BudgetStatus,
+  type BudgetSuggestion,
   type AIBudgetRequest,
-  type CategoryBudget 
+  type CategoryBudget,
 } from '@/services/budget-api';
-import { formatCurrency, getUserCurrency, type Currency } from '@/utils/currency';
+import {
+  formatCurrency,
+  getUserCurrency,
+  type Currency,
+} from '@/utils/currency';
 
 const { width } = Dimensions.get('window');
 
@@ -55,7 +59,10 @@ const categories = [
 
 export default function GroupBudgetScreen() {
   const router = useRouter();
-  const { groupId, groupName } = useLocalSearchParams<{ groupId: string; groupName: string }>();
+  const { groupId, groupName } = useLocalSearchParams<{
+    groupId: string;
+    groupName: string;
+  }>();
 
   const [budgetStatus, setBudgetStatus] = useState<BudgetStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -68,7 +75,8 @@ export default function GroupBudgetScreen() {
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [savingBudget, setSavingBudget] = useState(false);
   const [userCurrency, setUserCurrency] = useState<Currency>('INR');
-  const [selectedSuggestion, setSelectedSuggestion] = useState<BudgetSuggestion | null>(null);
+  const [selectedSuggestion, setSelectedSuggestion] =
+    useState<BudgetSuggestion | null>(null);
 
   useEffect(() => {
     loadUserCurrency();
@@ -101,7 +109,10 @@ export default function GroupBudgetScreen() {
 
   const getAISuggestions = async () => {
     if (!description.trim()) {
-      Alert.alert('Missing Information', 'Please describe your plan to get AI suggestions.');
+      Alert.alert(
+        'Missing Information',
+        'Please describe your plan to get AI suggestions.'
+      );
       return;
     }
 
@@ -109,11 +120,17 @@ export default function GroupBudgetScreen() {
 
     try {
       setLoadingSuggestions(true);
-      const response = await budgetAPI.getSmartBudgetSuggestions(description, groupId);
+      const response = await budgetAPI.getSmartBudgetSuggestions(
+        description,
+        groupId
+      );
       setSuggestions(response.suggestions);
     } catch (error) {
       console.error('Error getting AI suggestions:', error);
-      Alert.alert('Error', 'Failed to get budget suggestions. Please try again.');
+      Alert.alert(
+        'Error',
+        'Failed to get budget suggestions. Please try again.'
+      );
     } finally {
       setLoadingSuggestions(false);
     }
@@ -123,11 +140,19 @@ export default function GroupBudgetScreen() {
     if (!groupId) return;
     try {
       setSavingBudget(true);
-      await budgetAPI.setGroupBudget(groupId, amount, userCurrency, budgetDescription || description);
-      
+      await budgetAPI.setGroupBudget(
+        groupId,
+        amount,
+        userCurrency,
+        budgetDescription || description
+      );
+
       Alert.alert(
         'Budget Set! 💰',
-        `Successfully set budget of ${formatCurrency(amount, userCurrency)} for ${groupName}`,
+        `Successfully set budget of ${formatCurrency(
+          amount,
+          userCurrency
+        )} for ${groupName}`,
         [
           {
             text: 'OK',
@@ -136,8 +161,8 @@ export default function GroupBudgetScreen() {
               setShowAISuggestions(false);
               setDescription('');
               setManualAmount('');
-            }
-          }
+            },
+          },
         ]
       );
     } catch (error) {
@@ -165,29 +190,39 @@ export default function GroupBudgetScreen() {
             } catch (error) {
               Alert.alert('Error', 'Failed to remove budget.');
             }
-          }
-        }
+          },
+        },
       ]
     );
   };
 
   const getProgressColor = (status: string) => {
     switch (status) {
-      case 'good': return '#10B981';
-      case 'halfway': return '#F59E0B';
-      case 'warning': return '#EF4444';
-      case 'exceeded': return '#DC2626';
-      default: return '#6B7280';
+      case 'good':
+        return '#10B981';
+      case 'halfway':
+        return '#F59E0B';
+      case 'warning':
+        return '#EF4444';
+      case 'exceeded':
+        return '#DC2626';
+      default:
+        return '#6B7280';
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'good': return '💚';
-      case 'halfway': return '💛';
-      case 'warning': return '🧡';
-      case 'exceeded': return '🔴';
-      default: return '💰';
+      case 'good':
+        return '💚';
+      case 'halfway':
+        return '💛';
+      case 'warning':
+        return '🧡';
+      case 'exceeded':
+        return '🔴';
+      default:
+        return '💰';
     }
   };
 
@@ -203,12 +238,17 @@ export default function GroupBudgetScreen() {
   }
 
   // FIXED: Calculate 'remaining' safely after confirming budgetStatus exists.
-  const remaining = budgetStatus ? budgetStatus.totalBudget - budgetStatus.totalSpent : 0;
+  const remaining = budgetStatus
+    ? budgetStatus.totalBudget - budgetStatus.totalSpent
+    : 0;
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
           <ArrowLeft size={24} color="#111827" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Group Budget</Text>
@@ -218,38 +258,51 @@ export default function GroupBudgetScreen() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.groupInfo}>
           <Text style={styles.groupName}>{groupName}</Text>
-          <Text style={styles.subtitle}>Set and track your group's spending limit</Text>
+          <Text style={styles.subtitle}>
+            Set and track your group's spending limit
+          </Text>
         </View>
 
         {budgetStatus ? (
           <View style={styles.budgetCard}>
             <View style={styles.budgetHeader}>
-              <Text style={styles.budgetTitle}>Current Budget {getStatusIcon(budgetStatus.status)}</Text>
-              <TouchableOpacity onPress={removeBudget} style={styles.removeButton}>
+              <Text style={styles.budgetTitle}>
+                Current Budget {getStatusIcon(budgetStatus.status)}
+              </Text>
+              <TouchableOpacity
+                onPress={removeBudget}
+                style={styles.removeButton}
+              >
                 <Text style={styles.removeButtonText}>Remove</Text>
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.budgetAmount}>{formatCurrency(budgetStatus.totalBudget || 0, userCurrency)}</Text>
+            <Text style={styles.budgetAmount}>
+              {formatCurrency(budgetStatus.totalBudget || 0, userCurrency)}
+            </Text>
             {budgetStatus.description && (
-              <Text style={styles.budgetDescription}>{budgetStatus.description}</Text>
+              <Text style={styles.budgetDescription}>
+                {budgetStatus.description}
+              </Text>
             )}
 
             <View style={styles.progressContainer}>
               <View style={styles.progressBar}>
-                <View 
+                <View
                   style={[
-                    styles.progressFill, 
-                    { 
+                    styles.progressFill,
+                    {
                       width: `${Math.min(budgetStatus.percentage || 0, 100)}%`,
-                      backgroundColor: getProgressColor(budgetStatus.status)
-                    }
-                  ]} 
+                      backgroundColor: getProgressColor(budgetStatus.status),
+                    },
+                  ]}
                 />
               </View>
               {/* FIXED: Added null checks to prevent the .toFixed() error */}
               <Text style={styles.progressText}>
-                {formatCurrency(budgetStatus.totalSpent || 0, userCurrency)} / {formatCurrency(budgetStatus.totalBudget || 0, userCurrency)} ({(budgetStatus.percentage || 0).toFixed(1)}%)
+                {formatCurrency(budgetStatus.totalSpent || 0, userCurrency)} /{' '}
+                {formatCurrency(budgetStatus.totalBudget || 0, userCurrency)} (
+                {(budgetStatus.percentage || 0).toFixed(1)}%)
               </Text>
             </View>
 
@@ -262,7 +315,12 @@ export default function GroupBudgetScreen() {
               </View>
               <View style={styles.statItem}>
                 <Text style={styles.statLabel}>Remaining</Text>
-                <Text style={[styles.statValue, { color: remaining >= 0 ? '#10B981' : '#EF4444' }]}>
+                <Text
+                  style={[
+                    styles.statValue,
+                    { color: remaining >= 0 ? '#10B981' : '#EF4444' },
+                  ]}
+                >
                   {formatCurrency(remaining, userCurrency)}
                 </Text>
               </View>
@@ -274,7 +332,8 @@ export default function GroupBudgetScreen() {
               <Target size={48} color="#9CA3AF" />
               <Text style={styles.noBudgetTitle}>No Budget Set</Text>
               <Text style={styles.noBudgetText}>
-                Set a budget to track your group's spending and get helpful alerts.
+                Set a budget to track your group's spending and get helpful
+                alerts.
               </Text>
             </View>
 
@@ -285,7 +344,11 @@ export default function GroupBudgetScreen() {
                 <Text style={styles.inputLabel}>Manual Amount</Text>
                 <View style={styles.amountInput}>
                   <Text style={styles.currencySymbol}>
-                    {userCurrency === 'INR' ? '₹' : userCurrency === 'EUR' ? '€' : '$'}
+                    {userCurrency === 'INR'
+                      ? '₹'
+                      : userCurrency === 'EUR'
+                      ? '€'
+                      : '$'}
                   </Text>
                   <TextInput
                     style={styles.amountTextInput}
@@ -341,26 +404,41 @@ export default function GroupBudgetScreen() {
                       ) : (
                         <>
                           <Sparkles size={16} color="#FFFFFF" />
-                          <Text style={styles.generateButtonText}>Generate Suggestions</Text>
+                          <Text style={styles.generateButtonText}>
+                            Generate Suggestions
+                          </Text>
                         </>
                       )}
                     </TouchableOpacity>
 
                     {suggestions.length > 0 && (
                       <View style={styles.suggestionsContainer}>
-                        <Text style={styles.suggestionsTitle}>AI Budget Suggestions</Text>
+                        <Text style={styles.suggestionsTitle}>
+                          AI Budget Suggestions
+                        </Text>
                         {suggestions.map((suggestion, index) => (
                           <TouchableOpacity
                             key={index}
                             style={styles.suggestionCard}
-                            onPress={() => setBudget(suggestion.amount, suggestion.reason)}
+                            onPress={() =>
+                              setBudget(suggestion.amount, suggestion.reason)
+                            }
                             disabled={savingBudget}
                           >
                             <View style={styles.suggestionHeader}>
-                              <Text style={styles.suggestionName}>{suggestion.name}</Text>
-                              <Text style={styles.suggestionAmount}>{formatCurrency(suggestion.amount, userCurrency)}</Text>
+                              <Text style={styles.suggestionName}>
+                                {suggestion.name}
+                              </Text>
+                              <Text style={styles.suggestionAmount}>
+                                {formatCurrency(
+                                  suggestion.amount,
+                                  userCurrency
+                                )}
+                              </Text>
                             </View>
-                            <Text style={styles.suggestionReason}>{suggestion.reason}</Text>
+                            <Text style={styles.suggestionReason}>
+                              {suggestion.reason}
+                            </Text>
                           </TouchableOpacity>
                         ))}
                       </View>
@@ -474,7 +552,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
     marginBottom: 16,
-    fontStyle: 'italic'
+    fontStyle: 'italic',
   },
   progressContainer: {
     marginBottom: 16,
@@ -484,7 +562,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#E5E7EB',
     borderRadius: 5,
     marginBottom: 6,
-    overflow: 'hidden'
+    overflow: 'hidden',
   },
   progressFill: {
     height: 10,
@@ -494,14 +572,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6B7280',
     textAlign: 'right',
-    fontVariant: ['tabular-nums']
+    fontVariant: ['tabular-nums'],
   },
   budgetStats: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     borderTopWidth: 1,
     borderTopColor: '#F3F4F6',
-    paddingTop: 16
+    paddingTop: 16,
   },
   statItem: {
     alignItems: 'center',
@@ -616,7 +694,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E5E7EB'
+    borderColor: '#E5E7EB',
   },
   aiPrompt: {
     fontSize: 14,

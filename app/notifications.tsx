@@ -15,10 +15,13 @@ export default function NotificationsScreen() {
 
   return (
     <View style={styles.container}>
-      <CustomHeader 
+      <CustomHeader
         title="Notifications"
         leftComponent={
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
             <ArrowLeft size={24} color="#111827" />
           </TouchableOpacity>
         }
@@ -31,17 +34,17 @@ export default function NotificationsScreen() {
           </View>
           <Text style={styles.emptyTitle}>No Notifications</Text>
           <Text style={styles.emptyDescription}>
-            You're all caught up! When you receive expense updates, group invitations, or payment notifications, they'll appear here.
+            You're all caught up! When you receive expense updates, group
+            invitations, or payment notifications, they'll appear here.
           </Text>
         </View>
 
         <View style={styles.infoCard}>
           <Text style={styles.infoTitle}>Notification Settings</Text>
           <Text style={styles.infoText}>
-            • Expense updates and reminders{'\n'}
-            • Group invitations and activity{'\n'}
-            • Payment confirmations{'\n'}
-            • Friend requests and messages
+            • Expense updates and reminders{'\n'}• Group invitations and
+            activity{'\n'}• Payment confirmations{'\n'}• Friend requests and
+            messages
           </Text>
           <Text style={styles.infoNote}>
             Notification preferences can be managed in your device settings.
