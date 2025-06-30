@@ -1,0 +1,19 @@
+# Ignore frontend files when deploying backend
+app/
+assets/
+components/
+contexts/
+hooks/
+lib/
+types/
+supabase/
+.expo/
+dist/
+node_modules/
+*.tsx
+*.ts
+!backend/
+package.json
+expo-env.d.ts
+tsconfig.json
+app.json
