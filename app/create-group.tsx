@@ -388,6 +388,15 @@ export default function CreateGroupScreen() {
             </View>
           </View>
 
+          {/* Add Friends Button */}
+          <TouchableOpacity
+            style={styles.addFriendsButton}
+            onPress={() => router.push('/find-friends')}
+          >
+            <Users size={20} color="#3B82F6" />
+            <Text style={styles.addFriendsText}>Search & Add Friends</Text>
+          </TouchableOpacity>
+
           {/* Search Contacts */}
           <View style={styles.searchSection}>
             <TextInput
@@ -752,5 +761,22 @@ const styles = StyleSheet.create({
     padding: 4,
     borderRadius: 4,
     backgroundColor: '#FEE2E2',
+  },
+  addFriendsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  addFriendsText: {
+    fontSize: 16,
+    color: '#3B82F6',
+    fontWeight: '500',
+    marginLeft: 8,
   },
 });

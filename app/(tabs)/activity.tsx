@@ -10,6 +10,7 @@ import {
   TextInput,
   ActivityIndicator,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import {
   Search,
@@ -26,6 +27,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getUserExpenses } from '@/services/expenses-api';
 import { getUserPayments } from '@/services/payments-api';
 import { convertAndFormatAmount, formatCurrency, getUserCurrency, type Currency } from '@/utils/currency';
+import CustomHeader from '@/components/CustomHeader';
+import Footer from '@/components/Footer';
 
 interface Activity {
   id: string;
@@ -325,14 +328,15 @@ export default function ActivityScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Activity</Text>
-          <Text style={styles.subtitle}>Track all your transactions</Text>
-        </View>
-      </View>
+    <View style={styles.container}>
+      <CustomHeader
+        title="Activity"
+        leftComponent={
+          <View>
+            {/* <Text style={styles.subtitle}>Track all your transactions</Text> */}
+          </View>
+        }
+      />
 
       {/* Summary Cards */}
       <View style={styles.summaryContainer}>
@@ -527,7 +531,9 @@ export default function ActivityScreen() {
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+      
+      <Footer />
+    </View>
   );
 }
 

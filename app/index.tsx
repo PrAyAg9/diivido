@@ -2,13 +2,16 @@ import { useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { View, StyleSheet, ActivityIndicator, Text } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
-
+import { logNetworkInfo } from '@/utils/network-debug';
 
 export default function Index() {
   const router = useRouter();
   const { session, loading } = useAuth();
 
   useEffect(() => {
+    // Log network info for debugging
+    logNetworkInfo();
+    
     if (!loading) {
       if (session) {
         router.replace('/(tabs)');

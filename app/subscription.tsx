@@ -19,6 +19,7 @@ import {
     PurchasesStoreProduct,
     PRODUCT_CATEGORY,
     PRODUCT_TYPE,
+    PresentedOfferingContext,
 } from 'react-native-purchases';
 import SubscriptionService from '@/services/subscription.service';
 
@@ -40,19 +41,15 @@ const mockMonthlyProduct: PurchasesStoreProduct = {
     productType: PRODUCT_TYPE.NON_CONSUMABLE,
     subscriptionPeriod: "P1M",
     presentedOfferingIdentifier: null,
-    pricePerWeek: 0,
+    pricePerWeek: 49.75,
     pricePerMonth: 199.0,
-    pricePerYear: 0,
-    pricePerWeekString: "₹0.00",
+    pricePerYear: 2388.0,
+    pricePerWeekString: "₹49.75",
     pricePerMonthString: "₹199.00",
-    pricePerYearString: "₹0.00",
+    pricePerYearString: "₹2,388.00",
     defaultOption: null,
     subscriptionOptions: [],
-    presentedOfferingContext: {
-        offeringIdentifier: "default",
-        placementIdentifier: null,
-        targetingContext: null
-    }
+    presentedOfferingContext: {} as PresentedOfferingContext,
 };
 
 const mockAnnualProduct: PurchasesStoreProduct = {
@@ -68,19 +65,15 @@ const mockAnnualProduct: PurchasesStoreProduct = {
     productType: PRODUCT_TYPE.NON_CONSUMABLE,
     subscriptionPeriod: "P1Y",
     presentedOfferingIdentifier: null,
-    pricePerWeek: 0,
-    pricePerMonth: 0,
+    pricePerWeek: 38.44,
+    pricePerMonth: 166.58,
     pricePerYear: 1999.0,
-    pricePerWeekString: "₹0.00",
-    pricePerMonthString: "₹0.00",
+    pricePerWeekString: "₹38.44",
+    pricePerMonthString: "₹166.58",
     pricePerYearString: "₹1,999.00",
     defaultOption: null,
     subscriptionOptions: [],
-    presentedOfferingContext: {
-        offeringIdentifier: "default",
-        placementIdentifier: null,
-        targetingContext: null
-    }
+    presentedOfferingContext: {} as PresentedOfferingContext,
 };
 
 
@@ -92,27 +85,17 @@ const mockOffering: PurchasesOffering = {
     availablePackages: [
         {
           identifier: "$rc_monthly",
-          // FIXED: Use the imported enum instead of a raw string
           packageType: PACKAGE_TYPE.MONTHLY,
           product: mockMonthlyProduct,
           offeringIdentifier: 'default',
-          presentedOfferingContext: {
-            offeringIdentifier: "default",
-            placementIdentifier: null,
-            targetingContext: null
-          }
+          presentedOfferingContext: {} as PresentedOfferingContext
         },
         {
           identifier: "$rc_annual",
-          // FIXED: Use the imported enum instead of a raw string
           packageType: PACKAGE_TYPE.ANNUAL,
           product: mockAnnualProduct,
           offeringIdentifier: 'default',
-          presentedOfferingContext: {
-            offeringIdentifier: "default",
-            placementIdentifier: null,
-            targetingContext: null
-          }
+          presentedOfferingContext: {} as PresentedOfferingContext
         },
     ],
     lifetime: null,
@@ -174,96 +157,24 @@ export default function SubscriptionScreen() {
     setIsProcessing(true);
     setSelectedPlan(packageToPurchase.identifier);
 
-    // Show fake payment gateway modal
-    showFakePaymentGateway(packageToPurchase);
-  };
-
-  const showFakePaymentGateway = (packageToPurchase: PurchasesPackage) => {
-    const planName = packageToPurchase.packageType === PACKAGE_TYPE.MONTHLY ? 'Monthly Pro' : 'Annual Pro';
-    const price = packageToPurchase.product.priceString;
-    
-    Alert.alert(
-      'Choose Payment Method',
-      `You are upgrading to ${planName} for ${price}`,
-      [
-        {
-          text: 'UPI',
-          onPress: () => simulatePayment('UPI', packageToPurchase, price)
-        },
-        {
-          text: 'Credit Card',
-          onPress: () => simulatePayment('Credit Card', packageToPurchase, price)
-        },
-        {
-          text: 'Debit Card',
-          onPress: () => simulatePayment('Debit Card', packageToPurchase, price)
-        },
-        {
-          text: 'Cancel',
-          style: 'cancel',
-          onPress: () => {
-            setIsProcessing(false);
-            setSelectedPlan('');
-          }
-        }
-      ]
-    );
-  };
-
-  const simulatePayment = (paymentMethod: string, packageToPurchase: PurchasesPackage, price: string) => {
-    const planName = packageToPurchase.packageType === PACKAGE_TYPE.MONTHLY ? 'Monthly Pro' : 'Annual Pro';
-    
-    Alert.alert(
-      `${paymentMethod} Payment`,
-      `Processing payment of ${price} for ${planName}...`,
-      [
-        {
-          text: 'Pay Now',
-          onPress: () => processPayment(packageToPurchase, paymentMethod)
-        },
-        {
-          text: 'Cancel',
-          style: 'cancel',
-          onPress: () => {
-            setIsProcessing(false);
-            setSelectedPlan('');
-          }
-        }
-      ]
-    );
-  };
-
-  const processPayment = async (packageToPurchase: PurchasesPackage, paymentMethod: string) => {
-    // Simulate payment processing delay
-    setTimeout(() => {
-      // Simulate successful payment
-      Alert.alert(
-        'Payment Successful! 🎉',
-        `Your ${paymentMethod} payment was processed successfully. Welcome to Divido Pro!`,
-        [
-          {
-            text: 'Awesome!',
-            onPress: () => {
-              // Update subscription status to Pro
-              setSubscriptionStatus({
-                isSubscribed: true,
-                productIdentifier: packageToPurchase.identifier,
-                expirationDate: new Date(Date.now() + (packageToPurchase.packageType === PACKAGE_TYPE.MONTHLY ? 30 : 365) * 24 * 60 * 60 * 1000).toISOString(),
-                willRenew: true
-              });
-              
-              setIsProcessing(false);
-              setSelectedPlan('');
-              
-              // Navigate back after a short delay
-              setTimeout(() => {
-                router.back();
-              }, 1000);
-            }
-          }
-        ]
-      );
-    }, 2000); // 2 second delay to simulate processing
+    try {
+      const result = await SubscriptionService.purchasePackage(packageToPurchase);
+      if (result.success) {
+        const newStatus = await SubscriptionService.getSubscriptionStatus();
+        setSubscriptionStatus(newStatus);
+        Alert.alert('Success!', 'Welcome to Divido Pro!',
+          [{ text: 'Awesome!', onPress: () => router.back() }]
+        );
+      } else if (result.error && !result.error.includes('cancelled')) {
+        Alert.alert('Purchase Failed', result.error);
+      }
+    } catch (error) {
+      console.error('Purchase error:', error);
+      Alert.alert('Error', 'Something went wrong during purchase');
+    } finally {
+      setIsProcessing(false);
+      setSelectedPlan('');
+    }
   };
   
   const handleRestorePurchases = async () => {
@@ -390,51 +301,24 @@ export default function SubscriptionScreen() {
           </View>
         ) : (
           <View style={styles.plansContainer}>
-            {/* Free Plan Card */}
-            <View style={[styles.planCard, styles.freePlan]}>
-              <View style={styles.planHeader}>
-                <Text style={styles.planName}>Free Plan</Text>
-                <View style={styles.priceContainer}>
-                  <Text style={[styles.price, styles.freePrice]}>₹0</Text>
-                  <Text style={styles.period}>/forever</Text>
-                </View>
-                <Text style={styles.planDescription}>Perfect for getting started</Text>
-              </View>
-              {renderFeatureList(freeFeatures)}
-              <TouchableOpacity style={[styles.planButton, styles.currentPlanButton]} disabled={true}>
-                <Text style={styles.currentPlanButtonText}>Current Plan</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Pro Plans */}
             {offerings?.availablePackages.map((packageItem) => (
-              <View key={packageItem.identifier} style={[styles.planCard, styles.proPlan, packageItem.packageType === PACKAGE_TYPE.ANNUAL && styles.popularPlan]}>
-                {packageItem.packageType === PACKAGE_TYPE.ANNUAL && (
+              <View key={packageItem.identifier} style={[styles.planCard, packageItem.packageType === PACKAGE_TYPE.MONTHLY && styles.popularPlan]}>
+                {packageItem.packageType === PACKAGE_TYPE.MONTHLY && (
                   <View style={styles.popularBadge}>
                     <Crown size={16} color="#FFFFFF" />
-                    <Text style={styles.popularText}>Best Value</Text>
+                    <Text style={styles.popularText}>Most Popular</Text>
                   </View>
                 )}
                 <View style={styles.planHeader}>
-                  <Text style={styles.planName}>
-                    {packageItem.packageType === PACKAGE_TYPE.MONTHLY ? 'Pro Monthly' : 'Pro Annual'}
-                  </Text>
+                  <Text style={styles.planName}>{SubscriptionService.getPackageDuration(packageItem)} Pro</Text>
                   <View style={styles.priceContainer}>
-                    <Text style={[styles.price, styles.proPrice]}>{SubscriptionService.getFormattedPrice(packageItem)}</Text>
+                    <Text style={styles.price}>{SubscriptionService.getFormattedPrice(packageItem)}</Text>
                     <Text style={styles.period}>/{packageItem.packageType === PACKAGE_TYPE.MONTHLY ? 'month' : 'year'}</Text>
                   </View>
-                  <Text style={styles.planDescription}>
-                    {packageItem.packageType === PACKAGE_TYPE.MONTHLY ? 'Full features monthly' : 'Save 2 months with annual'}
-                  </Text>
-                  {packageItem.packageType === PACKAGE_TYPE.ANNUAL && (
-                    <View style={styles.savingsTag}>
-                      <Text style={styles.savingsText}>Save 17%</Text>
-                    </View>
-                  )}
                 </View>
                 {renderFeatureList(proFeatures)}
                 <TouchableOpacity
-                  style={[styles.planButton, styles.proButton, isProcessing && selectedPlan === packageItem.identifier && styles.processingButton]}
+                  style={[styles.planButton, { backgroundColor: '#10B981' }, isProcessing && selectedPlan === packageItem.identifier && styles.processingButton]}
                   onPress={() => handlePurchase(packageItem)}
                   disabled={isProcessing}
                 >
@@ -445,6 +329,20 @@ export default function SubscriptionScreen() {
                 </TouchableOpacity>
               </View>
             ))}
+            
+            <View style={[styles.planCard, styles.freePlan]}>
+                <View style={styles.planHeader}>
+                  <Text style={styles.planName}>Free Plan</Text>
+                  <View style={styles.priceContainer}>
+                    <Text style={styles.price}>₹0</Text>
+                    <Text style={styles.period}>/forever</Text>
+                  </View>
+                </View>
+                {renderFeatureList(freeFeatures)}
+                <TouchableOpacity style={[styles.planButton, styles.currentPlanButton]} disabled={true}>
+                    <Text style={styles.currentPlanButtonText}>Current Plan</Text>
+                </TouchableOpacity>
+            </View>
           </View>
         )}
       </ScrollView>
@@ -572,11 +470,6 @@ const styles = StyleSheet.create({
   freePlan: {
       borderColor: '#D1D5DB'
   },
-  proPlan: {
-    borderColor: '#10B981',
-    borderWidth: 2,
-    backgroundColor: '#FEFFFE',
-  },
   popularBadge: {
     position: 'absolute',
     top: -15,
@@ -604,12 +497,6 @@ const styles = StyleSheet.create({
     color: '#111827',
     marginBottom: 8,
   },
-  planDescription: {
-    fontSize: 14,
-    color: '#6B7280',
-    textAlign: 'center',
-    marginTop: 4,
-  },
   priceContainer: {
     flexDirection: 'row',
     alignItems: 'baseline',
@@ -619,28 +506,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#111827',
   },
-  freePrice: {
-    color: '#6B7280',
-  },
-  proPrice: {
-    color: '#10B981',
-  },
   period: {
     fontSize: 16,
     color: '#6B7280',
     marginLeft: 4,
-  },
-  savingsTag: {
-    backgroundColor: '#ECFDF5',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginTop: 8,
-  },
-  savingsText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#10B981',
   },
   featuresContainer: {
     marginBottom: 24,
@@ -666,9 +535,6 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
-  },
-  proButton: {
-    backgroundColor: '#10B981',
   },
   planButtonText: {
     fontSize: 16,

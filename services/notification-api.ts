@@ -1,19 +1,13 @@
 // services/notification-api.ts
 
-import * as Notifications from 'expo-notifications';
+// Temporarily disabled expo-notifications due to Android compatibility issues in SDK 53
+// This is a stub implementation that prevents errors while maintaining the API interface
+// TODO: Re-enable when using development build instead of Expo Go
+
+import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { API_URL } from './api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-// Configure notifications
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
 
 export interface PushNotificationData {
   title: string;
@@ -27,89 +21,32 @@ export interface PushNotificationData {
   };
 }
 
+// Check if we're in Expo Go
+const isExpoGo = () => {
+  return Constants.appOwnership === 'expo';
+};
+
 export const notificationApi = {
-  // Request notification permissions
+  // Request notification permissions (stub)
   requestPermissions: async (): Promise<boolean> => {
-    try {
-      // Check if we've already asked and been denied
-      const permissionAsked = await AsyncStorage.getItem('notificationPermissionAsked');
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      
-      let finalStatus = existingStatus;
-      
-      // Only ask if we haven't asked before or if permission was granted
-      if (existingStatus !== 'granted' && !permissionAsked) {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-        
-        // Mark that we've asked for permission
-        await AsyncStorage.setItem('notificationPermissionAsked', 'true');
-        
-        if (status === 'denied') {
-          await AsyncStorage.setItem('notificationPermissionDenied', 'true');
-        }
-      }
-      
-      return finalStatus === 'granted';
-    } catch (error) {
-      console.error('Error requesting permissions:', error);
-      return false;
-    }
+    console.log('Notifications temporarily disabled - use development build for push notifications');
+    return false;
   },
 
-  // Check if permission was previously denied
+  // Check if permission was previously denied (stub)
   isPermissionDenied: async (): Promise<boolean> => {
-    const denied = await AsyncStorage.getItem('notificationPermissionDenied');
-    return denied === 'true';
+    return false;
   },
 
-  // Get push notification token
+  // Get push notification token (stub)
   getPushToken: async (): Promise<string | null> => {
-    try {
-      const token = (await Notifications.getExpoPushTokenAsync()).data;
-      return token;
-    } catch (error) {
-      console.error('Error getting push token:', error);
-      return null;
-    }
+    console.log('Push tokens temporarily disabled - use development build for push notifications');
+    return null;
   },
 
-  // Register device for push notifications
+  // Register device for push notifications (stub)
   registerDevice: async (): Promise<void> => {
-    try {
-      // Check if permission was previously denied
-      const permissionDenied = await notificationApi.isPermissionDenied();
-      if (permissionDenied) {
-        // Don't spam the user with permission requests
-        return;
-      }
-
-      const hasPermission = await notificationApi.requestPermissions();
-      if (!hasPermission) {
-        // Permission not granted, but don't log error - user choice
-        return;
-      }
-
-      const pushToken = await notificationApi.getPushToken();
-      if (!pushToken) {
-        console.log('Failed to get push token');
-        return;
-      }
-
-      const authToken = await AsyncStorage.getItem('authToken');
-      await fetch(`${API_URL}/notifications/register`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${authToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ pushToken }),
-      });
-
-      console.log('Device registered for push notifications');
-    } catch (error) {
-      console.error('Error registering device for notifications:', error);
-    }
+    console.log('Device registration temporarily disabled - use development build for push notifications');
   },
 
   // Send a Quick Draw notification to group members
@@ -129,26 +66,20 @@ export const notificationApi = {
     }
   },
 
-  // Listen for notification interactions
+  // Listen for notification interactions (stub)
   addNotificationListener: (handler: (notification: any) => void) => {
-    return Notifications.addNotificationReceivedListener(handler);
+    console.log('Notification listeners temporarily disabled');
+    return { remove: () => {} };
   },
 
-  // Listen for notification response (when user taps notification)
+  // Listen for notification response (stub)
   addNotificationResponseListener: (handler: (response: any) => void) => {
-    return Notifications.addNotificationResponseReceivedListener(handler);
+    console.log('Notification response listeners temporarily disabled');
+    return { remove: () => {} };
   },
 
-  // Schedule a local notification (for testing)
+  // Schedule a local notification (stub)
   scheduleLocalNotification: async (notificationData: PushNotificationData): Promise<void> => {
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: notificationData.title,
-        body: notificationData.body,
-        data: notificationData.data,
-        sound: true,
-      },
-      trigger: null, // Show immediately
-    });
+    console.log('Local notifications temporarily disabled:', notificationData.title);
   },
 };

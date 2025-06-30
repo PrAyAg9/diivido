@@ -11,6 +11,7 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -49,6 +50,8 @@ import {
   CURRENCY_SYMBOLS,
   type Currency,
 } from '@/utils/currency';
+import CustomHeader from '@/components/CustomHeader';
+import Footer from '@/components/Footer';
 
 // --- Interfaces --- //
 interface Profile {
@@ -494,7 +497,22 @@ export default function ProfileScreen() {
   const handleLogout = async () => {
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign Out', style: 'destructive', onPress: signOut },
+      { 
+        text: 'Sign Out', 
+        style: 'destructive', 
+        onPress: async () => {
+          try {
+            const result = await signOut();
+            if (result.error) {
+              Alert.alert('Error', 'Failed to sign out. Please try again.');
+            }
+            // Navigation to welcome screen will be handled by the main app layout
+          } catch (error) {
+            console.error('Sign out error:', error);
+            Alert.alert('Error', 'Failed to sign out. Please try again.');
+          }
+        }
+      },
     ]);
   };
 
@@ -555,9 +573,15 @@ export default function ProfileScreen() {
         section: 'Social',
         items: [
           {
+            id: 'find-friends',
+            title: 'Find Friends',
+            icon: UserPlus,
+            hasChevron: true,
+          },
+          {
             id: 'invite-friends',
             title: 'Invite Friends',
-            icon: UserPlus,
+            icon: Users,
             hasChevron: true,
           },
           {
@@ -627,13 +651,10 @@ export default function ProfileScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.header}>
-          <Text style={styles.title}>Profile</Text>
+    <View style={styles.container}>
+      <CustomHeader
+        title="Profile"
+        rightComponent={
           <TouchableOpacity
             onPress={() =>
               isEditing ? handleUpdateProfile() : setIsEditing(true)
@@ -649,7 +670,13 @@ export default function ProfileScreen() {
               <Edit3 size={20} color="#10B981" />
             )}
           </TouchableOpacity>
-        </View>
+        }
+      />
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: Platform.OS === 'android' ? 20 : 0 }}
+      >
 
         <View style={styles.profileCard}>
           <View style={styles.avatarContainer}>
@@ -730,6 +757,8 @@ export default function ProfileScreen() {
                       router.push('/notifications');
                     } else if (item.id === 'privacy') {
                       router.push('/privacy-settings');
+                    } else if (item.id === 'find-friends') {
+                      router.push('/find-friends');
                     } else if (item.id === 'invite-friends') {
                       router.push('/invite-friends');
                     } else if (item.id === 'friends') {
@@ -753,7 +782,9 @@ export default function ProfileScreen() {
 
         <Text style={styles.versionText}>Divido v1.0.0</Text>
       </ScrollView>
-    </SafeAreaView>
+      
+      <Footer />
+    </View>
   );
 }
 

@@ -10,6 +10,7 @@ import {
   Dimensions,
   RefreshControl,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
@@ -28,14 +29,32 @@ import { getUserBalances } from '@/services/dashboard-api';
 import { getUserExpenses } from '@/services/expenses-api';
 import { getUserPayments } from '@/services/payments-api';
 import SettleUpModal from '@/components/SettleUpModal';
+import CustomHeader from '@/components/CustomHeader';
 import {
   convertAndFormatAmount,
   getUserCurrency,
   formatCurrency,
   type Currency,
 } from '@/utils/currency';
+import Footer from '@/components/Footer';
+import VoiceAIAssistant from '@/components/VoiceAIAssistant';
 
 const { width } = Dimensions.get('window');
+
+// Helper function to get time-based greeting
+// const getTimeBasedGreeting = () => {
+//   const hour = new Date().getHours();
+  
+//   if (hour < 12) {
+//     return ' Good morning';
+//   } else if (hour < 17) {
+//     return ' Good afternoon';
+//   } else if (hour < 21) {
+//     return ' Good evening';
+//   } else {
+//     return ' Good night';
+//   }
+// };
 
 interface BalanceData {
   netBalance: number;
@@ -78,6 +97,7 @@ export default function DashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userCurrency, setUserCurrency] = useState<Currency>('INR');
+  const [showWelcome, setShowWelcome] = useState(false);
   const [settleUpModal, setSettleUpModal] = useState<{
     visible: boolean;
     user?: {
@@ -292,6 +312,10 @@ export default function DashboardScreen() {
     if (user) {
       loadUserCurrency();
       loadData();
+      // Show welcome message after a short delay (only on dashboard)
+      setTimeout(() => {
+        setShowWelcome(true);
+      }, 2000);
     }
   }, [user]);
 
@@ -327,20 +351,10 @@ export default function DashboardScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.greeting}>Good morning</Text>
-            <Text style={styles.userName}>{user?.fullName || 'User'}</Text>
-          </View>
+    <View style={styles.container}>
+      <CustomHeader
+        title=""
+        rightComponent={
           <View style={styles.headerRight}>
             <TouchableOpacity style={styles.headerButton}>
               <Search size={20} color="#6B7280" />
@@ -356,7 +370,22 @@ export default function DashboardScreen() {
               <Plus size={20} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
-        </View>
+        }
+        leftComponent={
+          <View style={styles.headerLeft}>
+            {/* <Text style={styles.greeting}>{getTimeBasedGreeting()}</Text> */}
+            <Text style={styles.container1}>Dashboard</Text>
+          </View>
+        }
+      />
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        contentContainerStyle={{ paddingBottom: Platform.OS === 'android' ? 20 : 0 }}
+      >
 
         {/* Balance Summary Card */}
         <View style={styles.balanceCard}>
@@ -575,6 +604,14 @@ export default function DashboardScreen() {
         <View style={{ height: 40 }} />
       </ScrollView>
 
+      <Footer />
+
+      {/* Voice AI Assistant - Dashboard welcome */}
+      {/* <VoiceAIAssistant 
+        showWelcome={showWelcome} 
+        onDismissWelcome={() => setShowWelcome(false)} 
+      /> */}
+
       {/* Settle Up Modal */}
       {settleUpModal.visible && settleUpModal.user && settleUpModal.amount && (
         <SettleUpModal
@@ -586,7 +623,7 @@ export default function DashboardScreen() {
           onPaymentComplete={handlePaymentComplete}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -594,6 +631,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
+  },
+  container1: {
+    marginTop: 8,
+    fontWeight: '600',
+    fontSize: 18,
   },
   loadingContainer: {
     flex: 1,
@@ -653,12 +695,15 @@ const styles = StyleSheet.create({
   greeting: {
     fontSize: 16,
     color: '#6B7280',
+    fontWeight: '500',
+    letterSpacing: 0.5,
   },
   userName: {
     fontSize: 28,
     fontWeight: '700',
     color: '#111827',
-    marginTop: 4,
+    marginTop: 2,
+    letterSpacing: -0.5,
   },
   headerRight: {
     flexDirection: 'row',

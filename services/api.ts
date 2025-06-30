@@ -1,13 +1,10 @@
 
+
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from '@/utils/network';
 
-// API URL set by the startup script
-export const API_URL = 'http://localhost:5000/api';
-
-// Define API base URL - change this to your actual server URL
-// In development, you might need to use your computer's IP address instead of localhost
-// For example: 'http://192.168.1.100:5000/api'
+export const API_URL = API_BASE_URL;
 
 // Configure axios defaults
 axios.defaults.baseURL = API_URL;

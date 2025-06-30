@@ -33,6 +33,7 @@ import { getUserGroups } from '@/services/groups-api';
 import { quickDrawApi } from '@/services/quickdraw-api';
 import { notificationApi } from '@/services/notification-api';
 import { API_URL } from '@/services/api';
+import CustomHeader from '@/components/CustomHeader';
 
 const { width } = Dimensions.get('window');
 
@@ -432,17 +433,18 @@ export default function AddExpenseScreen() {
 
   if (groups.length === 0) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backButton}
-          >
-            <ArrowLeft size={24} color="#111827" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Add Expense</Text>
-          <View style={styles.headerSpacer} />
-        </View>
+      <View style={styles.container}>
+        <CustomHeader
+          title="Add Expense"
+          leftComponent={
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={styles.backButton}
+            >
+              <ArrowLeft size={24} color="#111827" />
+            </TouchableOpacity>
+          }
+        />
         <View style={styles.emptyContainer}>
           <AlertCircle size={48} color="#9CA3AF" />
           <Text style={styles.emptyTitle}>No Groups Found</Text>
@@ -456,42 +458,46 @@ export default function AddExpenseScreen() {
             <Text style={styles.createGroupButtonText}>Create Group</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backButton}
-        >
-          <ArrowLeft size={24} color="#111827" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Add Expense</Text>
-        <TouchableOpacity
-          style={[
-            styles.saveButton,
-            (!amount || !description || saving) && styles.saveButtonDisabled,
-          ]}
-          onPress={handleSave}
-          disabled={!amount || !description || saving}
-        >
-          {saving ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <Text
-              style={[
-                styles.saveButtonText,
-                (!amount || !description) && styles.saveButtonTextDisabled,
-              ]}
-            >
-              Save
-            </Text>
-          )}
-        </TouchableOpacity>
-      </View>
+    <View style={styles.container}>
+      <CustomHeader
+        title="Add Expense"
+        leftComponent={
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
+            <ArrowLeft size={24} color="#111827" />
+          </TouchableOpacity>
+        }
+        rightComponent={
+          <TouchableOpacity
+            style={[
+              styles.saveButton,
+              (!amount || !description || saving) && styles.saveButtonDisabled,
+            ]}
+            onPress={handleSave}
+            disabled={!amount || !description || saving}
+          >
+            {saving ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text
+                style={[
+                  styles.saveButtonText,
+                  (!amount || !description) && styles.saveButtonTextDisabled,
+                ]}
+              >
+                Save
+              </Text>
+            )}
+          </TouchableOpacity>
+        }
+      />
 
       {error && (
         <View style={styles.errorContainer}>
@@ -739,7 +745,7 @@ export default function AddExpenseScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -789,29 +795,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-    width: '100%',
-  },
   backButton: {
     padding: 8,
     borderRadius: 8,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  headerSpacer: {
-    width: 40,
   },
   saveButton: {
     backgroundColor: '#10B981',

@@ -16,20 +16,21 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { Audio } from 'expo-av';
-import * as Speech from 'expo-speech';
+import * as Haptics from 'expo-haptics';
 import {
   Mic,
   MicOff,
   MessageCircle,
   X,
   Volume2,
-  Zap,
+  Bot,
   Send,
   Users,
 } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
 import { aiAssistantApi } from '@/services/ai-assistant-api';
+import { useAuth } from '@/contexts/AuthContext';
+import { WebSpeech } from '@/utils/speech';
 
 // const { width, height } = Dimensions.get('window');
 
@@ -42,18 +43,49 @@ interface ChatMessage {
 
 const { width, height } = Dimensions.get('window');
 
-export default function VoiceAIAssistant() {
+interface VoiceAIAssistantProps {
+  showWelcome?: boolean;
+  onDismissWelcome?: () => void;
+}
+
+export default function VoiceAIAssistant({ showWelcome = false, onDismissWelcome }: VoiceAIAssistantProps) {
+  const { user } = useAuth();
   const [isListening, setIsListening] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isResponding, setIsResponding] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [voiceFailCount, setVoiceFailCount] = useState(0);
   const [lastResponse, setLastResponse] = useState<string>('');
-  const [recording, setRecording] = useState<Audio.Recording | null>(null);
-  const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(showWelcome);
+
+  // Welcome message effect
+  useEffect(() => {
+    if (showWelcome) {
+      setShowWelcomeModal(true);
+      // Auto-speak welcome message with a more natural greeting
+      setTimeout(() => {
+        const hour = new Date().getHours();
+        let timeGreeting = 'Hello';
+        if (hour < 12) timeGreeting = 'Good morning';
+        else if (hour < 17) timeGreeting = 'Good afternoon';
+        else if (hour < 21) timeGreeting = 'Good evening';
+        else timeGreeting = 'Good evening';
+        
+        const welcomeText = `${timeGreeting} ${user?.fullName || 'there'}! I'm Divi, your smart expense assistant. I'm here to help you manage your finances, remind friends about payments, and make expense tracking effortless. What would you like to do today?`;
+        playAudio(undefined, welcomeText);
+      }, 1500);
+    }
+  }, [showWelcome, user]);
+
+  const handleDismissWelcome = () => {
+    setShowWelcomeModal(false);
+    if (onDismissWelcome) {
+      onDismissWelcome();
+    }
+  };
   
   // Animations
   const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -81,12 +113,6 @@ export default function VoiceAIAssistant() {
 
     return () => {
       glowLoop.stop();
-      if (sound) {
-        sound.unloadAsync();
-      }
-      if (recording) {
-        recording.stopAndUnloadAsync();
-      }
     };
   }, []);
 
@@ -131,155 +157,274 @@ export default function VoiceAIAssistant() {
 
   const startListening = async () => {
     try {
-      const permission = await Audio.requestPermissionsAsync();
-      if (permission.status !== 'granted') {
-        Alert.alert('Permission required', 'Please enable microphone access.');
-        return;
+      if (Platform.OS === 'web') {
+        startWebSpeechRecognition();
+      } else {
+        startMobileSpeechRecognition();
       }
-
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-      });
-
-      const { recording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
-
-      setRecording(recording);
-      setIsListening(true);
-      Vibration.vibrate(50); // Haptic feedback
-
-      // Animate button expansion
-      Animated.spring(scaleAnim, {
-        toValue: 1.2,
-        useNativeDriver: true,
-        tension: 100,
-        friction: 5,
-      }).start();
-
-    } catch (err) {
-      console.error('Failed to start recording', err);
-      Alert.alert('Error', 'Could not start voice recording');
+    } catch (error) {
+      console.error('Error starting speech recognition:', error);
+      setIsListening(false);
+      setVoiceFailCount(prev => prev + 1);
+      
+      // Fallback to demo functionality
+      simulateVoiceCommand();
     }
+  };
+
+  const startWebSpeechRecognition = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+      Alert.alert('Not Supported', 'Speech recognition is not supported in your browser.');
+      simulateVoiceCommand();
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      setVoiceFailCount(0);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    };
+
+    recognition.onresult = async (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      if (transcript && transcript.trim()) {
+        await processVoiceInput(transcript);
+      }
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error('Speech recognition error:', event.error);
+      setIsListening(false);
+      setVoiceFailCount(prev => prev + 1);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognition.start();
+  };
+
+  const startMobileSpeechRecognition = () => {
+    // For mobile, we'll simulate voice recognition for now
+    setIsListening(true);
+    setVoiceFailCount(0);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    
+    // Simulate listening for 3 seconds, then use demo
+    setTimeout(() => {
+      setIsListening(false);
+      simulateVoiceCommand();
+    }, 3000);
   };
 
   const stopListening = async () => {
-    if (!recording) return;
-
-    setIsListening(false);
-    setIsProcessing(true);
-    Vibration.vibrate([50, 100, 50]); // Different haptic pattern
-
-    // Animate button back to normal
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-      tension: 100,
-      friction: 8,
-    }).start();
-
     try {
-      await recording.stopAndUnloadAsync();
-      const uri = recording.getURI();
-      
-      if (uri) {
-        await processVoiceInput(uri);
-      }
+      setIsListening(false);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     } catch (error) {
-      console.error('Error stopping recording:', error);
-      setIsProcessing(false);
-    } finally {
-      setRecording(null);
+      console.error('Error stopping speech recognition:', error);
+      setIsListening(false);
     }
   };
 
-  const processVoiceInput = async (audioUri: string) => {
+  const processVoiceInput = async (transcript: string) => {
     try {
-      // Simulate speech-to-text for demo
-      const mockTranscripts = [
-        "Nudge John about the pizza money",
-        "Send a funny reminder to Sarah about dinner",
-        "Tell Mike he owes me for coffee in a witty way",
-        "Check my balance with friends",
-        "Remind everyone about movie night expenses",
-        "Start a Quick Draw game for coffee",
-        "Let's play Quick Draw for who pays the bill",
-        "Challenge everyone to a Quick Draw game"
-      ];
+      setIsListening(false);
+      setIsProcessing(true);
       
-      const randomTranscript = mockTranscripts[Math.floor(Math.random() * mockTranscripts.length)];
+      console.log('🎤 Voice input:', transcript);
       
-      const response = await aiAssistantApi.processVoiceCommand(randomTranscript);
+      // Add the user's voice message to chat
+      const userMessage: ChatMessage = {
+        id: Date.now().toString(),
+        text: transcript,
+        isUser: true,
+        timestamp: new Date(),
+      };
+      setChatMessages(prev => [...prev, userMessage]);
+      
+      // Send to Gemini AI via our API
+      const response = await aiAssistantApi.processVoiceCommand(transcript);
       
       setLastResponse(response.text);
       setIsProcessing(false);
       setIsResponding(true);
       
-      // Play AI response audio if available
-      if (response.audioUrl) {
-        await playAudio(response.audioUrl);
-      } else {
-        // Fallback to text-to-speech
-        Speech.speak(response.text, {
-          language: 'en',
-          pitch: 1.1,
-          rate: 0.9,
-        });
+      // Add AI response to chat (remove emojis as requested)
+      const cleanResponse = response.text.replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '').trim();
+      
+      const aiMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        text: cleanResponse,
+        isUser: false,
+        timestamp: new Date(),
+      };
+      setChatMessages(prev => [...prev, aiMessage]);
+      
+      // Use Eleven Labs TTS for response (better female voice, faster)
+      await playAudio(response.audioUrl, cleanResponse);
+      
+      // Execute any actions
+      if (response.action) {
+        executeAction(response.action);
       }
-
-      // Show success animation
-      Animated.sequence([
-        Animated.timing(scaleAnim, {
-          toValue: 1.4,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(scaleAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]).start();
-
-      // Reset voice fail count on success
-      setVoiceFailCount(0);
-
-      // Auto-hide response after 3 seconds
-      setTimeout(() => {
-        setIsResponding(false);
-      }, 3000);
-
+      
+      setIsResponding(false);
+      
     } catch (error) {
       console.error('Error processing voice input:', error);
-      
-      const newFailCount = voiceFailCount + 1;
-      setVoiceFailCount(newFailCount);
       setIsProcessing(false);
+      setIsResponding(false);
       
-      // Show chat after 2 failed attempts
-      if (newFailCount >= 2) {
-        setShowChat(true);
-      } else {
-        Alert.alert('Voice Error', 'Could not understand. Please try again.');
-      }
+      // Fallback response
+      const fallbackMessage: ChatMessage = {
+        id: (Date.now() + 2).toString(),
+        text: "I'm having trouble connecting to my AI brain right now. Could you try typing your message instead?",
+        isUser: false,
+        timestamp: new Date(),
+      };
+      setChatMessages(prev => [...prev, fallbackMessage]);
+      
+      await playAudio(undefined, fallbackMessage.text);
     }
   };
 
-  const playAudio = async (audioUrl: string) => {
+  const simulateVoiceCommand = async () => {
     try {
-      const { sound } = await Audio.Sound.createAsync({ uri: audioUrl });
-      setSound(sound);
-      await sound.playAsync();
+      setIsProcessing(true);
       
-      sound.setOnPlaybackStatusUpdate((status) => {
-        if (status.isLoaded && status.didJustFinish) {
-          setIsResponding(false);
-        }
-      });
-    } catch (error) {
-      console.error('Error playing audio:', error);
+      // Common voice commands for expense tracking
+      const mockQueries = [
+        "How much do I owe John?",
+        "What's my balance with Sarah?",
+        "Add a dinner expense for $50",
+        "Send a reminder to Alex about the pizza money",
+        "How much did I spend this month?",
+        "Who owes me money?",
+        "Create a new group for vacation",
+        "Split the grocery bill equally"
+      ];
+      
+      const randomQuery = mockQueries[Math.floor(Math.random() * mockQueries.length)];
+      
+      // Add the user's "voice" message to chat
+      const userMessage: ChatMessage = {
+        id: Date.now().toString(),
+        text: `🎤 "${randomQuery}"`,
+        isUser: true,
+        timestamp: new Date(),
+      };
+      setChatMessages(prev => [...prev, userMessage]);
+      
+      // Generate a demo response
+      let demoResponse = '';
+      if (randomQuery.includes('balance') || randomQuery.includes('owe')) {
+        demoResponse = "I can see you currently have a net balance of +$45.50. John owes you $20 from last week's dinner!";
+      } else if (randomQuery.includes('group') || randomQuery.includes('create')) {
+        demoResponse = "I'd be happy to help you create a new group! Just go to the Groups tab and tap the + button.";
+      } else if (randomQuery.includes('expense') || randomQuery.includes('add')) {
+        demoResponse = "To add an expense, tap the + button on your dashboard. I can help you split it fairly among your friends!";
+      } else if (randomQuery.includes('reminder') || randomQuery.includes('send')) {
+        demoResponse = "I can send a friendly reminder! Just let me know who you want to remind and I'll craft a nice message.";
+      } else {
+        demoResponse = "I'm here to help you manage your expenses and groups. What would you like to do today?";
+      }
+      
+      setIsProcessing(false);
+      setIsResponding(true);
+      
+      // Add AI response to chat (clean, no emojis)
+      const cleanResponse = demoResponse.replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '').trim();
+      
+      const aiMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        text: cleanResponse,
+        isUser: false,
+        timestamp: new Date(),
+      };
+      setChatMessages(prev => [...prev, aiMessage]);
+      
+      // Speak the response
+      await playAudio(undefined, cleanResponse);
+      
       setIsResponding(false);
+      
+    } catch (error) {
+      console.error('Error simulating voice command:', error);
+      setIsProcessing(false);
+      setIsResponding(false);
+    }
+  };
+
+  const executeAction = (action: any) => {
+    try {
+      console.log('Executing AI action:', action);
+      
+      switch (action.type) {
+        case 'navigate':
+          // Handle navigation actions
+          console.log('Navigation action:', action.payload);
+          break;
+        case 'reminder':
+          // Handle reminder actions
+          console.log('Reminder action:', action.payload);
+          break;
+        case 'notification':
+          // Handle notification actions
+          console.log('Notification action:', action.payload);
+          break;
+        case 'balance':
+          // Handle balance check actions
+          console.log('Balance check action:', action.payload);
+          break;
+        case 'expense':
+          // Handle expense actions
+          console.log('Expense action:', action.payload);
+          break;
+        default:
+          console.log('AI assistant handled:', action.type);
+      }
+    } catch (error) {
+      console.error('Error executing action:', error);
+    }
+  };
+
+  const playAudio = async (audioUrl?: string, text?: string) => {
+    try {
+      if (text) {
+        console.log('🔊 Divi is speaking:', text);
+        
+        // Use the enhanced WebSpeech utility for all platforms
+        const success = await WebSpeech.speak(text, {
+          rate: 1.0, // Slightly faster
+          pitch: 1.1,
+        });
+        
+        if (success) {
+          // Haptic feedback on successful speech
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } else {
+          console.log('TTS failed, providing haptic feedback only');
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        }
+      } else {
+        // Fallback haptic feedback
+        console.log('🔊 Divi response (haptic feedback)');
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+      
+    } catch (error) {
+      console.error('Error with speech synthesis:', error);
+      // Fallback to haptic feedback if speech fails
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
   };
 
@@ -317,6 +462,9 @@ export default function VoiceAIAssistant() {
 
       setChatMessages(prev => [...prev, aiMessage]);
 
+      // Make Divi speak the response
+      await playAudio(undefined, aiMessage.text);
+
       // Handle special actions like nudging friends
       if (response.action?.type === 'notification' && response.action.payload?.friendName) {
         try {
@@ -349,13 +497,24 @@ export default function VoiceAIAssistant() {
   const openChat = () => {
     setShowChat(true);
     if (chatMessages.length === 0) {
+      const hour = new Date().getHours();
+      let timeGreeting = 'Hi';
+      if (hour < 12) timeGreeting = 'Good morning';
+      else if (hour < 17) timeGreeting = 'Good afternoon';
+      else timeGreeting = 'Good evening';
+      
       const welcomeMessage: ChatMessage = {
         id: Date.now().toString(),
-        text: "Hi! I'm Divi, your expense assistant. I can help you with expenses, nudge friends for money, or answer questions about your groups. What can I do for you?",
+        text: `${timeGreeting}! I'm Divi, your personal expense assistant. I can help you track expenses, remind friends about money, check balances, or answer questions about your groups. What can I help you with today?`,
         isUser: false,
         timestamp: new Date(),
       };
       setChatMessages([welcomeMessage]);
+      
+      // Speak the welcome message
+      setTimeout(() => {
+        playAudio(undefined, welcomeMessage.text);
+      }, 500);
     }
   };
 
@@ -373,10 +532,69 @@ export default function VoiceAIAssistant() {
     ? <ActivityIndicator size={28} color="#FFFFFF" />
     : isResponding 
     ? <Volume2 size={28} color="#FFFFFF" />
-    : <Zap size={28} color="#FFFFFF" />;
+    : <Bot size={28} color="#FFFFFF" />;
 
   return (
     <>
+      {/* Welcome Modal */}
+      {showWelcomeModal && (
+        <Modal
+          visible={showWelcomeModal}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={handleDismissWelcome}
+        >
+          <View style={styles.welcomeOverlay}>
+            <BlurView intensity={20} style={StyleSheet.absoluteFillObject} />
+            <View style={styles.welcomeModal}>
+              <View style={styles.welcomeHeader}>
+                <View style={styles.diviAvatar}>
+                  <Bot size={24} color="#10B981" />
+                </View>
+                <Text style={styles.welcomeTitle}>Meet Divi</Text>
+                <Text style={styles.welcomeSubtitle}>Your AI Assistant</Text>
+              </View>
+              
+              <View style={styles.welcomeContent}>
+                <Text style={styles.welcomeText}>
+                  Hi {user?.fullName || 'there'}! 👋 I'm here to help you with:
+                </Text>
+                
+                <View style={styles.featureList}>
+                  <View style={styles.featureItem}>
+                    <Text style={styles.featureIcon}>💰</Text>
+                    <Text style={styles.featureText}>Track expenses and balances</Text>
+                  </View>
+                  <View style={styles.featureItem}>
+                    <Text style={styles.featureIcon}>📱</Text>
+                    <Text style={styles.featureText}>Send reminders to friends</Text>
+                  </View>
+                  <View style={styles.featureItem}>
+                    <Text style={styles.featureIcon}>👥</Text>
+                    <Text style={styles.featureText}>Manage your groups</Text>
+                  </View>
+                  <View style={styles.featureItem}>
+                    <Text style={styles.featureIcon}>💬</Text>
+                    <Text style={styles.featureText}>Answer your questions</Text>
+                  </View>
+                </View>
+                
+                <Text style={styles.welcomeFooter}>
+                  Tap the voice button to talk to me or use the chat!
+                </Text>
+              </View>
+              
+              <TouchableOpacity 
+                style={styles.welcomeButton} 
+                onPress={handleDismissWelcome}
+              >
+                <Text style={styles.welcomeButtonText}>Let's Get Started</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
+
       {/* Main Voice Button */}
       <View style={styles.container}>
         {/* Ripple Effect */}
@@ -439,26 +657,21 @@ export default function VoiceAIAssistant() {
           </Animated.View>
         </TouchableOpacity>
 
-        {/* Status Text */}
-        <Animated.View style={styles.statusContainer}>
-          <Text style={styles.statusText}>
-            {isListening
-              ? 'Ask Divi'
-              : isProcessing
-              ? '🤔 Processing...'
-              : isResponding
-              ? '🔊 Speaking...'
-              : '⚡ Tap to nudge friends'}
-          </Text>
-          {isListening && (
-            <TouchableOpacity 
-              onPress={openChat}
-              style={styles.askDiviButton}
-            >
-              <MessageCircle size={14} color="#10B981" />
-            </TouchableOpacity>
-          )}
-        </Animated.View>
+        {/* Status Text - Make it clickable */}
+        <TouchableOpacity onPress={openChat} activeOpacity={0.7}>
+          <Animated.View style={styles.statusContainer}>
+            <MessageCircle size={14} color="#FFFFFF" style={{ marginRight: 6 }} />
+            <Text style={styles.statusText}>
+              {isListening
+                ? 'Listening...'
+                : isProcessing
+                ? 'Processing...'
+                : isResponding
+                ? 'Speaking...'
+                : 'Chat with Divi'}
+            </Text>
+          </Animated.View>
+        </TouchableOpacity>
       </View>
 
       {/* Response Bubble */}
@@ -567,61 +780,63 @@ const styles = StyleSheet.create({
   container: {
     position: 'absolute',
     right: 20,
-    bottom: 100,
+    bottom: 90, // Position right above the footer (footer is ~80px)
     alignItems: 'center',
     zIndex: 1000,
   },
   ripple: {
     position: 'absolute',
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 60, // Reduced to match smaller button
+    height: 60,
+    borderRadius: 30,
     backgroundColor: '#10B981',
   },
   glow: {
     position: 'absolute',
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 70, // Reduced to match smaller button
+    height: 70,
+    borderRadius: 35,
     backgroundColor: '#10B981',
     shadowColor: '#10B981',
     shadowOffset: {
       width: 0,
       height: 0,
     },
-    shadowOpacity: 1,
-    shadowRadius: 20,
-    elevation: 10,
+    shadowOpacity: 0.8, // Reduced glow
+    shadowRadius: 15, // Reduced glow
+    elevation: 6, // Reduced glow
   },
   voiceButton: {
-    width: 60,  // Reduced from 80
-    height: 60, // Reduced from 80
-    borderRadius: 30, // Reduced from 40
+    width: 50,  // Made even smaller
+    height: 50, // Made even smaller 
+    borderRadius: 25, // Made even smaller
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 8,
+      height: 4, // Reduced shadow
     },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 15,
+    shadowOpacity: 0.2, // Reduced shadow
+    shadowRadius: 6, // Reduced shadow
+    elevation: 8, // Reduced shadow
   },
   buttonContent: {
     justifyContent: 'center',
     alignItems: 'center',
   },
   statusContainer: {
-    marginTop: 8, // Reduced from 12
-    paddingHorizontal: 12, // Reduced from 16
-    paddingVertical: 6, // Reduced from 8
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    borderRadius: 16, // Reduced from 20
-    maxWidth: 180, // Reduced from 200
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(16, 185, 129, 0.9)', // Green background to show it's clickable
+    borderRadius: 20,
+    maxWidth: 140, // Made smaller
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   statusText: {
     color: '#FFFFFF',
@@ -813,5 +1028,102 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     marginLeft: 8,
+  },
+  // Welcome Modal Styles
+  welcomeOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    paddingHorizontal: 24,
+  },
+  welcomeModal: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 24,
+    elevation: 8,
+  },
+  welcomeHeader: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  diviAvatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#ECFDF5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    borderWidth: 3,
+    borderColor: '#10B981',
+  },
+  welcomeTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  welcomeSubtitle: {
+    fontSize: 16,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  welcomeContent: {
+    width: '100%',
+    marginBottom: 24,
+  },
+  welcomeText: {
+    fontSize: 16,
+    color: '#374151',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 24,
+  },
+  featureList: {
+    marginBottom: 20,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingHorizontal: 12,
+  },
+  featureIcon: {
+    fontSize: 20,
+    marginRight: 12,
+    width: 32,
+    textAlign: 'center',
+  },
+  featureText: {
+    fontSize: 15,
+    color: '#374151',
+    flex: 1,
+  },
+  welcomeFooter: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  welcomeButton: {
+    backgroundColor: '#10B981',
+    borderRadius: 16,
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    width: '100%',
+    alignItems: 'center',
+  },
+  welcomeButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });

@@ -62,7 +62,8 @@ export default function TabLayout() {
             ),
           }}
         />
-      </Tabs>
+      </Tabs>      
+      {/* Voice AI Assistant - Available on all tabs, no welcome here */}
       <VoiceAIAssistant />
     </View>
   );

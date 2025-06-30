@@ -10,8 +10,9 @@ import {
   Dimensions,
   Modal,
 } from 'react-native';
+// expo-av is now the sole library for audio recording and playback.
 import { Audio } from 'expo-av';
-import * as Speech from 'expo-speech';
+// All dependencies on 'expo-speech' have been removed.
 import {
   Mic,
   MicOff,
@@ -21,15 +22,21 @@ import {
   Send,
   X,
 } from 'lucide-react-native';
+
 // Mock useAuth and aiAssistantApi for standalone example
 const useAuth = () => ({ user: { fullName: 'Demo User' } });
+
+// This mock API now simulates a backend that would handle Text-to-Speech (TTS)
+// and provide an audio URL for expo-av to play.
 const aiAssistantApi = {
   processVoiceCommand: async (command: string) => {
     console.log('Processing command:', command);
     await new Promise(res => setTimeout(res, 1500));
     return {
       text: `I've processed your command about: "${command}". In a real app, I would perform an action.`,
-      audioUrl: null, // No audio URL for this demo
+      // In a real app, a backend service would generate speech from this text
+      // and return a real audio file URL here.
+      audioUrl: null, 
       action: { type: 'CONFIRMATION', details: command },
     };
   }
@@ -45,7 +52,8 @@ interface AIAssistantProps {
   onAction?: (action: any) => void;
 }
 
-export default function AIAssistant({ isVisible, onClose, onAction }: AIAssistantProps) {
+// Note: The component has been renamed to App to be a valid default export.
+export default function App({ isVisible, onClose, onAction }: AIAssistantProps) {
   const { user } = useAuth();
   const [isListening, setIsListening] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -157,14 +165,10 @@ export default function AIAssistant({ isVisible, onClose, onAction }: AIAssistan
       
       console.log('Starting recording..');
 
-      // --- THIS IS THE CORRECTED PART ---
-      // We now use the recommended preset instead of a manual configuration object.
-      // This automatically handles platform-specific settings (Android, iOS, Web) for you.
       const { recording } = await Audio.Recording.createAsync(
          Audio.RecordingOptionsPresets.HIGH_QUALITY
       );
-      // --- END OF CORRECTION ---
-
+      
       setRecording(recording);
       setIsListening(true);
       setCurrentTranscript('Listening...');
@@ -243,6 +247,12 @@ export default function AIAssistant({ isVisible, onClose, onAction }: AIAssistan
     }
   };
 
+  /**
+   * Handles the AI response. It adds the message to the conversation and
+   * plays the audio using expo-av if a URL is provided.
+   * All expo-speech logic has been removed.
+   * @param response The response object from the AI API.
+   */
   const handleAIResponse = async (response: AIResponse) => {
     // Add AI response to conversation
     const assistantMessage = {
@@ -254,26 +264,14 @@ export default function AIAssistant({ isVisible, onClose, onAction }: AIAssistan
     
     setConversation(prev => [...prev, assistantMessage]);
 
-    // Play audio response if available
+    // Play audio response if available, using expo-av.
     if (response.audioUrl) {
       try {
         await playAudio(response.audioUrl);
       } catch (error) {
+        // Error is handled inside playAudio with an Alert.
         console.error('Error playing audio:', error);
-        // Fallback to text-to-speech
-        Speech.speak(response.text, {
-          language: 'en-US',
-          pitch: 1.1,
-          rate: 0.9,
-        });
       }
-    } else {
-      // Use built-in text-to-speech
-      Speech.speak(response.text, {
-        language: 'en-US',
-        pitch: 1.1,
-        rate: 0.9,
-      });
     }
 
     // Handle actions
@@ -286,7 +284,6 @@ export default function AIAssistant({ isVisible, onClose, onAction }: AIAssistan
     try {
       setIsPlaying(true);
       const { sound } = await Audio.Sound.createAsync({ uri: audioUrl });
-      await sound.playAsync();
       
       sound.setOnPlaybackStatusUpdate((status) => {
         if ('didJustFinish' in status && status.didJustFinish) {
@@ -294,8 +291,14 @@ export default function AIAssistant({ isVisible, onClose, onAction }: AIAssistan
           sound.unloadAsync();
         }
       });
+      
+      await sound.playAsync();
+
     } catch (error) {
       setIsPlaying(false);
+      console.error('Playback Error:', error);
+      Alert.alert("Playback Error", "Could not play the audio response.");
+      // We throw the error so the caller knows the playback failed.
       throw error;
     }
   };

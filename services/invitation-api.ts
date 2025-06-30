@@ -1,22 +1,71 @@
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from './api';
 
 // Create axios instance with auth interceptor for invitations
 const invitationApi = axios.create({
   baseURL: API_URL,
+  timeout: 10000, // 10 second timeout
 });
 
 // Add request interceptor to include auth token
 invitationApi.interceptors.request.use(
   async (config) => {
-    const token = await AsyncStorage.getItem('authToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    try {
+      const token = await AsyncStorage.getItem('authToken');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      console.log(`📤 API Request: ${config.method?.toUpperCase()} ${config.url}`);
+      return config;
+    } catch (error) {
+      console.error('Error in request interceptor:', error);
+      return config;
     }
-    return config;
   },
   (error) => {
+    console.error('Request interceptor error:', error);
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor to handle common errors
+invitationApi.interceptors.response.use(
+  (response) => {
+    console.log(`📥 API Response: ${response.status} ${response.config.url}`);
+    return response;
+  },
+  (error: AxiosError) => {
+    console.error(`❌ API Error: ${error.config?.url}`, error.message);
+    
+    // Handle network errors gracefully
+    if (error.code === 'NETWORK_ERROR' || error.message === 'Network Error') {
+      console.log('🔗 Network issue detected - API server may not be running');
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor for better error handling
+invitationApi.interceptors.response.use(
+  (response) => {
+    console.log(`✅ API Response: ${response.status} ${response.config.url}`);
+    return response;
+  },
+  (error: AxiosError) => {
+    console.error(`❌ API Error: ${error.message}`);
+    
+    if (error.code === 'NETWORK_ERROR' || error.message === 'Network Error') {
+      console.error('🌐 Network connectivity issue. Check your internet connection and API server.');
+      return Promise.reject(new Error('Network connection failed. Please check your internet connection.'));
+    }
+    
+    if (error.code === 'ECONNABORTED') {
+      console.error('⏱️ Request timeout');
+      return Promise.reject(new Error('Request timed out. Please try again.'));
+    }
+    
     return Promise.reject(error);
   }
 );
@@ -70,31 +119,68 @@ export const sendInvitation = async (
   error?: string;
 }> => {
   try {
-    console.log('Sending invitation with data:', invitationData);
-    console.log('API URL:', API_URL);
+    console.log('📧 Sending invitation with data:', invitationData);
+    console.log('🌐 API URL:', API_URL);
+    
+    if (!API_URL) {
+      throw new Error('API URL is not configured. Please check your network settings.');
+    }
     
     const response = await invitationApi.post(
       '/invitations/invite',
       invitationData
     );
 
-    console.log('Invitation sent successfully:', response.data);
+    console.log('✅ Invitation sent successfully:', response.data);
     
     return {
       success: true,
-      message: response.data.message,
+      message: response.data.message || 'Invitation sent successfully!',
       invitation: response.data.invitation,
     };
   } catch (error: any) {
-    console.error('Error sending invitation:', error);
-    console.error('Error response:', error.response?.data);
-    console.error('Error status:', error.response?.status);
-    console.error('Request data:', invitationData);
+    console.error('❌ Error sending invitation:', error);
+    
+    // Network or connection errors
+    if (error.message?.includes('Network')) {
+      return {
+        success: false,
+        message: 'Network error. Please check your internet connection and try again.',
+        error: 'NETWORK_ERROR',
+      };
+    }
+    
+    // API server errors
+    if (error.response?.status >= 500) {
+      return {
+        success: false,
+        message: 'Server error. Please try again later.',
+        error: 'SERVER_ERROR',
+      };
+    }
+    
+    // Validation errors
+    if (error.response?.status === 400) {
+      return {
+        success: false,
+        message: error.response.data?.message || 'Invalid invitation data.',
+        error: 'VALIDATION_ERROR',
+      };
+    }
+    
+    // Authentication errors
+    if (error.response?.status === 401) {
+      return {
+        success: false,
+        message: 'Please log in again to send invitations.',
+        error: 'AUTH_ERROR',
+      };
+    }
     
     return {
       success: false,
-      message: 'Failed to send invitation',
-      error: error.response?.data?.error || error.message || 'Network error',
+      message: error.response?.data?.message || 'Failed to send invitation. Please try again.',
+      error: error.message || 'UNKNOWN_ERROR',
     };
   }
 };

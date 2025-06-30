@@ -28,6 +28,7 @@ interface AuthContextType {
     email: string,
     password: string
   ) => Promise<{ error: string | null }>;
+  // signInWithGoogle: () => Promise<{ error: string | null }>;
   signOut: () => Promise<{ error: string | null }>;
 }
 
@@ -152,6 +153,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Clear state
       setUser(null);
       setToken(null);
+      setSession(false);
 
       // Clear storage
       await AsyncStorage.removeItem('authToken');

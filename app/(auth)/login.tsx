@@ -69,14 +69,34 @@ export default function LoginScreen() {
     );
   };
 
-  const handleOAuthSignIn = async (provider: 'google' | 'apple') => {
-    // OAuth is not implemented in our new backend
-    Alert.alert(
-      'Not Available',
-      `${provider} sign-in is not available with the new backend.`,
-      [{ text: 'OK' }]
-    );
-  };
+  // const handleOAuthSignIn = async (provider: 'google' | 'apple') => {
+  //   if (provider === 'apple') {
+  //     Alert.alert(
+  //       'Coming Soon',
+  //       'Apple Sign-In will be available in the next update!',
+  //       [{ text: 'OK' }]
+  //     );
+  //     return;
+  //   }
+
+  //   if (provider === 'google') {
+  //     setIsLoading(true);
+  //     setError(null);
+      
+  //     try {
+  //       const result = await signInWithGoogle();
+  //       if (result.error) {
+  //         setError(result.error);
+  //       } else {
+  //         router.replace('/(tabs)');
+  //       }
+  //     } catch (err: any) {
+  //       setError(err.message || 'Google sign-in failed');
+  //     } finally {
+  //       setIsLoading(false);
+  //     }
+  //   }
+  // };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -87,7 +107,7 @@ export default function LoginScreen() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() => router.push('/(auth)/welcome')}
             style={styles.backButton}
             activeOpacity={0.7}
           >
@@ -221,6 +241,7 @@ export default function LoginScreen() {
                 )}
               </TouchableOpacity>
 
+              {/* Temporarily hidden - social auth will be added later
               <View style={styles.divider}>
                 <View style={styles.dividerLine} />
                 <Text style={styles.dividerText}>or continue with</Text>
@@ -250,6 +271,7 @@ export default function LoginScreen() {
                   </Text>
                 </TouchableOpacity>
               </View>
+              */}
             </View>
           </View>
         </ScrollView>

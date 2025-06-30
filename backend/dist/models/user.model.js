@@ -57,6 +57,10 @@ const userSchema = new mongoose_1.Schema({
     },
     avatarUrl: String,
     phone: String,
+    expoPushToken: {
+        type: String,
+        required: false,
+    },
 }, {
     timestamps: true,
 });

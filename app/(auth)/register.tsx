@@ -110,15 +110,7 @@ export default function RegisterScreen() {
     }
   };
 
-  const handleOAuthSignUp = async (provider: 'google' | 'apple') => {
-    // OAuth is not supported in our new backend
-    Alert.alert(
-      'Not Supported',
-      `${
-        provider.charAt(0).toUpperCase() + provider.slice(1)
-      } sign-up is not supported in this version.`
-    );
-  };
+ 
 
   if (showSuccess) {
     return (
@@ -151,7 +143,7 @@ export default function RegisterScreen() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() => router.push('/(auth)/welcome')}
             style={styles.backButton}
             activeOpacity={0.7}
           >
@@ -304,6 +296,31 @@ export default function RegisterScreen() {
                 )}
               </TouchableOpacity>
 
+              {/* Temporarily hidden - social auth will be added later
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or continue with</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              <View style={styles.socialButtons}>
+                <TouchableOpacity
+                  style={styles.socialButton}
+                  onPress={() => handleOAuthSignUp('google')}
+                  disabled={isLoading}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.socialButtonText}>Google</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.socialButton, styles.appleButton]}
+                  onPress={() => handleOAuthSignUp('apple')}
+                  disabled={isLoading}
+                  activeOpacity={0.8}
+                >
+                  <Text
+              {/* Temporarily hidden - social auth will be added later
               <View style={styles.divider}>
                 <View style={styles.dividerLine} />
                 <Text style={styles.dividerText}>or continue with</Text>
@@ -333,6 +350,7 @@ export default function RegisterScreen() {
                   </Text>
                 </TouchableOpacity>
               </View>
+              */}
             </View>
           </View>
         </ScrollView>

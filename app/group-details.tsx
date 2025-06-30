@@ -48,6 +48,7 @@ import {
 } from '@/services/group-balances-api';
 import { budgetAPI, type BudgetStatus } from '@/services/budget-api';
 import Avatar from '@/components/Avatar';
+import CustomHeader from '@/components/CustomHeader';
 
 const { width } = Dimensions.get('window');
 

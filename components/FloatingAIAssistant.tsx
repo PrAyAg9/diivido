@@ -12,8 +12,9 @@ import {
   Vibration,
   ScrollView,
 } from 'react-native';
+// expo-av is now the sole library for audio recording and playback.
 import { Audio } from 'expo-av';
-import * as Speech from 'expo-speech';
+// expo-speech has been removed.
 import {
   Mic,
   MicOff,
@@ -24,18 +25,22 @@ import {
   Send,
   Users,
   Bot,
-  Sparkles, // <-- FIXED: Added missing import
+  Sparkles,
 } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
 
 // --- Mocking for standalone example ---
+// This mock API now simulates a backend that would handle Text-to-Speech (TTS)
+// and provide an audio URL for expo-av to play.
 const aiAssistantApi = {
   processVoiceCommand: async (command: string) => {
     console.log('Processing command:', command);
     await new Promise(res => setTimeout(res, 1500));
+    // In a real app, a backend service would generate speech from this text
+    // and return a real audio file URL here.
     return {
       text: `I've processed your command about: "${command}". In a real app, I would perform an action.`,
-      audioUrl: null,
+      audioUrl: null, // Placeholder: replace with a real audio URL from a TTS service
       action: { type: 'CONFIRMATION', details: command },
     };
   },
@@ -43,7 +48,7 @@ const aiAssistantApi = {
       await new Promise(res => setTimeout(res, 1500));
       return {
           text: "Here's your balance summary: You are owed $50 and you owe $20. Your net balance is $30.",
-          audioUrl: null,
+          audioUrl: null, // Placeholder: replace with a real audio URL
       }
   }
 };
@@ -52,7 +57,6 @@ const aiAssistantApi = {
 
 const { width, height } = Dimensions.get('window');
 
-// FIXED: Defined missing AIMessage type
 interface AIMessage {
   id: string;
   text: string;
@@ -68,7 +72,6 @@ interface AIAction {
 }
 
 export default function FloatingAIAssistant() {
-  // FIXED: Declared all necessary state variables
   const [isExpanded, setIsExpanded] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -81,9 +84,9 @@ export default function FloatingAIAssistant() {
   // Animations
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
-  const slideAnim = useRef(new Animated.Value(0)).current; // <-- FIXED: Declared slideAnim
+  const slideAnim = useRef(new Animated.Value(0)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
-  const sparkleAnim = useRef(new Animated.Value(0)).current; // <-- FIXED: Declared sparkleAnim
+  const sparkleAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const sparkleLoop = Animated.loop(
@@ -107,7 +110,7 @@ export default function FloatingAIAssistant() {
       if (sound) sound.unloadAsync();
       if (recording) recording.stopAndUnloadAsync();
     };
-  }, [sound, recording]); // Added dependencies
+  }, [sound, recording]);
 
   useEffect(() => {
     Animated.spring(slideAnim, {
@@ -136,7 +139,7 @@ export default function FloatingAIAssistant() {
       );
 
       setRecording(recording);
-      setIsListening(true); // <-- FIXED: Changed from setIsRecording to setIsListening
+      setIsListening(true);
 
       Animated.loop(
         Animated.sequence([
@@ -161,7 +164,7 @@ export default function FloatingAIAssistant() {
   const stopRecording = async () => {
     if (!recording) return;
 
-    setIsListening(false); // <-- FIXED: Changed from setIsRecording to setIsListening
+    setIsListening(false);
     setIsProcessing(true);
     pulseAnim.stopAnimation(() => pulseAnim.setValue(1));
 
@@ -185,9 +188,12 @@ export default function FloatingAIAssistant() {
       const mockTranscript = "Check my balance with my friends";
       addMessage(mockTranscript, true);
       
+      // The API call simulates sending voice data and getting a text and audio response.
+      // In a real app, the backend would generate speech and provide an audioUrl.
       const response = await aiAssistantApi.processVoiceCommand(mockTranscript);
       addMessage(response.text, false, response.audioUrl, response.action);
       
+      // If an audio URL is returned, expo-av plays it. This is how TTS is handled.
       if (response.audioUrl) {
         playAudio(response.audioUrl);
       }
@@ -206,7 +212,6 @@ export default function FloatingAIAssistant() {
     }
   };
     
-  // FIXED: Implemented the missing addMessage function
   const addMessage = (text: string, isUser: boolean, audioUrl?: string | null, action?: any) => {
     const newMessage: AIMessage = {
       id: Date.now().toString(),
@@ -219,13 +224,20 @@ export default function FloatingAIAssistant() {
     setMessages(prev => [...prev, newMessage]);
   };
 
+  /**
+   * Plays audio from a given URL using expo-av.
+   * This function is used to play the AI's spoken responses.
+   * @param audioUrl The URL of the audio file to play.
+   */
   const playAudio = async (audioUrl: string) => {
+    console.log(`Attempting to play audio from: ${audioUrl}`);
     try {
       const { sound } = await Audio.Sound.createAsync({ uri: audioUrl });
       setSound(sound);
       await sound.playAsync();
     } catch (error) {
       console.error('Error playing audio:', error);
+      Alert.alert("Playback Error", "Could not play the audio response.");
     }
   };
 
@@ -239,6 +251,7 @@ export default function FloatingAIAssistant() {
         case 'Show my balance':
           response = await aiAssistantApi.getVoiceBalanceSummary();
           addMessage(response.text, false, response.audioUrl);
+          // If a TTS audio file is available, play it via expo-av
           if (response.audioUrl) playAudio(response.audioUrl);
           break;
         case 'Help me split an expense':
@@ -305,7 +318,6 @@ export default function FloatingAIAssistant() {
                 <Text style={styles.welcomeSubtext}>I can help you split expenses, remind friends about money, and answer questions about your finances!</Text>
               </View>
             )}
-            {/* FIXED: Added explicit type for 'message' */}
             {messages.map((message: AIMessage) => (
               <View key={message.id} style={[styles.messageContainer, message.isUser ? styles.userMessage : styles.aiMessage]}>
                 <Text style={[styles.messageText, message.isUser ? styles.userMessageText : styles.aiMessageText]}>
@@ -355,7 +367,7 @@ export default function FloatingAIAssistant() {
   );
 }
 
-// Styles remain largely the same, only minor adjustments needed
+// Styles remain the same.
 const styles = StyleSheet.create({
   floatingButton: {
     position: 'absolute',
@@ -538,87 +550,4 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     textAlign: 'center',
   },
-  voiceFirstContainer: {
-    flex: 1,
-    padding: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  voiceWelcome: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  voiceWelcomeTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#000000',
-    textAlign: 'center',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  voiceWelcomeSubtitle: {
-    fontSize: 16,
-    color: '#6B7280',
-    textAlign: 'center',
-    lineHeight: 22,
-    maxWidth: 280,
-  },
-  largeVoiceButton: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#10B981',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
-    elevation: 8,
-  },
-  largeVoiceButtonActive: {
-    backgroundColor: '#EF4444',
-  },
-  largeVoiceButtonContent: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  voiceInstructions: {
-    fontSize: 16,
-    color: '#6B7280',
-    textAlign: 'center',
-    marginBottom: 40,
-    fontWeight: '500',
-  },
-  voicePrompts: {
-    alignItems: 'center',
-    width: '100%',
-  },
-  voicePromptsTitle: {
-    fontSize: 14,
-    color: '#9CA3AF',
-    marginBottom: 12,
-    fontWeight: '600',
-  },
-  voicePromptButton: {
-    backgroundColor: '#F9FAFB',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 20,
-    marginVertical: 4,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    minWidth: 200,
-  },
-  voicePromptText: {
-    fontSize: 14,
-    color: '#374151',
-    textAlign: 'center',
-    fontStyle: 'italic',
-  },
 });
-

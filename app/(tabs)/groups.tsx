@@ -10,6 +10,7 @@ import {
   TextInput,
   ActivityIndicator,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
@@ -23,6 +24,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { groupsApi } from '@/services/api';
 import { formatCurrency, type Currency } from '@/utils/currency';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import CustomHeader from '@/components/CustomHeader';
+import Footer from '@/components/Footer';
 
 interface Member {
   userId: string;
@@ -125,16 +128,18 @@ export default function GroupsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Groups</Text>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => router.push('/create-group')}
-        >
-          <Plus size={20} color="#FFFFFF" />
-        </TouchableOpacity>
-      </View>
+    <View style={styles.container}>
+      <CustomHeader
+        title="Groups"
+        rightComponent={
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => router.push('/create-group')}
+          >
+            <Plus size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+        }
+      />
 
       {error && (
         <View style={styles.errorContainer}>
@@ -265,7 +270,9 @@ export default function GroupsScreen() {
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+      
+      <Footer />
+    </View>
   );
 }
 
@@ -337,6 +344,7 @@ const styles = StyleSheet.create({
   summaryContainer: {
     flexDirection: 'row',
     paddingHorizontal: 24,
+    paddingTop: Platform.OS === 'android' ? 16 : 8,
     marginBottom: 24,
     gap: 12,
   },

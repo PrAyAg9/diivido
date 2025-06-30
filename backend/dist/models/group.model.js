@@ -65,6 +65,29 @@ const groupSchema = new mongoose_1.Schema({
             },
         },
     ],
+    budget: {
+        totalAmount: {
+            type: Number,
+            required: false,
+        },
+        currency: {
+            type: String,
+            default: 'USD',
+        },
+        description: String,
+        setBy: {
+            type: mongoose_1.Schema.Types.ObjectId,
+            ref: 'User',
+        },
+        setAt: {
+            type: Date,
+            default: Date.now,
+        },
+        lastAlertSent: {
+            percentage: Number,
+            sentAt: Date,
+        },
+    },
 }, {
     timestamps: true,
 });

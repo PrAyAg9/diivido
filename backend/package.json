@@ -2,12 +2,16 @@
   "name": "divido-backend",
   "version": "1.0.0",
   "description": "Backend for Divido expense splitting app",
-  "main": "src/index.ts",
+  "main": "dist/index.js",
   "scripts": {
     "start": "node dist/index.js",
     "dev": "nodemon src/index.ts",
-    "build": "tsc",
-    "test": "jest"
+    "build": "npm run clean && tsc",
+    "clean": "rimraf dist",
+    "postbuild": "echo Build completed successfully",
+    "prestart": "npm run build",
+    "test": "jest",
+    "heroku-postbuild": "npm run build"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -37,6 +41,7 @@
     "@types/morgan": "^1.9.10",
     "@types/node": "^20.4.4",
     "nodemon": "^3.0.1",
+    "rimraf": "^5.0.10",
     "ts-node": "^10.9.1",
     "typescript": "^5.1.6"
   }

@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   TouchableOpacity,
   Image,
@@ -12,6 +11,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Plus, Edit3, Trash2, CheckCircle } from 'lucide-react-native';
+import CustomHeader from '@/components/CustomHeader';
 
 interface PaymentMethod {
   id: string;
@@ -142,14 +142,15 @@ export default function PaymentMethodsScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color="#111827" />
-        </TouchableOpacity>
-        <Text style={styles.title}>Payment Methods</Text>
-        <View style={styles.placeholder} />
-      </View>
+    <View style={styles.container}>
+      <CustomHeader 
+        title="Payment Methods"
+        leftComponent={
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <ArrowLeft size={24} color="#111827" />
+          </TouchableOpacity>
+        }
+      />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.sectionTitle}>UPI Payment Methods</Text>
@@ -204,7 +205,7 @@ export default function PaymentMethodsScreen() {
           </Text>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
